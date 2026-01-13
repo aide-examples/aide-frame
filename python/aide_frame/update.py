@@ -460,10 +460,16 @@ class UpdateManager:
 
         try:
             # Download tarball to temp file
-            req = urllib.request.Request(tarball_url, headers={
-                "User-Agent": "AIDE-Frame-Updater",
-                "Accept": "application/octet-stream"
-            })
+            # Use appropriate Accept header based on URL type
+            headers = {"User-Agent": "AIDE-Frame-Updater"}
+            if "api.github.com" in tarball_url:
+                # GitHub API tarball URLs need this header
+                headers["Accept"] = "application/vnd.github.v3.raw"
+            else:
+                # Direct download URLs (release assets)
+                headers["Accept"] = "application/octet-stream"
+
+            req = urllib.request.Request(tarball_url, headers=headers)
 
             with tempfile.NamedTemporaryFile(suffix='.tar.gz', delete=False) as tmp:
                 tmp_path = tmp.name
