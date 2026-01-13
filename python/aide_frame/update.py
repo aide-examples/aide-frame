@@ -87,31 +87,38 @@ def compare_versions(local, remote):
 
 class UpdateManager:
     """
-    Manages remote updates from GitHub.
+    Manages remote updates from GitHub Releases.
 
     Configuration options:
         enabled: bool - Enable/disable updates
         source.repo: str - GitHub repo (e.g., "username/repo")
-        source.branch: str - Branch to update from
+        source.branch: str - Branch for fallback version check
+        source.use_releases: bool - Use GitHub Releases (default: True)
+        source.asset_pattern: str - Release asset filename pattern (default: "{repo}-{version}.tar.gz")
         service_name: str - Systemd service name for restart
         updateable_dirs: list - Directories that can have files deleted
-        required_files: list - Files that must be downloaded successfully
-        file_extensions: list - File extensions to include in updates
+        required_files: list - Files that must exist after extraction
         auto_check: bool - Periodically check for updates
         auto_check_hours: int - Hours between auto-checks
         auto_download: bool - Automatically download updates
         auto_apply: bool - Automatically apply updates
+
+    Update modes:
+        1. GitHub Releases (default): Downloads tarball from releases
+        2. Raw files (legacy): Downloads individual files from branch
     """
 
     DEFAULT_CONFIG = {
         "enabled": True,
         "source": {
             "repo": None,  # Must be set by application
-            "branch": "main"
+            "branch": "main",
+            "use_releases": True,  # Use GitHub Releases instead of raw files
+            "asset_pattern": None  # Auto-detect from repo name
         },
         "service_name": None,  # For systemctl restart
         "updateable_dirs": [],  # Directories where files can be deleted
-        "required_files": ["VERSION"],  # Files that must be downloaded
+        "required_files": ["VERSION"],  # Files that must exist after extraction
         "file_extensions": [
             '.py', '.md', '.html', '.css', '.js', '.json', '.txt',
             '.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.svg'
@@ -214,6 +221,9 @@ class UpdateManager:
         """
         Check GitHub for a newer version.
 
+        Uses GitHub Releases API if use_releases is True (default),
+        otherwise falls back to checking raw VERSION file.
+
         Returns:
             dict with check results including available_version and comparison
         """
@@ -228,18 +238,18 @@ class UpdateManager:
         if not repo:
             return {"success": False, "error": "No repository configured"}
 
-        branch = source.get("branch", "main")
-
-        # Build URL for raw VERSION file
-        url = f"https://raw.githubusercontent.com/{repo}/{branch}/app/VERSION"
-
         self._state["update_state"] = "checking"
         self._save_state()
 
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "AIDE-Frame-Updater"})
-            with urllib.request.urlopen(req, timeout=10) as response:
-                remote_version = response.read().decode('utf-8').strip()
+            use_releases = source.get("use_releases", True)
+
+            if use_releases:
+                remote_version, release_info = self._check_releases(repo)
+                self._state["release_info"] = release_info
+            else:
+                remote_version = self._check_raw_version(repo, source.get("branch", "main"))
+                self._state["release_info"] = None
 
             local_version = get_local_version()
             cmp = compare_versions(local_version, remote_version)
@@ -284,6 +294,65 @@ class UpdateManager:
             self._state["update_state"] = "idle"
             self._save_state()
             return {"success": False, "error": str(e)}
+
+    def _check_releases(self, repo):
+        """
+        Check GitHub Releases for latest version.
+
+        Returns:
+            tuple: (version_string, release_info_dict)
+        """
+        api_url = f"https://api.github.com/repos/{repo}/releases/latest"
+
+        req = urllib.request.Request(api_url, headers={
+            "User-Agent": "AIDE-Frame-Updater",
+            "Accept": "application/vnd.github.v3+json"
+        })
+
+        with urllib.request.urlopen(req, timeout=15) as response:
+            data = json.loads(response.read().decode('utf-8'))
+
+        # Extract version from tag (remove 'v' prefix if present)
+        tag = data.get("tag_name", "0.0.0")
+        version = tag.lstrip('v')
+
+        # Find tarball asset
+        tarball_url = None
+        repo_name = repo.split('/')[-1]  # e.g., "aide-slideshow"
+
+        for asset in data.get("assets", []):
+            name = asset.get("name", "")
+            # Match patterns like "aide-slideshow-1.2.3.tar.gz"
+            if name.endswith(".tar.gz") and repo_name in name:
+                tarball_url = asset.get("browser_download_url")
+                break
+
+        # Fallback to source tarball if no asset found
+        if not tarball_url:
+            tarball_url = data.get("tarball_url")
+
+        release_info = {
+            "tag": tag,
+            "name": data.get("name"),
+            "tarball_url": tarball_url,
+            "published_at": data.get("published_at"),
+            "html_url": data.get("html_url")
+        }
+
+        return version, release_info
+
+    def _check_raw_version(self, repo, branch):
+        """
+        Check raw VERSION file (legacy method).
+
+        Returns:
+            version string
+        """
+        url = f"https://raw.githubusercontent.com/{repo}/{branch}/app/VERSION"
+
+        req = urllib.request.Request(url, headers={"User-Agent": "AIDE-Frame-Updater"})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            return response.read().decode('utf-8').strip()
 
     def _get_remote_file_list(self, repo, branch):
         """
@@ -330,10 +399,10 @@ class UpdateManager:
 
     def download_update(self):
         """
-        Download update files from GitHub and stage them.
+        Download update from GitHub and stage it.
 
-        Downloads all updateable files to .update/staging/ directory
-        and verifies checksums if available.
+        Uses GitHub Releases tarball if available, otherwise falls back
+        to downloading individual files.
 
         Returns:
             dict with download results
@@ -355,7 +424,147 @@ class UpdateManager:
         if not repo:
             return {"success": False, "error": "No repository configured"}
 
-        branch = source.get("branch", "main")
+        use_releases = source.get("use_releases", True)
+        release_info = self._state.get("release_info")
+
+        if use_releases and release_info and release_info.get("tarball_url"):
+            return self._download_release_tarball(available, release_info)
+        else:
+            return self._download_raw_files(available, repo, source.get("branch", "main"))
+
+    def _download_release_tarball(self, version, release_info):
+        """
+        Download and extract release tarball.
+
+        Returns:
+            dict with download results
+        """
+        import tarfile
+        import tempfile
+
+        tarball_url = release_info.get("tarball_url")
+        if not tarball_url:
+            return {"success": False, "error": "No tarball URL in release info"}
+
+        # Prepare staging directory
+        staging_dir = os.path.join(self.state_dir, "staging")
+        try:
+            if os.path.exists(staging_dir):
+                shutil.rmtree(staging_dir)
+            os.makedirs(staging_dir, exist_ok=True)
+        except OSError as e:
+            return {"success": False, "error": f"Cannot create staging directory: {e}"}
+
+        self._state["update_state"] = "downloading"
+        self._save_state()
+
+        try:
+            # Download tarball to temp file
+            req = urllib.request.Request(tarball_url, headers={
+                "User-Agent": "AIDE-Frame-Updater",
+                "Accept": "application/octet-stream"
+            })
+
+            with tempfile.NamedTemporaryFile(suffix='.tar.gz', delete=False) as tmp:
+                tmp_path = tmp.name
+                with urllib.request.urlopen(req, timeout=120) as response:
+                    # Download in chunks for large files
+                    while True:
+                        chunk = response.read(8192)
+                        if not chunk:
+                            break
+                        tmp.write(chunk)
+
+            # Extract tarball
+            extracted_files = []
+            with tarfile.open(tmp_path, 'r:gz') as tar:
+                # Find the app/ directory in the tarball
+                # Tarballs may have a root folder like "aide-slideshow-1.2.3/"
+                members = tar.getmembers()
+                app_prefix = None
+
+                for member in members:
+                    # Look for app/ directory
+                    parts = member.name.split('/')
+                    if 'app' in parts:
+                        app_idx = parts.index('app')
+                        app_prefix = '/'.join(parts[:app_idx + 1])
+                        break
+
+                if not app_prefix:
+                    # No app/ folder found - assume flat structure
+                    app_prefix = ""
+
+                # Extract files from app/ to staging
+                for member in members:
+                    if member.isfile():
+                        if app_prefix and member.name.startswith(app_prefix + '/'):
+                            # Remove prefix to get relative path
+                            rel_path = member.name[len(app_prefix) + 1:]
+                        elif not app_prefix:
+                            rel_path = member.name
+                        else:
+                            continue
+
+                        if rel_path and not rel_path.startswith('.'):
+                            # Extract to staging
+                            target_path = os.path.join(staging_dir, rel_path)
+                            os.makedirs(os.path.dirname(target_path), exist_ok=True)
+
+                            with tar.extractfile(member) as src:
+                                with open(target_path, 'wb') as dst:
+                                    dst.write(src.read())
+
+                            extracted_files.append(rel_path)
+
+            # Clean up temp file
+            os.unlink(tmp_path)
+
+            # Verify required files exist
+            required_files = self.config.get("required_files", ["VERSION"])
+            missing_required = [f for f in required_files if f not in extracted_files]
+            if missing_required:
+                self._state["update_state"] = "idle"
+                self._save_state()
+                return {
+                    "success": False,
+                    "error": f"Required files missing in release: {missing_required}",
+                    "extracted": extracted_files
+                }
+
+            # Update state
+            self._state["update_state"] = "staged"
+            self._state["staged_version"] = version
+            self._save_state()
+
+            return {
+                "success": True,
+                "message": f"Update {version} staged successfully (from release)",
+                "staged_version": version,
+                "downloaded": extracted_files,
+                "source": "release"
+            }
+
+        except urllib.error.URLError as e:
+            self._state["update_state"] = "idle"
+            self._save_state()
+            return {"success": False, "error": f"Download failed: {e.reason}"}
+        except tarfile.TarError as e:
+            self._state["update_state"] = "idle"
+            self._save_state()
+            return {"success": False, "error": f"Invalid tarball: {e}"}
+        except Exception as e:
+            self._state["update_state"] = "idle"
+            self._save_state()
+            return {"success": False, "error": str(e)}
+
+    def _download_raw_files(self, version, repo, branch):
+        """
+        Download individual files from GitHub raw (legacy method).
+
+        Returns:
+            dict with download results
+        """
         base_url = f"https://raw.githubusercontent.com/{repo}/{branch}/app"
 
         # Get file list from GitHub API
@@ -383,23 +592,6 @@ class UpdateManager:
 
         downloaded = []
         errors = []
-        checksums = {}
-
-        # First, try to download CHECKSUMS.sha256 if it exists
-        checksums_url = f"{base_url}/CHECKSUMS.sha256"
-        try:
-            req = urllib.request.Request(checksums_url, headers={"User-Agent": "AIDE-Frame-Updater"})
-            with urllib.request.urlopen(req, timeout=10) as response:
-                checksums_content = response.read().decode('utf-8')
-                for line in checksums_content.strip().split('\n'):
-                    if line.strip():
-                        parts = line.split()
-                        if len(parts) >= 2:
-                            checksums[parts[1]] = parts[0]
-        except urllib.error.HTTPError:
-            pass  # Checksums file is optional
-        except Exception:
-            pass
 
         # Download each file
         for filepath in files_to_update:
@@ -410,13 +602,6 @@ class UpdateManager:
                 req = urllib.request.Request(url, headers={"User-Agent": "AIDE-Frame-Updater"})
                 with urllib.request.urlopen(req, timeout=30) as response:
                     content = response.read()
-
-                # Verify checksum if available
-                if filepath in checksums:
-                    actual_hash = hashlib.sha256(content).hexdigest()
-                    if actual_hash != checksums[filepath]:
-                        errors.append(f"{filepath}: checksum mismatch")
-                        continue
 
                 # Write to staging
                 with open(staging_path, 'wb') as f:
@@ -446,15 +631,16 @@ class UpdateManager:
 
         # Update state
         self._state["update_state"] = "staged"
-        self._state["staged_version"] = available
+        self._state["staged_version"] = version
         self._save_state()
 
         return {
             "success": True,
-            "message": f"Update {available} staged successfully",
-            "staged_version": available,
+            "message": f"Update {version} staged successfully (from raw files)",
+            "staged_version": version,
             "downloaded": downloaded,
-            "errors": errors if errors else None
+            "errors": errors if errors else None,
+            "source": "raw"
         }
 
     def _collect_files_recursive(self, directory):
