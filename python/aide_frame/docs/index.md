@@ -10,7 +10,18 @@ AIDE Frame provides common infrastructure that can be used as a starting point f
 - **Platform Detection** - Automatic detection of Raspberry Pi, WSL2, Linux desktop, etc.
 - **Remote Updates** - GitHub-based update system with rollback support
 
-## Architecture
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Architecture](architecture.md) | Framework/Anwendung-Trennung, Build- und Release-Prozess |
+| [Logging](logging.md) | Logger-Konfiguration und Nutzung |
+| [Paths](paths.md) | Pfad-Management und Registrierung |
+| [Config](config.md) | Konfigurationsdateien laden und mergen |
+| [Platform Detection](platform-detect.md) | Plattform-Erkennung (Raspi, WSL, etc.) |
+| [Remote Updates](update.md) | GitHub-basiertes Update-System |
+
+## Module Overview
 
 ```mermaid
 flowchart TB
