@@ -44,8 +44,14 @@ def fetch_json(url, headers=None, timeout=10):
                 req.add_header(key, value)
         req.add_header('User-Agent', 'aide-frame/1.0')
 
+        logger.debug(f"HTTP: GET {url}")
         with urllib.request.urlopen(req, timeout=timeout) as response:
-            return json.loads(response.read().decode('utf-8'))
+            body = response.read().decode('utf-8')
+            data = json.loads(body)
+            # Log response preview (first 100 chars)
+            preview = body[:100] + '...' if len(body) > 100 else body
+            logger.debug(f"  -> {response.status} {preview}")
+            return data
     except urllib.error.HTTPError as e:
         logger.error(f"HTTP error fetching {url}: {e.code} {e.reason}")
         return None
@@ -79,8 +85,13 @@ def fetch_text(url, headers=None, timeout=10):
                 req.add_header(key, value)
         req.add_header('User-Agent', 'aide-frame/1.0')
 
+        logger.debug(f"HTTP: GET {url}")
         with urllib.request.urlopen(req, timeout=timeout) as response:
-            return response.read().decode('utf-8')
+            body = response.read().decode('utf-8')
+            # Log response preview (first 100 chars)
+            preview = body[:100] + '...' if len(body) > 100 else body
+            logger.debug(f"  -> {response.status} {preview}")
+            return body
     except urllib.error.HTTPError as e:
         logger.error(f"HTTP error fetching {url}: {e.code} {e.reason}")
         return None
