@@ -15,9 +15,11 @@ my-app/
 │   │   └── index.html       # Web-UI
 │   ├── docs/                # Dokumentation (optional)
 │   │   └── index.md
-│   └── help/                # User-Help (optional)
-│       └── index.md
-└── config.json              # Konfiguration (optional)
+│   ├── help/                # User-Help (optional)
+│   │   └── index.md
+│   ├── sample_config.json   # Konfig-Vorlage (im Repo)
+│   └── config.json          # User-Konfig (in .gitignore)
+└── .gitignore
 ```
 
 ## Kanonische Initialisierungsreihenfolge
@@ -188,13 +190,21 @@ Die Hilfe ist dann unter `/help` erreichbar.
 
 ## Konfiguration
 
-Optional: Erstelle `config.json` im Projekt-Root:
+Erstelle `app/sample_config.json` (wird im Repo getrackt):
 
 ```json
 {
+    "_comment": "Copy this file to config.json and customize",
     "port": 8080,
     "log_level": "INFO"
 }
+```
+
+Füge zu `.gitignore` hinzu:
+
+```
+# User config (not tracked)
+app/config.json
 ```
 
 Laden in der App:
@@ -202,14 +212,11 @@ Laden in der App:
 ```python
 from aide_frame.config import load_config
 
-config = load_config(
-    config_path='config.json',
-    search_paths=[
-        os.path.join(PROJECT_DIR, 'config.json'),
-    ],
-    defaults={'port': 8080}
-)
+config_path = os.path.join(SCRIPT_DIR, 'config.json')
+config = load_config(config_path, defaults={'port': 8080})
 ```
+
+Siehe [Config](config.md) für Details zum Sample Config Pattern.
 
 ## aide-frame als Submodul
 

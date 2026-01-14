@@ -41,8 +41,8 @@ print(paths.get("CACHE_DIR"))  # Alternative access
 
 | Path | Description |
 |------|-------------|
-| `APP_DIR` | Application directory (where main code lives) |
-| `PROJECT_DIR` | Parent of APP_DIR (repo root, contains config.json) |
+| `APP_DIR` | Application directory (where main code lives, contains config.json) |
+| `PROJECT_DIR` | Parent of APP_DIR (repo root) |
 | `STATIC_DIR` | Static files directory (APP_DIR/static) |
 | `VERSION_FILE` | Version file path (APP_DIR/VERSION) |
 | `UPDATE_STATE_DIR` | Update state directory (PROJECT_DIR/.update) |

@@ -66,7 +66,7 @@ monitor_provider = config.get("monitor_control", {}).get("provider", "none")
 
 The config file is searched in this order:
 1. Path specified via `--config` command line argument
-2. `config.json` in the project root directory
+2. `config.json` in the app directory (APP_DIR)
 
 ## Default Configuration
 

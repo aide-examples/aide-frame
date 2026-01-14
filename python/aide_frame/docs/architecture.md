@@ -195,7 +195,7 @@ Assets: ['aide-slideshow-1.3.1.tar.gz']
 
 ## Konfiguration
 
-Die Anwendung benötigt einen `remote_update` Abschnitt in der config.json:
+Die Anwendung benötigt einen `remote_update` Abschnitt in der `app/config.json`:
 
 ```json
 {
