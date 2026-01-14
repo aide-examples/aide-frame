@@ -49,9 +49,13 @@ class JsonHandler(BaseHTTPRequestHandler):
         # args[0] is like "GET /path HTTP/1.1" - extract method and path
         parts = args[0].split()
         if len(parts) >= 2:
-            logger.debug(f"HTTP: {parts[0]} {parts[1]}")
-        else:
-            logger.debug(f"HTTP: {args[0]}")
+            path = parts[1]
+            # Skip static file requests (html, css, js, images)
+            if path.startswith('/static/') or path.endswith(('.html', '.css', '.js', '.png', '.jpg', '.ico', '.svg', '.woff', '.woff2')):
+                return
+            # Only log API calls
+            if path.startswith('/api/') or parts[0] == 'POST':
+                logger.debug(f"HTTP: {parts[0]} {path}")
 
     # -------------------------------------------------------------------------
     # Response helpers
