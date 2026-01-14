@@ -46,7 +46,12 @@ class JsonHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         """Suppress default logging, use our logger instead."""
-        logger.debug(f"HTTP: {args[0]}")
+        # args[0] is like "GET /path HTTP/1.1" - extract method and path
+        parts = args[0].split()
+        if len(parts) >= 2:
+            logger.debug(f"HTTP: {parts[0]} {parts[1]}")
+        else:
+            logger.debug(f"HTTP: {args[0]}")
 
     # -------------------------------------------------------------------------
     # Response helpers
@@ -58,7 +63,11 @@ class JsonHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
-        self.wfile.write(json.dumps(data).encode())
+        body = json.dumps(data)
+        # Log response preview (first 80 chars)
+        preview = body[:80] + '...' if len(body) > 80 else body
+        logger.debug(f"  -> {status} {preview}")
+        self.wfile.write(body.encode())
 
     def send_html(self, content: str, status: int = 200):
         """Send HTML response."""
