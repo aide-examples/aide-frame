@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help</title>
+    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="/static/frame/css/docs-viewer.css">
+</head>
+<body>
+    <div class="header sticky">
+        <h1 id="page-title">Help</h1>
+        <div>
+            <a href="/" class="header-btn" id="back-link">Back</a>
+        </div>
+    </div>
+
+    <div class="help-layout">
+        <nav class="help-nav" id="nav">
+            <p style="color: #666;">Loading...</p>
+        </nav>
+        <main class="help-content" id="content">
+            <p>Loading help content...</p>
+        </main>
+    </div>
+
+    <script src="/static/frame/js/marked.min.js"></script>
+    <script>
+        // App configuration (loaded from API)
+        let appConfig = {
+            app_name: 'App',
+            back_link: '/',
+            back_text: 'Back'
+        };
+
+        marked.setOptions({ gfm: true, breaks: false });
+
+        const nav = document.getElementById('nav');
+        const content = document.getElementById('content');
+        let currentFile = 'index.md';
+
+        // Load app configuration
+        async function loadAppConfig() {
+            try {
+                const res = await fetch('/api/app/config');
+                if (res.ok) {
+                    appConfig = await res.json();
+                    // Update page elements
+                    document.getElementById('page-title').textContent = 'Help';
+                    document.title = 'Help - ' + appConfig.app_name;
+                    document.getElementById('back-link').href = appConfig.back_link;
+                    document.getElementById('back-link').textContent = appConfig.back_text;
+                }
+            } catch (e) {
+                console.warn('Could not load app config:', e);
+            }
+        }
+
+        async function loadStructure() {
+            try {
+                const res = await fetch('/api/help/structure');
+                const data = await res.json();
+
+                if (!data.files || data.files.length === 0) {
+                    nav.innerHTML = '<p style="color: #999;">No help files found</p>';
+                    return;
+                }
+
+                nav.innerHTML = data.files.map(f => {
+                    const titleAttr = f.description
+                        ? ` title="${f.description.replace(/"/g, '&quot;')}"`
+                        : '';
+                    return `<a href="#" data-file="${f.path}"${titleAttr} class="${f.path === currentFile ? 'active' : ''}">${f.title}</a>`;
+                }).join('');
+
+                nav.querySelectorAll('a').forEach(a => {
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        loadFile(a.dataset.file);
+                    });
+                });
+            } catch (e) {
+                nav.innerHTML = '<p style="color: #c00;">Error loading help</p>';
+            }
+        }
+
+        async function loadFile(filename) {
+            currentFile = filename;
+
+            // Update nav active state
+            nav.querySelectorAll('a').forEach(a => {
+                a.classList.toggle('active', a.dataset.file === filename);
+            });
+
+            // Load and render content
+            try {
+                const res = await fetch(`/api/help/${filename}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    content.innerHTML = marked.parse(data.content);
+                } else {
+                    content.innerHTML = '<p style="color: #c00;">Error loading help file.</p>';
+                }
+            } catch (e) {
+                content.innerHTML = '<p style="color: #c00;">Error: ' + e.message + '</p>';
+            }
+
+            // Update URL
+            history.replaceState(null, '', `/help?doc=${filename}`);
+        }
+
+        // Initialize
+        async function init() {
+            await loadAppConfig();
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('doc')) {
+                currentFile = params.get('doc');
+            }
+
+            await loadStructure();
+            loadFile(currentFile);
+        }
+        init();
+    </script>
+</body>
+</html>

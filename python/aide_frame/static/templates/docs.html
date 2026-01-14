@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation</title>
+    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="/static/frame/css/docs-viewer.css">
+</head>
+<body>
+    <div class="header sticky">
+        <h1 id="page-title">Documentation</h1>
+        <a href="/" class="header-btn" id="back-link">Back</a>
+    </div>
+
+    <div class="docs-layout">
+        <nav class="docs-sidebar" id="sidebar">
+            <p style="color: #666; font-size: 0.9rem;">Loading navigation...</p>
+        </nav>
+
+        <main class="docs-content">
+            <div id="breadcrumb" class="breadcrumb"></div>
+            <div id="content" class="content-loading">Loading documentation...</div>
+        </main>
+    </div>
+
+    <button class="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+        ☰
+    </button>
+
+    <script src="/static/frame/js/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" onerror="window.MERMAID_FAILED=true"></script>
+    <script>
+        // App configuration (loaded from API)
+        let appConfig = {
+            app_name: 'App',
+            back_link: '/',
+            back_text: 'Back',
+            features: { mermaid: true }
+        };
+
+        // Initialize mermaid if available
+        if (typeof mermaid !== 'undefined' && !window.MERMAID_FAILED) {
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default',
+                securityLevel: 'loose',
+                flowchart: { useMaxWidth: true, htmlLabels: true }
+            });
+        }
+
+        // Custom renderer for mermaid code blocks
+        const renderer = new marked.Renderer();
+        const originalCodeRenderer = renderer.code.bind(renderer);
+
+        renderer.code = function(code, language) {
+            const codeText = typeof code === 'object' ? code.text : code;
+            const codeLang = typeof code === 'object' ? code.lang : language;
+            if (codeLang === 'mermaid' && typeof mermaid !== 'undefined' && !window.MERMAID_FAILED) {
+                return '<div class="mermaid">' + codeText + '</div>';
+            }
+            return originalCodeRenderer(code, language);
+        };
+
+        marked.setOptions({ renderer: renderer, gfm: true, breaks: false });
+
+        // Load app configuration
+        async function loadAppConfig() {
+            try {
+                const res = await fetch('/api/app/config');
+                if (res.ok) {
+                    appConfig = await res.json();
+                    // Update page elements
+                    document.getElementById('page-title').textContent = appConfig.app_name + ' - Documentation';
+                    document.title = 'Documentation - ' + appConfig.app_name;
+                    document.getElementById('back-link').href = appConfig.back_link;
+                    document.getElementById('back-link').textContent = appConfig.back_text;
+                }
+            } catch (e) {
+                console.warn('Could not load app config:', e);
+            }
+        }
+
+        // Generate Table of Contents
+        function generateTOC(container) {
+            const headings = container.querySelectorAll('h1, h2, h3, h4');
+            if (headings.length === 0) return null;
+
+            const contentHeadings = Array.from(headings).filter(h => !h.closest('.toc-container'));
+            if (contentHeadings.length <= 3) return null;
+
+            const tocItems = [];
+            contentHeadings.forEach((heading, index) => {
+                const text = heading.textContent;
+                const slug = text.toLowerCase()
+                    .replace(/[^\w\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                const id = (slug || 'heading') + '-' + index;
+                heading.setAttribute('id', id);
+                tocItems.push({ text, id, level: heading.tagName.toLowerCase() });
+            });
+
+            let tocHtml = '<ul>';
+            tocItems.forEach(item => {
+                const escapedText = item.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                tocHtml += `<li><a href="#${item.id}" class="toc-${item.level}">${escapedText}</a></li>`;
+            });
+            tocHtml += '</ul>';
+
+            const tocContainer = document.createElement('div');
+            tocContainer.className = 'toc-container';
+            tocContainer.innerHTML = `
+                <div class="toc-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <span class="toc-title">Table of Contents</span>
+                    <span class="toc-toggle">▼</span>
+                </div>
+                <div class="toc-content">${tocHtml}</div>
+            `;
+
+            tocContainer.querySelectorAll('a[href^="#"]').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        history.pushState(null, '', link.getAttribute('href'));
+                    }
+                });
+            });
+
+            return tocContainer;
+        }
+
+        // Update breadcrumb
+        function updateBreadcrumb(docPath) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            if (!docPath || docPath === 'index.md') {
+                breadcrumb.innerHTML = '';
+                return;
+            }
+
+            const parts = docPath.replace('.md', '').split('/');
+            let html = '<a href="?doc=index.md">Docs</a>';
+
+            parts.forEach((part, i) => {
+                html += '<span>/</span>';
+                const name = part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+                if (i === parts.length - 1) {
+                    html += name;
+                } else {
+                    html += `<a href="?doc=${parts.slice(0, i+1).join('/')}/index.md">${name}</a>`;
+                }
+            });
+            breadcrumb.innerHTML = html;
+        }
+
+        // Update active sidebar link
+        function updateActiveLink(docPath) {
+            document.querySelectorAll('.docs-sidebar a').forEach(a => {
+                a.classList.toggle('active', a.dataset.doc === docPath);
+            });
+        }
+
+        // Load documentation
+        async function loadDoc(docPath) {
+            const container = document.getElementById('content');
+            container.className = 'content-loading';
+            container.innerHTML = 'Loading documentation...';
+
+            try {
+                let data;
+
+                if (docPath) {
+                    const res = await fetch('/api/docs/' + docPath);
+                    data = await res.json();
+                    if (data.error) throw new Error(data.error);
+                } else {
+                    const res = await fetch('/api/docs/index.md');
+                    data = await res.json();
+                    if (data.error) {
+                        const readmeRes = await fetch('/readme');
+                        data = await readmeRes.json();
+                    }
+                    docPath = 'index.md';
+                }
+
+                container.className = 'markdown-body';
+                container.innerHTML = marked.parse(data.content);
+
+                // Rewrite image URLs
+                const currentDir = docPath.includes('/') ? docPath.substring(0, docPath.lastIndexOf('/')) : '';
+                container.querySelectorAll('img').forEach(img => {
+                    const src = img.getAttribute('src');
+                    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/')) return;
+                    const fullPath = currentDir ? currentDir + '/' + src : src;
+                    img.setAttribute('src', '/docs-assets/' + fullPath);
+                });
+
+                // Generate TOC
+                const toc = generateTOC(container);
+                if (toc) container.insertBefore(toc, container.firstChild);
+
+                // Render mermaid diagrams
+                if (typeof mermaid !== 'undefined' && !window.MERMAID_FAILED && appConfig.features.mermaid) {
+                    await mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+                }
+
+                // Intercept .md links
+                container.querySelectorAll('a[href$=".md"]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        const href = link.getAttribute('href');
+                        if (href.startsWith('http://') || href.startsWith('https://')) return;
+                        e.preventDefault();
+                        let targetDoc = href;
+                        if (!href.startsWith('/') && docPath && docPath.includes('/')) {
+                            const currentDir = docPath.substring(0, docPath.lastIndexOf('/'));
+                            targetDoc = currentDir + '/' + href;
+                        }
+                        const parts = targetDoc.split('/');
+                        const normalized = [];
+                        for (const part of parts) {
+                            if (part === '..') normalized.pop();
+                            else if (part !== '.') normalized.push(part);
+                        }
+                        loadDoc(normalized.join('/'));
+                    });
+                });
+
+                updateBreadcrumb(docPath);
+                updateActiveLink(docPath);
+
+                const newUrl = '?doc=' + docPath;
+                if (window.location.search !== newUrl) {
+                    history.pushState({doc: docPath}, '', newUrl);
+                }
+
+                document.getElementById('sidebar').classList.remove('open');
+                window.scrollTo(0, 0);
+
+            } catch (e) {
+                container.className = 'markdown-body';
+                container.innerHTML = '<p style="color: #dc2626;">Error loading documentation: ' + e.message + '</p>';
+            }
+        }
+
+        // Build navbar from API
+        async function buildNavbar() {
+            const sidebar = document.getElementById('sidebar');
+            try {
+                const res = await fetch('/api/docs/structure');
+                const data = await res.json();
+
+                let html = '';
+                for (const section of data.sections) {
+                    html += `<h3>${section.name}</h3><ul>`;
+                    for (const doc of section.docs) {
+                        const titleAttr = doc.description
+                            ? ` title="${doc.description.replace(/"/g, '&quot;')}"`
+                            : '';
+                        const docPath = doc.framework ? 'framework/' + doc.path : doc.path;
+                        html += `<li><a href="?doc=${docPath}" data-doc="${docPath}"${titleAttr}>${doc.title}</a></li>`;
+                    }
+                    html += '</ul>';
+                }
+
+                sidebar.innerHTML = html;
+
+                sidebar.querySelectorAll('a').forEach(a => {
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        loadDoc(a.dataset.doc);
+                    });
+                });
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const currentDoc = urlParams.get('doc') || 'index.md';
+                updateActiveLink(currentDoc);
+
+            } catch (e) {
+                sidebar.innerHTML = '<p style="color: #dc2626;">Error loading navigation</p>';
+                console.error('Failed to load navbar:', e);
+            }
+        }
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', (e) => {
+            const doc = e.state?.doc || new URLSearchParams(window.location.search).get('doc');
+            loadDoc(doc);
+        });
+
+        // Initialize
+        async function init() {
+            await loadAppConfig();
+            await buildNavbar();
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialDoc = urlParams.get('doc');
+            loadDoc(initialDoc);
+        }
+        init();
+    </script>
+</body>
+</html>

@@ -31,6 +31,7 @@ from . import paths
 from . import config
 from . import platform_detect
 from . import docs_viewer
+from . import http_routes
 
 __version__ = "1.0.0"
 
@@ -40,4 +41,5 @@ __all__ = [
     'config',
     'platform_detect',
     'docs_viewer',
+    'http_routes',
 ]

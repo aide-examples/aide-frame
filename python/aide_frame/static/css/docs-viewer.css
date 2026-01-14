@@ -1,0 +1,388 @@
+/* =============================================================================
+   AIDE Frame - Docs/Help Viewer Styles
+   ============================================================================= */
+
+/* Loading State */
+.content-loading {
+    text-align: center;
+    padding: 50px;
+    color: #666;
+}
+
+/* =============================================================================
+   Markdown Body Styles
+   ============================================================================= */
+
+.markdown-body {
+    color: #333;
+}
+.markdown-body h1 {
+    color: #1e40af;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 10px;
+    margin: 30px 0 20px 0;
+    font-size: 2rem;
+}
+.markdown-body h2 {
+    color: #1e40af;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 8px;
+    margin: 25px 0 15px 0;
+    font-size: 1.5rem;
+}
+.markdown-body h3 {
+    color: #166534;
+    margin: 20px 0 10px 0;
+    font-size: 1.2rem;
+}
+.markdown-body h4 {
+    color: #1e40af;
+    margin: 15px 0 10px 0;
+    font-size: 1.1rem;
+}
+.markdown-body p {
+    margin: 12px 0;
+}
+.markdown-body ul, .markdown-body ol {
+    margin: 12px 0;
+    padding-left: 25px;
+}
+.markdown-body li {
+    margin: 6px 0;
+}
+.markdown-body code {
+    background: #f3f4f6;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    font-size: 0.9em;
+    color: #b91c1c;
+}
+.markdown-body pre {
+    background: #1f2937;
+    padding: 15px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 15px 0;
+    border: 1px solid #374151;
+}
+.markdown-body pre code {
+    background: none;
+    padding: 0;
+    color: #e5e7eb;
+}
+.markdown-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+.markdown-body th, .markdown-body td {
+    border: 1px solid #d1d5db;
+    padding: 10px 12px;
+    text-align: left;
+}
+.markdown-body th {
+    background: #f3f4f6;
+    color: #374151;
+    font-weight: 600;
+}
+.markdown-body tr:nth-child(even) {
+    background: #f9fafb;
+}
+.markdown-body a {
+    color: #2563eb;
+    text-decoration: none;
+}
+.markdown-body a:hover {
+    text-decoration: underline;
+}
+.markdown-body blockquote {
+    border-left: 4px solid #2563eb;
+    padding-left: 15px;
+    margin: 15px 0;
+    color: #6b7280;
+    font-style: italic;
+}
+.markdown-body hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 30px 0;
+}
+.markdown-body strong {
+    color: #111;
+}
+.markdown-body img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* =============================================================================
+   Table of Contents
+   ============================================================================= */
+
+.toc-container {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+.toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    cursor: pointer;
+    background: #f9fafb;
+    user-select: none;
+}
+.toc-header:hover {
+    background: #f3f4f6;
+}
+.toc-header h3,
+.toc-header .toc-title {
+    color: #374151;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+}
+.toc-toggle {
+    color: #6b7280;
+    font-size: 1.2rem;
+    transition: transform 0.2s;
+}
+.toc-container.collapsed .toc-toggle {
+    transform: rotate(-90deg);
+}
+.toc-content {
+    padding: 10px 15px;
+    max-height: 400px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+}
+.toc-container.collapsed .toc-content {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+}
+.toc-content ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.toc-content li {
+    margin: 4px 0;
+}
+.toc-content a {
+    color: #6b7280;
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: block;
+    padding: 3px 0;
+    transition: color 0.2s;
+}
+.toc-content a:hover {
+    color: #2563eb;
+}
+.toc-content .toc-h1 { padding-left: 0; font-weight: 600; color: #374151; }
+.toc-content .toc-h2 { padding-left: 12px; }
+.toc-content .toc-h3 { padding-left: 24px; font-size: 0.8rem; }
+.toc-content .toc-h4 { padding-left: 36px; font-size: 0.75rem; }
+
+/* =============================================================================
+   Mermaid Diagrams
+   ============================================================================= */
+
+.mermaid {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    overflow-x: auto;
+}
+
+/* =============================================================================
+   Documentation Layout (for /about - multi-section docs)
+   ============================================================================= */
+
+.docs-layout {
+    display: flex;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - 60px);
+}
+
+/* Docs Sidebar */
+.docs-sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #e0e0e0;
+    padding: 20px;
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+}
+.docs-sidebar h3 {
+    color: #2563eb;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 20px 0 10px 0;
+}
+.docs-sidebar h3:first-child { margin-top: 0; }
+.docs-sidebar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.docs-sidebar li { margin: 2px 0; }
+.docs-sidebar a {
+    display: block;
+    padding: 6px 10px;
+    color: #666;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+.docs-sidebar a:hover {
+    color: #333;
+    background: #f3f4f6;
+}
+.docs-sidebar a.active {
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.1);
+}
+.docs-sidebar .indent { padding-left: 20px; }
+
+/* Docs Main Content */
+.docs-content {
+    flex: 1;
+    padding: 30px;
+    min-width: 0;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 20px;
+}
+.breadcrumb a { color: #2563eb; }
+.breadcrumb span { margin: 0 8px; }
+
+/* Mobile sidebar toggle */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+@media (max-width: 768px) {
+    .docs-sidebar {
+        position: fixed;
+        left: -260px;
+        top: 60px;
+        height: calc(100vh - 60px);
+        z-index: 150;
+        transition: left 0.3s;
+        box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+    }
+    .docs-sidebar.open { left: 0; }
+    .sidebar-toggle { display: block; }
+    .docs-content { padding: 20px; }
+}
+
+/* =============================================================================
+   Help Layout (for /help - simple flat structure)
+   ============================================================================= */
+
+.help-layout {
+    display: flex;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - 60px);
+}
+
+/* Help Navigation */
+.help-nav {
+    width: 200px;
+    padding: 20px;
+    border-right: 1px solid #e0e0e0;
+    flex-shrink: 0;
+    background: #fff;
+}
+.help-nav a {
+    display: block;
+    padding: 8px 12px;
+    color: #666;
+    text-decoration: none;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+.help-nav a:hover {
+    background: #f3f4f6;
+    color: #333;
+}
+.help-nav a.active {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+/* Help Main Content */
+.help-content {
+    flex: 1;
+    padding: 30px;
+    min-width: 0;
+}
+.help-content h1 { margin-top: 0; color: #1f2937; }
+.help-content h2 { margin-top: 2rem; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.5rem; color: #374151; }
+.help-content h3 { color: #4b5563; }
+.help-content table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.help-content th, .help-content td { padding: 0.75rem; border: 1px solid #e0e0e0; text-align: left; }
+.help-content th { background: #f9fafb; font-weight: 600; }
+.help-content code { background: #f3f4f6; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+.help-content pre { background: #1f2937; color: #e5e7eb; padding: 1rem; border-radius: 6px; overflow-x: auto; }
+.help-content pre code { background: none; padding: 0; color: inherit; }
+.help-content ul, .help-content ol { padding-left: 1.5rem; }
+.help-content li { margin: 0.5rem 0; }
+
+@media (max-width: 768px) {
+    .help-layout { flex-direction: column; }
+    .help-nav {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    .help-content { padding: 20px; }
+}
+
+/* =============================================================================
+   Responsive Markdown
+   ============================================================================= */
+
+@media (max-width: 600px) {
+    .markdown-body h1 { font-size: 1.5rem; }
+    .markdown-body h2 { font-size: 1.3rem; }
+    .markdown-body pre { padding: 10px; font-size: 0.85rem; }
+    .markdown-body table { font-size: 0.85rem; }
+    .markdown-body th, .markdown-body td { padding: 6px 8px; }
+}
