@@ -17,6 +17,8 @@ AIDE Frame provides common infrastructure that can be used as a starting point f
 | [Getting Started](getting-started.md) | Neue App erstellen, kanonische Initialisierung |
 | [HTTP Server](http-server.md) | HttpServer und JsonHandler für Web-Apps |
 | [HTTP Routes](http-routes.md) | DocsConfig und Viewer-API |
+| [Update-Routen](update-routes.md) | Remote-Update UI und API |
+| [Widgets](widgets.md) | JavaScript-Widgets (Header, Status) |
 | [Docs Viewer](docs-viewer.md) | Markdown-Rendering für Docs und Help |
 | [Architecture](architecture.md) | Framework/Anwendung-Trennung, Build- und Release-Prozess |
 | [Logging](logging.md) | Logger-Konfiguration und Nutzung |
@@ -82,7 +84,7 @@ from aide_frame import paths
 paths.init(SCRIPT_DIR)
 
 # 3. AIDE-FRAME IMPORTS
-from aide_frame import http_routes, http_server
+from aide_frame import http_routes, http_server, update_routes
 from aide_frame.log import set_level
 
 
@@ -97,12 +99,15 @@ class MyHandler(http_server.JsonHandler):
 
 def main():
     set_level('INFO')
-    docs_config = http_routes.DocsConfig(app_name="My App")
     server = http_server.HttpServer(
         port=8080,
         handler_class=MyHandler,
         app_dir=SCRIPT_DIR,
-        docs_config=docs_config,
+        docs_config=http_routes.DocsConfig(app_name="My App"),
+        update_config=update_routes.UpdateConfig(
+            github_repo="username/myapp",
+            service_name="myapp"
+        ),
     )
     server.run()
 

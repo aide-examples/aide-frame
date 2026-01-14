@@ -78,8 +78,29 @@ server = HttpServer(
     app_dir=SCRIPT_DIR,           # App-Verzeichnis (für paths.init)
     static_dir=None,              # Static-Files Verzeichnis (default: app_dir/static)
     docs_config=None,             # DocsConfig für /about und /help
+    update_config=None,           # UpdateConfig für Remote-Updates
 )
 ```
+
+### Update-Integration
+
+Mit `update_config` werden automatisch Update-Routen und eine Update-Seite bereitgestellt:
+
+```python
+from aide_frame import update_routes
+
+server = HttpServer(
+    port=8080,
+    handler_class=MyHandler,
+    app_dir=SCRIPT_DIR,
+    update_config=update_routes.UpdateConfig(
+        github_repo="username/repo",
+        service_name="myapp"        # Für systemctl restart
+    ),
+)
+```
+
+Siehe [Update-Routen](update-routes.md) für Details.
 
 ### Methoden
 
@@ -168,4 +189,6 @@ if __name__ == '__main__':
 ## Siehe auch
 
 - [HTTP Routes](http-routes.md) - DocsConfig und Docs/Help-Routen
+- [Update-Routen](update-routes.md) - Remote-Update-System
+- [Widgets](widgets.md) - JavaScript-Widgets (Header, Status)
 - [Paths](paths.md) - Pfad-Management
