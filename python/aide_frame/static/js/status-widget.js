@@ -1,6 +1,6 @@
 /**
  * Status Widget for aide-frame applications.
- * Compact display: platform · memory | version + update link + restart
+ * Compact display: platform · memory | version + buttons
  */
 
 const StatusWidget = {
@@ -28,11 +28,9 @@ const StatusWidget = {
                 </div>
                 <div class="status-row">
                     <span id="sw-version" style="color: #666; font-size: 0.9em;">--</span>
-                    <span id="sw-update" style="display: none; margin-left: 8px;">
-                        <a href="/update" style="color: #2563eb; font-size: 0.85em;">Update available</a>
-                    </span>
+                    <span id="sw-update-hint" style="display: none; margin-left: 8px; color: #2563eb; font-size: 0.85em;">new!</span>
                     <span style="flex: 1;"></span>
-                    <a href="/update" style="color: #666; font-size: 0.85em; margin-right: 10px;">Update</a>
+                    <button onclick="location.href='/update'" class="secondary" style="padding: 5px 10px; font-size: 0.8em; margin-right: 6px;">Update</button>
                     ${this.options.showRestart ? `
                     <button onclick="StatusWidget.restart()" class="secondary" style="padding: 5px 10px; font-size: 0.8em;">Restart</button>
                     ` : ''}
@@ -56,7 +54,14 @@ const StatusWidget = {
         if (infoEl) {
             const parts = [];
             if (this.status.platform) parts.push(this.status.platform);
-            if (this.status.memory_mb) parts.push(`${this.status.memory_mb} MB`);
+            if (this.status.memory) {
+                const m = this.status.memory;
+                if (m.used_mb && m.total_mb) {
+                    parts.push(`${m.used_mb} of ${m.total_mb} MB`);
+                } else if (m.used_mb) {
+                    parts.push(`${m.used_mb} MB`);
+                }
+            }
             infoEl.textContent = parts.join(' · ') || '--';
         }
 
@@ -65,9 +70,9 @@ const StatusWidget = {
             versionEl.textContent = `v${this.status.current_version}`;
         }
 
-        const updateEl = document.getElementById('sw-update');
-        if (updateEl) {
-            updateEl.style.display = this.status.update_available ? 'inline' : 'none';
+        const hintEl = document.getElementById('sw-update-hint');
+        if (hintEl) {
+            hintEl.style.display = this.status.update_available ? 'inline' : 'none';
         }
     },
 

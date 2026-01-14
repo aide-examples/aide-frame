@@ -32,17 +32,28 @@ from .platform_detect import PLATFORM
 from .log import logger
 
 
-def get_memory_mb():
-    """Get current process memory usage in MB (works on Linux without psutil)."""
+def get_memory_info():
+    """Get memory info: process RSS and total system memory in MB."""
+    result = {}
+    # Process memory from /proc/self/status
     try:
         with open('/proc/self/status', 'r') as f:
             for line in f:
                 if line.startswith('VmRSS:'):
-                    # Format: "VmRSS:    12345 kB"
-                    return round(int(line.split()[1]) / 1024, 1)
+                    result['used_mb'] = round(int(line.split()[1]) / 1024, 1)
+                    break
     except Exception:
         pass
-    return None
+    # Total system memory from /proc/meminfo
+    try:
+        with open('/proc/meminfo', 'r') as f:
+            for line in f:
+                if line.startswith('MemTotal:'):
+                    result['total_mb'] = round(int(line.split()[1]) / 1024)
+                    break
+    except Exception:
+        pass
+    return result if result else None
 
 
 @dataclass
@@ -96,9 +107,9 @@ def handle_update_request(handler, path: str, method: str, data: dict, config: U
         status['platform'] = PLATFORM
         # Add memory info if enabled
         if config.show_memory:
-            mem_mb = get_memory_mb()
-            if mem_mb:
-                status['memory_mb'] = mem_mb
+            mem = get_memory_info()
+            if mem:
+                status['memory'] = mem
         handler.send_json(status)
         return True
 
