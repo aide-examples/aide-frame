@@ -271,20 +271,23 @@ class HttpServer:
         self.start()
 
         # Handle Ctrl+C gracefully
+        shutdown_event = threading.Event()
+
         def signal_handler(sig, frame):
             logger.info("Shutting down...")
-            self.stop()
+            shutdown_event.set()
 
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
         logger.info("Press Ctrl+C to stop")
 
-        # Wait for server thread
+        # Wait for shutdown signal
         try:
-            while self._running:
-                self._thread.join(timeout=1.0)
+            shutdown_event.wait()
         except KeyboardInterrupt:
+            pass
+        finally:
             self.stop()
 
 
