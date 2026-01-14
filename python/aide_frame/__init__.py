@@ -35,7 +35,7 @@ from . import http_routes
 from . import http_server
 from . import args
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 __all__ = [
     'log',
