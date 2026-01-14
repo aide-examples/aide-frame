@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Help</title>
-    <link rel="stylesheet" href="/static/base.css">
+    <link rel="stylesheet" href="/static/frame/css/base.css">
     <link rel="stylesheet" href="/static/frame/css/docs-viewer.css">
 </head>
 <body>
@@ -46,8 +46,8 @@
                 if (res.ok) {
                     appConfig = await res.json();
                     // Update page elements
-                    document.getElementById('page-title').textContent = 'Help';
-                    document.title = 'Help - ' + appConfig.app_name;
+                    document.getElementById('page-title').textContent = appConfig.app_name + ' - Help';
+                    document.title = appConfig.app_name + ' - Help';
                     document.getElementById('back-link').href = appConfig.back_link;
                     document.getElementById('back-link').textContent = appConfig.back_text;
                 }
