@@ -33,6 +33,7 @@ from . import platform_detect
 from . import docs_viewer
 from . import http_routes
 from . import http_server
+from . import args
 
 __version__ = "1.0.0"
 
@@ -44,4 +45,5 @@ __all__ = [
     'docs_viewer',
     'http_routes',
     'http_server',
+    'args',
 ]
