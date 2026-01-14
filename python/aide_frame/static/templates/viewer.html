@@ -32,9 +32,25 @@
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" onerror="window.MERMAID_FAILED=true"></script>
     <script>
         // Determine root from URL path
-        const viewerRoot = window.location.pathname.startsWith('/help') ? 'help' : 'docs';
-        const titleSuffix = viewerRoot === 'help' ? 'Help' : 'Documentation';
-        const assetPrefix = viewerRoot === 'help' ? '/help-assets/' : '/docs-assets/';
+        // Standard roots: /about -> docs, /help -> help
+        // Custom roots: /<name> -> name (e.g., /samples -> samples)
+        const pathname = window.location.pathname.replace(/\.html$/, '');
+        let viewerRoot, titleSuffix, assetPrefix;
+
+        if (pathname === '/about' || pathname.startsWith('/about/')) {
+            viewerRoot = 'docs';
+            titleSuffix = 'Documentation';
+            assetPrefix = '/docs-assets/';
+        } else if (pathname === '/help' || pathname.startsWith('/help/')) {
+            viewerRoot = 'help';
+            titleSuffix = 'Help';
+            assetPrefix = '/help-assets/';
+        } else {
+            // Custom root - extract name from path (e.g., /samples -> samples)
+            viewerRoot = pathname.substring(1).split('/')[0];
+            titleSuffix = viewerRoot.charAt(0).toUpperCase() + viewerRoot.slice(1);
+            assetPrefix = '/' + viewerRoot + '-assets/';
+        }
 
         // App configuration (loaded from API)
         let appConfig = {
@@ -75,6 +91,10 @@
                 const res = await fetch('/api/app/config');
                 if (res.ok) {
                     appConfig = await res.json();
+                    // Get title from custom_roots if available
+                    if (appConfig.custom_roots && appConfig.custom_roots[viewerRoot]) {
+                        titleSuffix = appConfig.custom_roots[viewerRoot].title;
+                    }
                     // Update page elements
                     document.getElementById('page-title').textContent = appConfig.app_name + ' - ' + titleSuffix;
                     document.title = titleSuffix + ' - ' + appConfig.app_name;
@@ -148,7 +168,8 @@
             }
 
             const parts = docPath.replace('.md', '').split('/');
-            const basePath = viewerRoot === 'help' ? '/help' : '/about';
+            // Determine basePath: /about for docs, /help for help, /<root> for custom
+            const basePath = viewerRoot === 'docs' ? '/about' : viewerRoot === 'help' ? '/help' : '/' + viewerRoot;
             let html = `<a href="${basePath}?doc=index.md">${titleSuffix}</a>`;
 
             parts.forEach((part, i) => {
