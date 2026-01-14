@@ -27,13 +27,13 @@ const HeaderWidget = {
             links.push(`<a href="${this.options.aboutLink}" class="header-link">${this.options.aboutText}</a>`);
         }
         if (this.options.showHelp) {
-            links.push(`<a href="${this.options.helpLink}" class="header-link" title="Help">?</a>`);
+            links.push(`<a href="${this.options.helpLink}" class="header-link" title="Help" style="font-weight: bold;">?</a>`);
         }
 
         this.container.innerHTML = `
             <div class="header">
                 <h1>${this.options.appName}</h1>
-                <div>${links.join('')}</div>
+                <div style="display: flex; gap: 12px;">${links.join('')}</div>
             </div>
         `;
     }
