@@ -30,6 +30,7 @@ from . import log
 from . import paths
 from . import config
 from . import platform_detect
+from . import docs_viewer
 
 __version__ = "1.0.0"
 
@@ -38,4 +39,5 @@ __all__ = [
     'paths',
     'config',
     'platform_detect',
+    'docs_viewer',
 ]
