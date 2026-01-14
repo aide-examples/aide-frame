@@ -10,6 +10,45 @@ Loading and managing application configuration.
 - Provide sensible defaults
 - Merge user config with defaults
 
+## Sample Config Pattern
+
+Um User-Konfigurationen bei Updates nicht zu überschreiben, verwenden wir folgendes Muster:
+
+| Datei | Im Repo | Beschreibung |
+|-------|---------|--------------|
+| `sample_config.json` | Ja | Vorlage mit Standardwerten und Dokumentation |
+| `config.json` | Nein (.gitignore) | User-spezifische Konfiguration |
+
+### Setup
+
+1. **Erstinstallation:** User kopiert `sample_config.json` zu `config.json`
+2. **Update:** `sample_config.json` wird aktualisiert, `config.json` bleibt unverändert
+3. **Neue Optionen:** User vergleicht mit `sample_config.json` und ergänzt bei Bedarf
+
+### .gitignore
+
+```
+# User config (not tracked)
+config.json
+
+# Sample config IS tracked
+!sample_config.json
+```
+
+### Code-Beispiel
+
+```python
+import os
+from aide_frame.config import load_config
+
+config_path = os.path.join(APP_DIR, 'config.json')
+if not os.path.exists(config_path):
+    print("No config file found, using defaults")
+    print(f"Copy sample_config.json to config.json to customize")
+
+config = load_config(config_path)
+```
+
 ## API
 
 ```python
