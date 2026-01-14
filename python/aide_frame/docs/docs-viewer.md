@@ -1,75 +1,79 @@
 # Documentation Viewer
 
-The project includes a built-in documentation viewer accessible via the web UI at `/about`.
+aide-frame enthält ein integriertes Dokumentations- und Help-System mit Web-UI.
 
-## Purpose
+## Übersicht
 
-- Display project documentation without leaving the web interface
-- Support Markdown rendering with tables, code blocks, and diagrams
-- Provide automatic navigation between documentation files
-- Extract titles and descriptions from documents for the navigation
+- `/about` - Projekt-Dokumentation (aus `docs/` Verzeichnis)
+- `/help` - User-Help (aus `help/` Verzeichnis)
 
-## Architecture
+Beide nutzen das gleiche unified viewer Template mit:
+- Dynamische Sidebar-Navigation
+- Markdown-Rendering (marked.js)
+- Mermaid-Diagramm-Support
+- Table of Contents
+- Breadcrumb-Navigation
+
+## Architektur
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Browser                                                     │
 │  ┌─────────────────────────────────────────────────────────┐│
-│  │  about.html                                              ││
-│  │  - Dynamic sidebar (auto-generated from /api/docs/structure)│
-│  │  - Hover tooltips with document descriptions             ││
-│  │  - Markdown rendering (marked.js)                        ││
-│  │  - Mermaid diagram support                               ││
-│  │  - Table of Contents generation                          ││
-│  │  - Breadcrumb navigation                                 ││
+│  │  viewer.html (unified template)                          ││
+│  │  - Mode aus URL: /help → help, /about → docs            ││
+│  │  - Unified API: /api/viewer/structure?root={mode}       ││
+│  │  - Unified API: /api/viewer/content?root={mode}&path=   ││
 │  └─────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  slideshow.py :8080                                          │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  http_api.py                                             ││
-│  │  - GET /api/docs           → list_docs()                 ││
-│  │  - GET /api/docs/structure → get_docs_structure()        ││
-│  │  - GET /api/docs/{path}    → load_doc()                  ││
-│  └─────────────────────────────────────────────────────────┘│
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │  utils.py                                                ││
-│  │  - list_docs()                    → scan docs/ directory ││
-│  │  - load_doc()                     → read markdown file   ││
-│  │  - extract_title_and_description()→ parse H1 + 1st sentence│
-│  │  - get_docs_structure()           → sections with titles ││
-│  └─────────────────────────────────────────────────────────┘│
+│  aide_frame/http_routes.py                                   │
+│  ├── handle_request()      → Route-Handling                  │
+│  ├── /api/viewer/structure → get_docs_structure()           │
+│  ├── /api/viewer/content   → load_file()                    │
+│  ├── /api/app/config       → App-Konfiguration              │
+│  └── /static/frame/*       → aide-frame Assets              │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  app/docs/                                                   │
-│  ├── index.md                                                │
-│  ├── requirements/                                           │
-│  ├── platform/                                               │
-│  ├── implementation/                                         │
-│  │   ├── technical/                                          │
-│  │   └── slideshow/                                          │
-│  ├── deployment/                                             │
-│  └── development/                                            │
+│  aide_frame/docs_viewer.py                                   │
+│  ├── get_docs_structure()  → Sections mit Titeln            │
+│  ├── get_structure()       → Flache Dateiliste              │
+│  ├── load_file()           → Markdown-Inhalt laden          │
+│  └── extract_title_and_description() → Metadaten parsen     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  app/docs/                  │  app/help/                     │
+│  ├── index.md               │  ├── index.md                  │
+│  ├── requirements/          │  ├── getting-started.md        │
+│  ├── platform/              │  └── faq.md                    │
+│  ├── implementation/        │                                │
+│  ├── deployment/            │                                │
+│  └── development/           │                                │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## API Endpoints
+## Unified Viewer API
 
-| Endpoint | Description |
+Eine einheitliche API für beide Modi (docs und help):
+
+| Endpoint | Beschreibung |
 |----------|-------------|
-| `GET /api/docs` | List all available documentation files (flat list) |
-| `GET /api/docs/structure` | Get structured navigation with sections, titles, and descriptions |
-| `GET /api/docs/{path}` | Load a specific markdown file |
-| `GET /readme` | Load README.md (legacy, for compatibility) |
+| `/api/viewer/structure?root=docs` | Docs-Struktur (mit Sections) |
+| `/api/viewer/structure?root=help` | Help-Struktur (flach) |
+| `/api/viewer/content?root=docs&path=file.md` | Docs-Inhalt |
+| `/api/viewer/content?root=help&path=file.md` | Help-Inhalt |
+| `/api/app/config` | App-Name, Back-Link, Features |
 
-### Example: /api/docs/structure
+### Beispiel: Structure
 
 ```bash
-curl http://localhost:8080/api/docs/structure
+curl "http://localhost:8080/api/viewer/structure?root=docs"
 ```
 
 ```json
@@ -80,93 +84,95 @@ curl http://localhost:8080/api/docs/structure
       "docs": [
         {
           "path": "index.md",
-          "title": "AIDE - Slideshow",
-          "description": "A modular fullscreen photo slideshow with a plugin architecture."
+          "title": "Projekt Name",
+          "description": "Kurzbeschreibung."
         }
-      ]
-    },
-    {
-      "name": "Platform",
-      "docs": [
-        {"path": "platform/index.md", "title": "Platform", "description": "..."},
-        {"path": "platform/hardware.md", "title": "Hardware"}
       ]
     }
   ]
 }
 ```
 
-## Automatic Navigation
+### Beispiel: Content
 
-The sidebar is **automatically generated** from the `docs/` directory structure. No manual updates to `about.html` are needed when adding new documents.
+```bash
+curl "http://localhost:8080/api/viewer/content?root=help&path=index.md"
+```
 
-### Section Order
+```json
+{
+  "content": "# Help\n\nMarkdown content...",
+  "path": "index.md",
+  "framework": false
+}
+```
 
-Sections are displayed in this fixed order:
+## Docs vs Help
 
-1. **Overview** - `docs/index.md`
-2. **Requirements** - `docs/requirements/*.md`
-3. **Platform** - `docs/platform/*.md`
-4. **Implementation Technical** - `docs/implementation/index.md` + `docs/implementation/technical/*.md`
-5. **Implementation Application** - `docs/implementation/slideshow/*.md`
-6. **Deployment** - `docs/deployment/*.md`
-7. **Development** - `docs/development/*.md`
+| Aspekt | Docs (`/about`) | Help (`/help`) |
+|--------|-----------------|----------------|
+| Zweck | Technische Dokumentation | User-Anleitung |
+| Struktur | Hierarchisch mit Sections | Flach |
+| Verzeichnis | `app/docs/` | `app/help/` |
+| Auto-Discovery | Nach Unterverzeichnissen | Alle .md Dateien |
 
-Within each section, `index.md` files appear first, then other files are sorted alphabetically.
+## Section-Erkennung (Docs)
 
-### Title and Description Extraction
+Docs-Sections werden automatisch aus Unterverzeichnissen erkannt:
 
-For each markdown file:
+```
+docs/
+├── index.md              → Section "Overview"
+├── requirements/         → Section "Requirements"
+│   └── index.md
+├── platform/             → Section "Platform"
+│   └── index.md
+└── implementation/       → Section "Implementation"
+    └── index.md
+```
 
-- **Title**: Extracted from the first `# Heading` (H1)
-- **Description**: Extracted from the first complete sentence after the H1
+Standard-Reihenfolge:
+1. Overview (index.md im Root)
+2. Requirements
+3. Platform
+4. Implementation
+5. Deployment
+6. Development
 
-The description appears as a hover tooltip in the sidebar navigation.
+## Title und Description
+
+Aus jeder Markdown-Datei werden extrahiert:
 
 ```markdown
-# My Document Title
+# Mein Titel
 
-This is the first sentence that becomes the description. More text follows...
+Dies ist die Beschreibung (erster Satz).
+
+Weitere Absätze...
 ```
 
-## Security
+- **Title**: Erste `# Heading`
+- **Description**: Erster vollständiger Satz nach dem Titel
 
-**Path traversal protection:** The `load_doc()` function blocks paths containing `..` and verifies the resolved path stays within the docs directory.
+## Web-UI Features
 
-```python
-def load_doc(filename):
-    if '..' in filename:
-        return None  # Blocked
-    # Verify resolved path is within DOCS_DIR
-    real_path = os.path.realpath(filepath)
-    if not real_path.startswith(real_docs + os.sep):
-        return None  # Blocked
-```
-
-## Web UI Features
-
-### Dynamic Sidebar
-
-- Auto-generated from `/api/docs/structure`
-- Hover over links to see document descriptions
-- Active link highlighting
-- Mobile-friendly with toggle button
+### Sidebar
+- Auto-generiert aus API
+- Hover-Tooltips mit Beschreibungen
+- Active-Link-Highlighting
+- Mobile-Toggle
 
 ### Table of Contents
+- Auto-generiert aus Headings
+- Collapsible
+- Smooth-Scrolling
 
-Each document shows an auto-generated TOC:
+### Markdown-Support
+- GitHub-Flavored Markdown
+- Tabellen, Code-Blöcke, Task-Listen
+- Syntax-Highlighting
 
-- Collapsible header
-- Smooth scrolling to sections
-- Updates URL hash for linking
-
-### Markdown Support
-
-- GitHub-flavored Markdown (tables, code blocks, task lists)
-- Syntax highlighting for code blocks
-- Automatic heading IDs for linking
-
-### Mermaid Diagrams
+### Mermaid-Diagramme
 
 ````markdown
 ```mermaid
@@ -176,33 +182,55 @@ flowchart TB
 ```
 ````
 
-Supported diagram types: `flowchart`, `sequenceDiagram`, `classDiagram`
+Lädt von CDN, funktioniert auch offline wenn lokal verfügbar.
 
-### Navigation Features
+### Navigation
 
-- **Sidebar:** Dynamic navigation to all documents
-- **Breadcrumbs:** Shows current location in hierarchy
-- **Deep links:** Direct URL via `?doc=` parameter
-- **Link interception:** `.md` links load via JavaScript
+- **Deep-Links**: `/about?doc=implementation/index.md`
+- **Breadcrumbs**: Zeigt aktuelle Position
+- **Link-Interception**: `.md` Links laden via JavaScript
 
+## Assets
+
+Bilder in docs/help werden über spezielle Asset-Routen geladen:
+
+```markdown
+![Diagram](architecture.png)
 ```
-http://raspberrypi:8080/about?doc=implementation/slideshow/core.md
-```
 
-## Adding Documentation
+Wird automatisch umgeschrieben zu:
+- `/docs-assets/architecture.png` (für docs)
+- `/help-assets/architecture.png` (für help)
 
-1. Create a new `.md` file in the appropriate directory under `app/docs/`
-2. Add a `# Title` as the first line
-3. Write a descriptive first sentence (shown in hover tooltip)
-4. **No need to update `about.html`** - the sidebar updates automatically
+## Sicherheit
 
-To add a new section or change section order, modify `section_defs` in `utils.py:get_docs_structure()`.
+Path-Traversal-Schutz:
+- `..` in Pfaden wird blockiert
+- Pfade werden auf das jeweilige Verzeichnis beschränkt
 
-## Files
+## Dateien in aide-frame
 
-| File | Purpose |
-|------|---------|
-| `paths.py` | Defines `DOCS_DIR` pointing to `app/docs/` |
-| `utils.py` | `list_docs()`, `load_doc()`, `extract_title_and_description()`, `get_docs_structure()` |
-| `http_api.py` | Serves `/api/docs`, `/api/docs/structure`, `/api/docs/{path}` |
-| `about.html` | Web UI with dynamic sidebar, TOC, breadcrumbs, markdown rendering |
+| Datei | Zweck |
+|-------|-------|
+| `http_routes.py` | Route-Handler für /about, /help, APIs |
+| `docs_viewer.py` | Struktur-Parsing, Datei-Laden |
+| `static/templates/viewer.html` | Unified Web-UI Template |
+| `static/css/base.css` | Basis-CSS für Apps |
+| `static/css/docs-viewer.css` | Viewer-spezifisches CSS |
+| `static/js/marked.min.js` | Markdown-Parser |
+
+## Legacy APIs (Kompatibilität)
+
+Die alten APIs werden weiterhin unterstützt:
+
+| Legacy | Neu |
+|--------|-----|
+| `/api/docs/structure` | `/api/viewer/structure?root=docs` |
+| `/api/docs/{path}` | `/api/viewer/content?root=docs&path={path}` |
+| `/api/help/structure` | `/api/viewer/structure?root=help` |
+| `/api/help/{path}` | `/api/viewer/content?root=help&path={path}` |
+
+## Siehe auch
+
+- [HTTP Routes](http-routes.md) - DocsConfig und API-Details
+- [Getting Started](getting-started.md) - Neue App erstellen
