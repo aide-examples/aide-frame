@@ -47,6 +47,33 @@ print(paths.get("CACHE_DIR"))  # Alternative access
 | `VERSION_FILE` | Version file path (APP_DIR/VERSION) |
 | `UPDATE_STATE_DIR` | Update state directory (PROJECT_DIR/.update) |
 
+## Path Security
+
+Das Modul bietet Funktionen zum sicheren Auflösen von Pfaden aus User-Eingaben:
+
+```python
+from aide_frame.paths import resolve_safe_path, PathSecurityError
+
+# Relative Pfade werden gegen PROJECT_DIR aufgelöst
+path = resolve_safe_path("img/uploads")  # -> /project/img/uploads
+
+# Absolute Pfade werden normalisiert
+path = resolve_safe_path("/var/data/images")
+
+# Custom base directory
+path = resolve_safe_path("uploads", base_dir="/var/www")
+
+# Path traversal wird blockiert
+try:
+    path = resolve_safe_path("../../../etc/passwd")
+except PathSecurityError as e:
+    print(f"Blocked: {e}")
+```
+
+### PathSecurityError
+
+Exception die geworfen wird wenn ein Pfad unsichere Traversal-Sequenzen enthält (`..`).
+
 ## MIME Types
 
 The module includes a `MIME_TYPES` dictionary for static file serving:

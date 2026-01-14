@@ -108,6 +108,54 @@ def get(name, default=None):
     return _app_paths.get(name, globals().get(name, default))
 
 
+# =============================================================================
+# PATH SECURITY
+# =============================================================================
+
+class PathSecurityError(ValueError):
+    """Raised when a path contains unsafe traversal sequences."""
+    pass
+
+
+def resolve_safe_path(path_str, base_dir=None):
+    """
+    Resolve a path safely, rejecting path traversal attempts.
+
+    Args:
+        path_str: Path from config (relative or absolute)
+        base_dir: Base directory for relative paths (defaults to PROJECT_DIR)
+
+    Returns:
+        Absolute path string
+
+    Raises:
+        PathSecurityError: If path contains '..' traversal sequences
+    """
+    ensure_initialized()
+    if base_dir is None:
+        base_dir = PROJECT_DIR
+
+    # Block path traversal sequences
+    if '..' in path_str:
+        raise PathSecurityError(f"Path traversal '..' not allowed in path: {path_str}")
+
+    # Resolve relative paths against base_dir
+    if os.path.isabs(path_str):
+        resolved = os.path.normpath(path_str)
+    else:
+        resolved = os.path.normpath(os.path.join(base_dir, path_str))
+
+    # Double-check the resolved path doesn't escape (belt and suspenders)
+    if '..' in resolved:
+        raise PathSecurityError(f"Resolved path contains traversal: {resolved}")
+
+    return resolved
+
+
+# =============================================================================
+# MIME TYPES
+# =============================================================================
+
 # MIME types for static file serving (shared across modules)
 MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
