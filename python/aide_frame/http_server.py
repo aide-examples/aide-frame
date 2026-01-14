@@ -27,7 +27,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Optional, Any, Dict, Type
 
-from . import paths, http_routes
+from . import paths, http_routes, update_routes
 from .log import logger
 
 
@@ -43,6 +43,7 @@ class JsonHandler(BaseHTTPRequestHandler):
     app_dir: str = None
     static_dir: str = None
     docs_config: Optional[http_routes.DocsConfig] = None
+    update_config: Optional[update_routes.UpdateConfig] = None
 
     def log_message(self, format, *args):
         """Suppress default logging, use our logger instead."""
@@ -130,12 +131,17 @@ class JsonHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Handle GET requests."""
+        parsed = urlparse(self.path)
+        path = parsed.path
+
         # Let http_routes handle docs/help routes first
         if self.docs_config and http_routes.handle_request(self, self.path, self.docs_config):
             return
 
-        parsed = urlparse(self.path)
-        path = parsed.path
+        # Let update_routes handle update routes
+        if self.update_config and update_routes.handle_update_request(self, path, 'GET', {}, self.update_config):
+            return
+
         params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
 
         result = self.get(path, params)
@@ -154,6 +160,10 @@ class JsonHandler(BaseHTTPRequestHandler):
             data = json.loads(body) if body else {}
         except json.JSONDecodeError:
             self.send_json({'error': 'Invalid JSON'}, 400)
+            return
+
+        # Let update_routes handle update routes
+        if self.update_config and update_routes.handle_update_request(self, path, 'POST', data, self.update_config):
             return
 
         result = self.post(path, data)
@@ -230,6 +240,7 @@ class HttpServer:
         app_dir: str = None,
         static_dir: str = None,
         docs_config: http_routes.DocsConfig = None,
+        update_config: update_routes.UpdateConfig = None,
     ):
         """
         Initialize HTTP server.
@@ -240,12 +251,14 @@ class HttpServer:
             app_dir: Application directory (for paths.init)
             static_dir: Directory for static files (default: app_dir/static)
             docs_config: DocsConfig for docs/help routes
+            update_config: UpdateConfig for remote update functionality
         """
         self.port = port
         self.handler_class = handler_class
         self.app_dir = app_dir
         self.static_dir = static_dir or (os.path.join(app_dir, 'static') if app_dir else None)
         self.docs_config = docs_config
+        self.update_config = update_config
 
         self._server: Optional[HTTPServer] = None
         self._thread: Optional[threading.Thread] = None
@@ -264,6 +277,7 @@ class HttpServer:
         self.handler_class.app_dir = self.app_dir
         self.handler_class.static_dir = self.static_dir
         self.handler_class.docs_config = self.docs_config
+        self.handler_class.update_config = self.update_config
 
         self._server = HTTPServer(('0.0.0.0', self.port), self.handler_class)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
