@@ -25,6 +25,83 @@ from . import paths
 from .log import logger
 
 
+# =============================================================================
+# STANDARD SECTION DEFINITIONS
+# =============================================================================
+
+# Standard section ordering for AIDE apps.
+# Apps can use this directly or extend it for app-specific sections.
+STANDARD_SECTION_DEFS = [
+    (None, "Overview"),
+    ("requirements", "Requirements"),
+    ("platform", "Platform"),
+    ("implementation", "Implementation"),
+    ("deployment", "Deployment"),
+    ("development", "Development"),
+]
+
+
+def auto_discover_sections(dir_key, include_root=True):
+    """Auto-discover section directories and create section_defs.
+
+    Scans the docs directory for subdirectories containing .md files
+    and returns a section_defs list in a standard order.
+
+    Args:
+        dir_key: Key registered with paths.register(), e.g. "DOCS_DIR"
+        include_root: Whether to include root-level files as "Overview"
+
+    Returns:
+        List of (section_path, section_name) tuples suitable for get_docs_structure()
+    """
+    paths.ensure_initialized()
+    base_dir = paths.get(dir_key)
+    if not base_dir or not os.path.isdir(base_dir):
+        return [(None, "Overview")] if include_root else []
+
+    # Known sections with their display order
+    known_order = {
+        None: 0,           # Root/Overview
+        "requirements": 1,
+        "platform": 2,
+        "implementation": 3,
+        "deployment": 4,
+        "development": 5,
+    }
+
+    discovered = []
+
+    # Check root level
+    if include_root:
+        has_root_files = any(
+            f.endswith('.md') and os.path.isfile(os.path.join(base_dir, f))
+            for f in os.listdir(base_dir)
+        )
+        if has_root_files:
+            discovered.append((None, "Overview"))
+
+    # Scan subdirectories
+    for item in os.listdir(base_dir):
+        item_path = os.path.join(base_dir, item)
+        if os.path.isdir(item_path) and not item.startswith('.'):
+            # Check if directory has any .md files
+            has_md = any(f.endswith('.md') for f in os.listdir(item_path))
+            if has_md:
+                # Convert dirname to display name (e.g. "my-section" -> "My Section")
+                display_name = item.replace('-', ' ').replace('_', ' ').title()
+                discovered.append((item, display_name))
+
+    # Sort: known sections first in order, then unknown alphabetically
+    def sort_key(entry):
+        path, _ = entry
+        if path in known_order:
+            return (0, known_order[path])
+        return (1, path or "")
+
+    discovered.sort(key=sort_key)
+    return discovered
+
+
 def list_files(dir_key):
     """List all markdown files in a directory.
 
@@ -267,17 +344,20 @@ def build_section_from_dir(base_dir, section_path=None, section_name=None):
     return {"name": section_name, "docs": docs}
 
 
-def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_defs=None):
+def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_defs=None,
+                       auto_discover=True):
     """Get complex documentation structure with sections.
 
     For multi-directory documentation with custom section ordering.
 
     Args:
         docs_dir_key: Key for main docs directory
-        framework_dir_key: Key for framework docs (inserted at "AIDE_FRAME" marker)
+        framework_dir_key: Key for framework docs (appended as "AIDE Frame" section)
         section_defs: List of (section_path, section_name) tuples defining order.
-                     Use "AIDE_FRAME" as section_path to insert framework docs.
                      Use None as section_path for root-level files.
+                     If None and auto_discover=True, sections are auto-discovered.
+        auto_discover: If True and section_defs is None, auto-discover sections
+                      from directory structure. Default: True.
 
     Returns:
         dict with "sections" list
@@ -287,9 +367,12 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
 
     base_dir = paths.get(docs_dir_key)
 
-    # Default section definitions if not provided
+    # Auto-discover sections if not provided
     if section_defs is None:
-        section_defs = [(None, "Overview")]
+        if auto_discover:
+            section_defs = auto_discover_sections(docs_dir_key)
+        else:
+            section_defs = [(None, "Overview")]
 
     # Helper to build framework section
     def build_framework_section():
@@ -323,17 +406,19 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             sections.append(frame_section)
         return {"sections": sections}
 
-    # Build sections
+    # Build sections from definitions
     for section_path, section_name in section_defs:
-        # Handle AIDE Frame marker
+        # Legacy support: skip AIDE_FRAME marker (now handled automatically)
         if section_path == "AIDE_FRAME":
-            frame_section = build_framework_section()
-            if frame_section:
-                sections.append(frame_section)
             continue
 
         section = build_section_from_dir(base_dir, section_path, section_name)
         if section:
             sections.append(section)
+
+    # Add framework docs at end if configured
+    frame_section = build_framework_section()
+    if frame_section:
+        sections.append(frame_section)
 
     return {"sections": sections}
