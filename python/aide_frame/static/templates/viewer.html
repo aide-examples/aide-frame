@@ -255,8 +255,10 @@
                 for (const section of data.sections) {
                     // Only show section header if there are multiple sections or name differs from titleSuffix
                     const showHeader = data.sections.length > 1 || section.name !== titleSuffix;
+                    // Framework section is collapsed by default
+                    const isFramework = section.docs.some(d => d.framework);
                     if (showHeader) {
-                        html += `<div class="section">`;
+                        html += `<div class="section${isFramework ? ' collapsed' : ''}">`;
                         html += `<h3 onclick="this.parentElement.classList.toggle('collapsed')"><span class="section-toggle">▼</span>${section.name}</h3>`;
                     }
                     html += '<ul>';
