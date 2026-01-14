@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentation</title>
+    <title>Viewer</title>
     <link rel="stylesheet" href="/static/frame/css/base.css">
     <link rel="stylesheet" href="/static/frame/css/docs-viewer.css">
 </head>
 <body>
     <div class="header sticky">
-        <h1 id="page-title">Documentation</h1>
+        <h1 id="page-title">Loading...</h1>
         <a href="/" class="header-btn" id="back-link">Back</a>
     </div>
 
@@ -20,7 +20,7 @@
 
         <main class="docs-content">
             <div id="breadcrumb" class="breadcrumb"></div>
-            <div id="content" class="content-loading">Loading documentation...</div>
+            <div id="content" class="content-loading">Loading...</div>
         </main>
     </div>
 
@@ -31,6 +31,11 @@
     <script src="/static/frame/js/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" onerror="window.MERMAID_FAILED=true"></script>
     <script>
+        // Determine root from URL path
+        const viewerRoot = window.location.pathname.startsWith('/help') ? 'help' : 'docs';
+        const titleSuffix = viewerRoot === 'help' ? 'Help' : 'Documentation';
+        const assetPrefix = viewerRoot === 'help' ? '/help-assets/' : '/docs-assets/';
+
         // App configuration (loaded from API)
         let appConfig = {
             app_name: 'App',
@@ -71,8 +76,8 @@
                 if (res.ok) {
                     appConfig = await res.json();
                     // Update page elements
-                    document.getElementById('page-title').textContent = appConfig.app_name + ' - Documentation';
-                    document.title = 'Documentation - ' + appConfig.app_name;
+                    document.getElementById('page-title').textContent = appConfig.app_name + ' - ' + titleSuffix;
+                    document.title = titleSuffix + ' - ' + appConfig.app_name;
                     document.getElementById('back-link').href = appConfig.back_link;
                     document.getElementById('back-link').textContent = appConfig.back_text;
                 }
@@ -143,7 +148,8 @@
             }
 
             const parts = docPath.replace('.md', '').split('/');
-            let html = '<a href="?doc=index.md">Docs</a>';
+            const basePath = viewerRoot === 'help' ? '/help' : '/about';
+            let html = `<a href="${basePath}?doc=index.md">${titleSuffix}</a>`;
 
             parts.forEach((part, i) => {
                 html += '<span>/</span>';
@@ -151,7 +157,7 @@
                 if (i === parts.length - 1) {
                     html += name;
                 } else {
-                    html += `<a href="?doc=${parts.slice(0, i+1).join('/')}/index.md">${name}</a>`;
+                    html += `<a href="${basePath}?doc=${parts.slice(0, i+1).join('/')}/index.md">${name}</a>`;
                 }
             });
             breadcrumb.innerHTML = html;
@@ -168,24 +174,16 @@
         async function loadDoc(docPath) {
             const container = document.getElementById('content');
             container.className = 'content-loading';
-            container.innerHTML = 'Loading documentation...';
+            container.innerHTML = 'Loading...';
 
             try {
                 let data;
+                const apiPath = docPath || 'index.md';
 
-                if (docPath) {
-                    const res = await fetch('/api/docs/' + docPath);
-                    data = await res.json();
-                    if (data.error) throw new Error(data.error);
-                } else {
-                    const res = await fetch('/api/docs/index.md');
-                    data = await res.json();
-                    if (data.error) {
-                        const readmeRes = await fetch('/readme');
-                        data = await readmeRes.json();
-                    }
-                    docPath = 'index.md';
-                }
+                const res = await fetch(`/api/viewer/content?root=${viewerRoot}&path=${encodeURIComponent(apiPath)}`);
+                data = await res.json();
+                if (data.error) throw new Error(data.error);
+                docPath = apiPath;
 
                 container.className = 'markdown-body';
                 container.innerHTML = marked.parse(data.content);
@@ -196,7 +194,7 @@
                     const src = img.getAttribute('src');
                     if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/')) return;
                     const fullPath = currentDir ? currentDir + '/' + src : src;
-                    img.setAttribute('src', '/docs-assets/' + fullPath);
+                    img.setAttribute('src', assetPrefix + fullPath);
                 });
 
                 // Generate TOC
@@ -242,7 +240,7 @@
 
             } catch (e) {
                 container.className = 'markdown-body';
-                container.innerHTML = '<p style="color: #dc2626;">Error loading documentation: ' + e.message + '</p>';
+                container.innerHTML = '<p style="color: #dc2626;">Error loading content: ' + e.message + '</p>';
             }
         }
 
@@ -250,12 +248,16 @@
         async function buildNavbar() {
             const sidebar = document.getElementById('sidebar');
             try {
-                const res = await fetch('/api/docs/structure');
+                const res = await fetch(`/api/viewer/structure?root=${viewerRoot}`);
                 const data = await res.json();
 
                 let html = '';
                 for (const section of data.sections) {
-                    html += `<h3>${section.name}</h3><ul>`;
+                    // Only show section header if there are multiple sections or name differs from titleSuffix
+                    if (data.sections.length > 1 || section.name !== titleSuffix) {
+                        html += `<h3>${section.name}</h3>`;
+                    }
+                    html += '<ul>';
                     for (const doc of section.docs) {
                         const titleAttr = doc.description
                             ? ` title="${doc.description.replace(/"/g, '&quot;')}"`

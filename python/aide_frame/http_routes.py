@@ -104,6 +104,27 @@ class DocsConfig:
                 )
 
 
+def _get_viewer_config(config: DocsConfig, root: str) -> dict:
+    """Get viewer configuration for a specific root (docs/help)."""
+    if root == 'docs':
+        return {
+            'dir_key': config.docs_dir_key,
+            'framework_dir_key': config.framework_dir_key,
+            'section_defs': config.section_defs,
+            'title_suffix': 'Documentation',
+            'use_sections': True,
+        }
+    elif root == 'help':
+        return {
+            'dir_key': config.help_dir_key,
+            'framework_dir_key': None,
+            'section_defs': None,
+            'title_suffix': 'Help',
+            'use_sections': False,
+        }
+    return None
+
+
 def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
     """
     Handle a docs/help-related HTTP request.
@@ -111,14 +132,19 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
     Args:
         handler: HTTP request handler with send_response, send_header,
                  end_headers, wfile methods (BaseHTTPRequestHandler compatible)
-        path: Request path (e.g., "/about", "/api/docs/index.md")
+        path: Request path (e.g., "/about", "/api/viewer/structure?root=docs")
         config: DocsConfig instance with app settings
 
     Returns:
         True if request was handled, False to pass through to other handlers
     """
+    from urllib.parse import urlparse, parse_qs
+    parsed = urlparse(path)
+    query_path = parsed.path
+    params = parse_qs(parsed.query)
+
     # App config API
-    if path == '/api/app/config':
+    if query_path == '/api/app/config':
         _send_json(handler, {
             "app_name": config.app_name,
             "back_link": config.back_link,
@@ -131,13 +157,84 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
         })
         return True
 
-    # Documentation routes
-    if config.enable_docs:
-        if path == '/about' or path == '/about.html':
-            _serve_template(handler, 'docs.html')
+    # Unified viewer API
+    if query_path == '/api/viewer/structure':
+        root = params.get('root', ['docs'])[0]
+        viewer_cfg = _get_viewer_config(config, root)
+        if not viewer_cfg:
+            _send_json(handler, {"error": f"Unknown root: {root}"}, 400)
             return True
 
-        if path == '/api/docs/structure':
+        if viewer_cfg['use_sections']:
+            structure = docs_viewer.get_docs_structure(
+                docs_dir_key=viewer_cfg['dir_key'],
+                framework_dir_key=viewer_cfg['framework_dir_key'],
+                section_defs=viewer_cfg['section_defs'],
+            )
+        else:
+            # Flat structure - wrap in single section for consistent format
+            flat = docs_viewer.get_structure(viewer_cfg['dir_key'], include_description=True)
+            structure = {"sections": [{"name": viewer_cfg['title_suffix'], "docs": flat.get('files', [])}]}
+
+        _send_json(handler, structure)
+        return True
+
+    if query_path == '/api/viewer/content':
+        root = params.get('root', ['docs'])[0]
+        file_path = params.get('path', ['index.md'])[0]
+        viewer_cfg = _get_viewer_config(config, root)
+        if not viewer_cfg:
+            _send_json(handler, {"error": f"Unknown root: {root}"}, 400)
+            return True
+
+        # Check for framework docs
+        framework = False
+        if file_path.startswith('framework/'):
+            framework = True
+            file_path = file_path[10:]  # Remove 'framework/' prefix
+
+        dir_key = viewer_cfg['framework_dir_key'] if framework else viewer_cfg['dir_key']
+        content = docs_viewer.load_file(dir_key, file_path)
+
+        if content is not None:
+            _send_json(handler, {
+                "content": content,
+                "path": file_path,
+                "framework": framework
+            })
+        else:
+            _send_json(handler, {"error": f"Document not found: {file_path}"}, 404)
+        return True
+
+    # Viewer HTML pages
+    if config.enable_docs and (query_path == '/about' or query_path == '/about.html'):
+        _serve_template(handler, 'viewer.html')
+        return True
+
+    if config.enable_help and (query_path == '/help' or query_path == '/help.html'):
+        _serve_template(handler, 'viewer.html')
+        return True
+
+    # Docs assets (images, etc.) - support both roots
+    if query_path.startswith('/docs-assets/'):
+        asset_path = query_path[13:]  # Remove '/docs-assets/' prefix
+        _serve_docs_asset(handler, asset_path, config.docs_dir_key)
+        return True
+
+    if query_path.startswith('/help-assets/'):
+        asset_path = query_path[13:]  # Remove '/help-assets/' prefix
+        _serve_docs_asset(handler, asset_path, config.help_dir_key)
+        return True
+
+    # Static files from aide-frame
+    if query_path.startswith('/static/frame/'):
+        file_path = query_path[14:]  # Remove '/static/frame/' prefix
+        _serve_frame_static(handler, file_path)
+        return True
+
+    # Legacy API compatibility (optional - can be removed later)
+    if config.enable_docs:
+        if query_path == '/api/docs/structure':
             structure = docs_viewer.get_docs_structure(
                 docs_dir_key=config.docs_dir_key,
                 framework_dir_key=config.framework_dir_key,
@@ -146,51 +243,35 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
             _send_json(handler, structure)
             return True
 
-        if path.startswith('/api/docs/'):
-            doc_path = path[10:]  # Remove '/api/docs/' prefix
+        if query_path.startswith('/api/docs/'):
+            doc_path = query_path[10:]  # Remove '/api/docs/' prefix
             if not doc_path:
                 files = docs_viewer.list_files_recursive(config.docs_dir_key)
                 _send_json(handler, {"docs": files})
                 return True
 
-            # Check for framework docs
             framework = False
             if doc_path.startswith('framework/'):
                 framework = True
-                doc_path = doc_path[10:]  # Remove 'framework/' prefix
+                doc_path = doc_path[10:]
 
             dir_key = config.framework_dir_key if framework else config.docs_dir_key
             content = docs_viewer.load_file(dir_key, doc_path)
 
             if content is not None:
-                _send_json(handler, {
-                    "content": content,
-                    "path": doc_path,
-                    "framework": framework
-                })
+                _send_json(handler, {"content": content, "path": doc_path, "framework": framework})
             else:
                 _send_json(handler, {"error": f"Document not found: {doc_path}"}, 404)
             return True
 
-        # Docs assets (images, etc.)
-        if path.startswith('/docs-assets/'):
-            asset_path = path[13:]  # Remove '/docs-assets/' prefix
-            _serve_docs_asset(handler, asset_path, config.docs_dir_key)
-            return True
-
-    # Help routes
     if config.enable_help:
-        if path == '/help' or path == '/help.html':
-            _serve_template(handler, 'help.html')
-            return True
-
-        if path == '/api/help/structure':
+        if query_path == '/api/help/structure':
             structure = docs_viewer.get_structure(config.help_dir_key, include_description=True)
             _send_json(handler, structure)
             return True
 
-        if path.startswith('/api/help/'):
-            help_path = path[10:]  # Remove '/api/help/' prefix
+        if query_path.startswith('/api/help/'):
+            help_path = query_path[10:]
             if not help_path:
                 structure = docs_viewer.get_structure(config.help_dir_key, include_description=True)
                 _send_json(handler, structure)
@@ -202,12 +283,6 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
             else:
                 _send_json(handler, {"error": f"Help file not found: {help_path}"}, 404)
             return True
-
-    # Static files from aide-frame
-    if path.startswith('/static/frame/'):
-        file_path = path[14:]  # Remove '/static/frame/' prefix
-        _serve_frame_static(handler, file_path)
-        return True
 
     return False
 
