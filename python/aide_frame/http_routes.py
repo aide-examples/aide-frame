@@ -27,7 +27,7 @@ Usage:
 import os
 import json
 from dataclasses import dataclass, field
-from typing import Optional, List, Tuple, Any
+from typing import Optional, List, Tuple, Any, Dict
 
 from . import paths, docs_viewer
 from .log import logger
@@ -38,11 +38,37 @@ AIDE_FRAME_STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 
 
 @dataclass
+class CustomRoot:
+    """Configuration for a custom Markdown viewing root.
+
+    Apps can define additional roots beyond docs/ and help/ for viewing
+    Markdown files from custom directories (e.g., contracts, reports).
+
+    Example:
+        CustomRoot(
+            dir_key="CONTRACTS_DIR",
+            title="Verträge",
+            route="/contracts",
+            subdir="contracts",  # optional: auto-register from APP_DIR/contracts
+        )
+    """
+    dir_key: str  # Key in paths registry
+    title: str  # Display title (e.g., "Contracts", "Reports")
+    route: str  # URL route (e.g., "/contracts")
+    subdir: Optional[str] = None  # Auto-register from APP_DIR/subdir if set
+    use_sections: bool = False  # True for multi-section docs, False for flat
+    section_defs: Optional[List[Tuple[Optional[str], Optional[str]]]] = None
+
+
+@dataclass
 class DocsConfig:
     """Configuration for docs/help route handlers.
 
     Standard paths (docs/, help/) are auto-registered if they exist in APP_DIR.
     Warnings are logged if enabled features have missing directories.
+
+    Custom roots can be added via the custom_roots parameter for app-specific
+    Markdown directories (e.g., contracts, reports, templates).
     """
 
     # App identification
@@ -58,6 +84,9 @@ class DocsConfig:
     # Help settings (for /help - simple flat structure)
     help_dir_key: str = "HELP_DIR"
 
+    # Custom roots for app-specific Markdown directories
+    custom_roots: Optional[Dict[str, CustomRoot]] = None
+
     # Features
     enable_mermaid: bool = True
     enable_docs: bool = True
@@ -71,6 +100,12 @@ class DocsConfig:
         if paths.APP_DIR:
             self._auto_register_path(self.docs_dir_key, "docs")
             self._auto_register_path(self.help_dir_key, "help")
+
+            # Auto-register custom roots with subdir specified
+            if self.custom_roots:
+                for name, root in self.custom_roots.items():
+                    if root.subdir:
+                        self._auto_register_path(root.dir_key, root.subdir)
 
         # Validate that enabled features have their directories
         self._validate()
@@ -105,7 +140,7 @@ class DocsConfig:
 
 
 def _get_viewer_config(config: DocsConfig, root: str) -> dict:
-    """Get viewer configuration for a specific root (docs/help)."""
+    """Get viewer configuration for a specific root (docs/help/custom)."""
     if root == 'docs':
         return {
             'dir_key': config.docs_dir_key,
@@ -121,6 +156,15 @@ def _get_viewer_config(config: DocsConfig, root: str) -> dict:
             'section_defs': None,
             'title_suffix': 'Help',
             'use_sections': False,
+        }
+    elif config.custom_roots and root in config.custom_roots:
+        custom = config.custom_roots[root]
+        return {
+            'dir_key': custom.dir_key,
+            'framework_dir_key': None,
+            'section_defs': custom.section_defs,
+            'title_suffix': custom.title,
+            'use_sections': custom.use_sections,
         }
     return None
 
@@ -145,7 +189,7 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
 
     # App config API
     if query_path == '/api/app/config':
-        _send_json(handler, {
+        response = {
             "app_name": config.app_name,
             "back_link": config.back_link,
             "back_text": config.back_text,
@@ -154,7 +198,17 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
                 "docs": config.enable_docs,
                 "help": config.enable_help,
             }
-        })
+        }
+        # Include custom roots info
+        if config.custom_roots:
+            response["custom_roots"] = {
+                name: {
+                    "title": root.title,
+                    "route": root.route,
+                }
+                for name, root in config.custom_roots.items()
+            }
+        _send_json(handler, response)
         return True
 
     # Unified viewer API
@@ -215,6 +269,14 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
         _serve_template(handler, 'viewer.html')
         return True
 
+    # Custom root viewer pages
+    if config.custom_roots:
+        for name, root in config.custom_roots.items():
+            route = root.route.rstrip('/')
+            if query_path == route or query_path == f"{route}.html":
+                _serve_template(handler, 'viewer.html')
+                return True
+
     # Docs assets (images, etc.) - support both roots
     if query_path.startswith('/docs-assets/'):
         asset_path = query_path[13:]  # Remove '/docs-assets/' prefix
@@ -225,6 +287,15 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
         asset_path = query_path[13:]  # Remove '/help-assets/' prefix
         _serve_docs_asset(handler, asset_path, config.help_dir_key)
         return True
+
+    # Custom root assets
+    if config.custom_roots:
+        for name, root in config.custom_roots.items():
+            asset_prefix = f"/{name}-assets/"
+            if query_path.startswith(asset_prefix):
+                asset_path = query_path[len(asset_prefix):]
+                _serve_docs_asset(handler, asset_path, root.dir_key)
+                return True
 
     # Static files from aide-frame
     if query_path.startswith('/static/frame/'):
@@ -389,6 +460,7 @@ def _serve_docs_asset(handler: Any, asset_path: str, docs_dir_key: str):
 
 
 __all__ = [
+    'CustomRoot',
     'DocsConfig',
     'handle_request',
     'AIDE_FRAME_STATIC_DIR',
