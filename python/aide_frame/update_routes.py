@@ -24,9 +24,14 @@ Usage:
 """
 
 import os
-import psutil
 from dataclasses import dataclass, field
 from typing import Optional
+
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
 
 from .update import UpdateManager, get_local_version
 from .log import logger
@@ -79,8 +84,8 @@ def handle_update_request(handler, path: str, method: str, data: dict, config: U
     # API endpoints
     if path == '/api/update/status':
         status = manager.get_status()
-        # Add memory info if enabled
-        if config.show_memory:
+        # Add memory info if enabled and psutil available
+        if config.show_memory and HAS_PSUTIL:
             try:
                 process = psutil.Process()
                 mem = process.memory_info()
