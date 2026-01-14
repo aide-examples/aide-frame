@@ -39,7 +39,11 @@ AIDE_FRAME_STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
 
 @dataclass
 class DocsConfig:
-    """Configuration for docs/help route handlers."""
+    """Configuration for docs/help route handlers.
+
+    Standard paths (docs/, help/) are auto-registered if they exist in APP_DIR.
+    Warnings are logged if enabled features have missing directories.
+    """
 
     # App identification
     app_name: str = "AIDE App"
@@ -58,6 +62,46 @@ class DocsConfig:
     enable_mermaid: bool = True
     enable_docs: bool = True
     enable_help: bool = True
+
+    def __post_init__(self):
+        """Auto-register standard paths and validate configuration."""
+        paths.ensure_initialized()
+
+        # Auto-register standard paths if they exist and aren't already registered
+        if paths.APP_DIR:
+            self._auto_register_path(self.docs_dir_key, "docs")
+            self._auto_register_path(self.help_dir_key, "help")
+
+        # Validate that enabled features have their directories
+        self._validate()
+
+    def _auto_register_path(self, key: str, subdir: str):
+        """Register a standard path if it exists and isn't already registered."""
+        if paths.get(key) is not None:
+            return  # Already registered
+
+        candidate = os.path.join(paths.APP_DIR, subdir)
+        if os.path.isdir(candidate):
+            paths.register(key, candidate)
+            logger.debug(f"Auto-registered {key}: {candidate}")
+
+    def _validate(self):
+        """Log warnings for misconfigured features."""
+        if self.enable_docs:
+            docs_dir = paths.get(self.docs_dir_key)
+            if not docs_dir or not os.path.isdir(docs_dir):
+                logger.warning(
+                    f"Docs enabled but {self.docs_dir_key} not found. "
+                    f"Create docs/ directory or set enable_docs=False"
+                )
+
+        if self.enable_help:
+            help_dir = paths.get(self.help_dir_key)
+            if not help_dir or not os.path.isdir(help_dir):
+                logger.warning(
+                    f"Help enabled but {self.help_dir_key} not found. "
+                    f"Create help/ directory or set enable_help=False"
+                )
 
 
 def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
