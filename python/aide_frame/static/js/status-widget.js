@@ -1,11 +1,6 @@
 /**
  * Status Widget for aide-frame applications.
- * Displays version, platform, memory, update status in a compact card.
- *
- * Usage:
- *   <div id="status-widget"></div>
- *   <script src="/static/frame/js/status-widget.js"></script>
- *   <script>StatusWidget.init('#status-widget')</script>
+ * Compact display: platform · memory | version + update link + restart
  */
 
 const StatusWidget = {
@@ -31,14 +26,15 @@ const StatusWidget = {
                     <span class="status-label">System</span>
                     <span class="status-value" id="sw-info" style="font-size: 0.85em;">--</span>
                 </div>
-                <div class="status-row" id="sw-update-row" style="display: none;">
-                    <span class="status-label">Update</span>
-                    <a href="/update" style="color: #2563eb;">Available</a>
-                </div>
                 <div class="status-row">
-                    <a href="/update" style="flex: 1; color: #666; font-size: 0.9em;">System Update</a>
+                    <span id="sw-version" style="color: #666; font-size: 0.9em;">--</span>
+                    <span id="sw-update" style="display: none; margin-left: 8px;">
+                        <a href="/update" style="color: #2563eb; font-size: 0.85em;">Update available</a>
+                    </span>
+                    <span style="flex: 1;"></span>
+                    <a href="/update" style="color: #666; font-size: 0.85em; margin-right: 10px;">Update</a>
                     ${this.options.showRestart ? `
-                    <button onclick="StatusWidget.restart()" class="secondary" style="padding: 6px 10px; font-size: 0.8em;">Restart</button>
+                    <button onclick="StatusWidget.restart()" class="secondary" style="padding: 5px 10px; font-size: 0.8em;">Restart</button>
                     ` : ''}
                 </div>
             </div>
@@ -59,23 +55,25 @@ const StatusWidget = {
         const infoEl = document.getElementById('sw-info');
         if (infoEl) {
             const parts = [];
-            if (this.status.current_version) parts.push(`v${this.status.current_version}`);
             if (this.status.platform) parts.push(this.status.platform);
             if (this.status.memory_mb) parts.push(`${this.status.memory_mb} MB`);
             infoEl.textContent = parts.join(' · ') || '--';
         }
 
-        const updateRow = document.getElementById('sw-update-row');
-        if (updateRow) {
-            updateRow.style.display = this.status.update_available ? 'flex' : 'none';
+        const versionEl = document.getElementById('sw-version');
+        if (versionEl && this.status.current_version) {
+            versionEl.textContent = `v${this.status.current_version}`;
+        }
+
+        const updateEl = document.getElementById('sw-update');
+        if (updateEl) {
+            updateEl.style.display = this.status.update_available ? 'inline' : 'none';
         }
     },
 
     async restart() {
         if (!confirm('Restart the server?')) return;
-        try {
-            await fetch('/api/restart', { method: 'POST' });
-        } catch (e) {}
+        try { await fetch('/api/restart', { method: 'POST' }); } catch (e) {}
         alert('Server is restarting...');
         setTimeout(() => location.reload(), 3000);
     }
