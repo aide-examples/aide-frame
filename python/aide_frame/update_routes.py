@@ -27,14 +27,22 @@ import os
 from dataclasses import dataclass, field
 from typing import Optional
 
-try:
-    import psutil
-    HAS_PSUTIL = True
-except ImportError:
-    HAS_PSUTIL = False
-
 from .update import UpdateManager, get_local_version
+from .platform_detect import PLATFORM
 from .log import logger
+
+
+def get_memory_mb():
+    """Get current process memory usage in MB (works on Linux without psutil)."""
+    try:
+        with open('/proc/self/status', 'r') as f:
+            for line in f:
+                if line.startswith('VmRSS:'):
+                    # Format: "VmRSS:    12345 kB"
+                    return round(int(line.split()[1]) / 1024, 1)
+    except Exception:
+        pass
+    return None
 
 
 @dataclass
@@ -84,17 +92,13 @@ def handle_update_request(handler, path: str, method: str, data: dict, config: U
     # API endpoints
     if path == '/api/update/status':
         status = manager.get_status()
-        # Add memory info if enabled and psutil available
-        if config.show_memory and HAS_PSUTIL:
-            try:
-                process = psutil.Process()
-                mem = process.memory_info()
-                status['memory'] = {
-                    'rss_mb': round(mem.rss / 1024 / 1024, 1),
-                    'vms_mb': round(mem.vms / 1024 / 1024, 1)
-                }
-            except Exception:
-                pass
+        # Add platform info
+        status['platform'] = PLATFORM
+        # Add memory info if enabled
+        if config.show_memory:
+            mem_mb = get_memory_mb()
+            if mem_mb:
+                status['memory_mb'] = mem_mb
         handler.send_json(status)
         return True
 
