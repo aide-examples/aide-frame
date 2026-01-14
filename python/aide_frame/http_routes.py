@@ -52,7 +52,7 @@ class DocsConfig:
 
     # Documentation settings (for /about - multi-section docs)
     docs_dir_key: str = "DOCS_DIR"
-    framework_dir_key: Optional[str] = None
+    framework_dir_key: str = "AIDE_FRAME_DOCS_DIR"  # Auto-registered by paths.init()
     section_defs: Optional[List[Tuple[Optional[str], Optional[str]]]] = None
 
     # Help settings (for /help - simple flat structure)
