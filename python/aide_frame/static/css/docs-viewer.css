@@ -232,8 +232,24 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin: 20px 0 10px 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
 }
 .docs-sidebar h3:first-child { margin-top: 0; }
+.docs-sidebar h3:hover { color: #1d4ed8; }
+.docs-sidebar .section-toggle {
+    font-size: 0.7rem;
+    transition: transform 0.2s;
+}
+.docs-sidebar .section.collapsed .section-toggle {
+    transform: rotate(-90deg);
+}
+.docs-sidebar .section.collapsed ul {
+    display: none;
+}
 .docs-sidebar ul {
     list-style: none;
     margin: 0;

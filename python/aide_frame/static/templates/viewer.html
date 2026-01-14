@@ -254,8 +254,10 @@
                 let html = '';
                 for (const section of data.sections) {
                     // Only show section header if there are multiple sections or name differs from titleSuffix
-                    if (data.sections.length > 1 || section.name !== titleSuffix) {
-                        html += `<h3>${section.name}</h3>`;
+                    const showHeader = data.sections.length > 1 || section.name !== titleSuffix;
+                    if (showHeader) {
+                        html += `<div class="section">`;
+                        html += `<h3 onclick="this.parentElement.classList.toggle('collapsed')"><span class="section-toggle">▼</span>${section.name}</h3>`;
                     }
                     html += '<ul>';
                     for (const doc of section.docs) {
@@ -266,6 +268,9 @@
                         html += `<li><a href="?doc=${docPath}" data-doc="${docPath}"${titleAttr}>${doc.title}</a></li>`;
                     }
                     html += '</ul>';
+                    if (showHeader) {
+                        html += `</div>`;
+                    }
                 }
 
                 sidebar.innerHTML = html;
