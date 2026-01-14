@@ -48,6 +48,9 @@ class JsonHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         """Suppress default logging, use our logger instead."""
         # args[0] is like "GET /path HTTP/1.1" - extract method and path
+        # But for errors, args[0] can be an int (error code)
+        if not args or not isinstance(args[0], str):
+            return
         parts = args[0].split()
         if len(parts) >= 2:
             path = parts[1]
