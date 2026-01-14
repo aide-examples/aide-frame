@@ -41,7 +41,7 @@ STANDARD_SECTION_DEFS = [
 ]
 
 
-def auto_discover_sections(dir_key, include_root=True):
+def auto_discover_sections(dir_key, include_root=True, max_depth=2):
     """Auto-discover section directories and create section_defs.
 
     Scans the docs directory for subdirectories containing .md files
@@ -50,6 +50,7 @@ def auto_discover_sections(dir_key, include_root=True):
     Args:
         dir_key: Key registered with paths.register(), e.g. "DOCS_DIR"
         include_root: Whether to include root-level files as "Overview"
+        max_depth: Maximum directory depth to scan (1=immediate subdirs, 2=also nested)
 
     Returns:
         List of (section_path, section_name) tuples suitable for get_docs_structure()
@@ -59,14 +60,14 @@ def auto_discover_sections(dir_key, include_root=True):
     if not base_dir or not os.path.isdir(base_dir):
         return [(None, "Overview")] if include_root else []
 
-    # Known sections with their display order
+    # Known sections with their display order (supports nested paths)
     known_order = {
-        None: 0,           # Root/Overview
-        "requirements": 1,
-        "platform": 2,
-        "implementation": 3,
-        "deployment": 4,
-        "development": 5,
+        None: (0, 0),                    # Root/Overview
+        "requirements": (1, 0),
+        "platform": (2, 0),
+        "implementation": (3, 0),
+        "deployment": (4, 0),
+        "development": (5, 0),
     }
 
     discovered = []
@@ -80,23 +81,54 @@ def auto_discover_sections(dir_key, include_root=True):
         if has_root_files:
             discovered.append((None, "Overview"))
 
-    # Scan subdirectories
-    for item in os.listdir(base_dir):
-        item_path = os.path.join(base_dir, item)
-        if os.path.isdir(item_path) and not item.startswith('.'):
-            # Check if directory has any .md files
-            has_md = any(f.endswith('.md') for f in os.listdir(item_path))
-            if has_md:
-                # Convert dirname to display name (e.g. "my-section" -> "My Section")
-                display_name = item.replace('-', ' ').replace('_', ' ').title()
-                discovered.append((item, display_name))
+    def scan_dir(rel_path, depth):
+        """Recursively scan directory for sections with .md files."""
+        if depth > max_depth:
+            return
 
-    # Sort: known sections first in order, then unknown alphabetically
+        full_path = os.path.join(base_dir, rel_path) if rel_path else base_dir
+        if not os.path.isdir(full_path):
+            return
+
+        for item in os.listdir(full_path):
+            if item.startswith('.'):
+                continue
+
+            item_rel_path = os.path.join(rel_path, item) if rel_path else item
+            item_full_path = os.path.join(full_path, item)
+
+            if not os.path.isdir(item_full_path):
+                continue
+
+            # Check if this directory has .md files directly
+            has_md = any(f.endswith('.md') for f in os.listdir(item_full_path)
+                        if os.path.isfile(os.path.join(item_full_path, f)))
+
+            if has_md:
+                # Convert path to display name
+                # "implementation/slideshow" -> "Slideshow" (use last part)
+                # "platform" -> "Platform"
+                display_part = item.replace('-', ' ').replace('_', ' ').title()
+                discovered.append((item_rel_path, display_part))
+
+            # Recurse into subdirectories
+            scan_dir(item_rel_path, depth + 1)
+
+    scan_dir("", 1)
+
+    # Sort: known sections first in order, nested sections after their parent
     def sort_key(entry):
         path, _ = entry
         if path in known_order:
-            return (0, known_order[path])
-        return (1, path or "")
+            return known_order[path]
+        # For nested paths like "implementation/slideshow",
+        # sort after parent "implementation"
+        if path and '/' in path:
+            parent = path.split('/')[0]
+            if parent in known_order:
+                parent_order = known_order[parent]
+                return (parent_order[0], parent_order[1] + 1)
+        return (99, path or "")
 
     discovered.sort(key=sort_key)
     return discovered
