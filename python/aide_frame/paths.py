@@ -55,7 +55,19 @@ def init(app_dir=None):
     VERSION_FILE = os.path.join(app_dir, "VERSION")
     UPDATE_STATE_DIR = os.path.join(PROJECT_DIR, ".update")
 
+    # Mark as initialized before registering paths to avoid recursion
     _initialized = True
+
+    # Register aide-frame's own paths
+    # __file__ is aide_frame/paths.py, so aide_frame/ is one level up
+    aide_frame_dir = os.path.dirname(os.path.abspath(__file__))
+    aide_frame_docs = os.path.join(aide_frame_dir, "docs")
+    if os.path.isdir(aide_frame_docs):
+        register("AIDE_FRAME_DOCS_DIR", aide_frame_docs)
+
+    aide_frame_static = os.path.join(aide_frame_dir, "static")
+    if os.path.isdir(aide_frame_static):
+        register("AIDE_FRAME_STATIC_DIR", aide_frame_static)
 
 
 def ensure_initialized():

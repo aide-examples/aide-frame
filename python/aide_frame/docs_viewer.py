@@ -439,18 +439,29 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
         return {"sections": sections}
 
     # Build sections from definitions
+    # Insert AIDE Frame before DEPLOYMENT (or at end if no deployment)
+    frame_section = build_framework_section()
+    frame_inserted = False
+
+    # Sections that should come after AIDE Frame
+    late_sections = {"deployment", "development"}
+
     for section_path, section_name in section_defs:
         # Legacy support: skip AIDE_FRAME marker (now handled automatically)
         if section_path == "AIDE_FRAME":
             continue
 
+        # Insert AIDE Frame before late sections (deployment, development)
+        if section_path in late_sections and frame_section and not frame_inserted:
+            sections.append(frame_section)
+            frame_inserted = True
+
         section = build_section_from_dir(base_dir, section_path, section_name)
         if section:
             sections.append(section)
 
-    # Add framework docs at end if configured
-    frame_section = build_framework_section()
-    if frame_section:
+    # Add framework docs at end if not inserted before late sections
+    if frame_section and not frame_inserted:
         sections.append(frame_section)
 
     return {"sections": sections}
