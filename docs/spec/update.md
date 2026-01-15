@@ -115,6 +115,10 @@ Examples: `1.0.0`, `1.2.3`, `2.0.0-beta`
 
 Version comparison is lexicographic; ensure consistent format.
 
+## Web UI
+
+The update system includes a web-based management interface. See [Static Assets](static.md#updatehtml) for the client-side UI (`update.html`, `update.js`).
+
 ## Implementations
 
 | Language | Module | Status |

@@ -217,13 +217,15 @@ Served at `/about` (docs) and `/help` (help).
 
 ### update.html
 
-Update management page with:
+Web UI for the [Remote Updates](update.md) system:
 
 - Version information display
 - Update check, download, apply buttons
 - Rollback functionality
 - Status messages
 - i18n support
+
+Calls the update API endpoints defined in [HTTP Spec](http.md#update-management).
 
 Served at `/update`.
 
