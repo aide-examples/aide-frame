@@ -1,6 +1,7 @@
-# AIDE Frame
+# AIDE - Frame
 
-Lightweight application framework for Python projects, especially suited for Raspberry Pi deployments.
+Lightweight application framework for Python projects, especially suited for Raspberry Pi deployments. A future version shall also support Javascript.
+
 
 ## Features
 
@@ -26,6 +27,7 @@ aide-frame/
 │   └── python/         # Python implementation docs
 └── python/
     └── aide_frame/     # Python source code
+        └── static/     # Shared frontend assets (CSS, JS, i18n)
 ```
 
 ## License
