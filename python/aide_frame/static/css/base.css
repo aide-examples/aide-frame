@@ -354,3 +354,50 @@ button.wide { width: 100%; }
     border-color: #2563eb;
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
+
+/* Status Footer */
+.status-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-top: 1px solid #e0e0e0;
+    margin-top: 20px;
+    font-size: 0.85rem;
+    color: #666;
+}
+.status-footer-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+.status-footer-sep {
+    color: #ccc;
+    margin: 0 4px;
+}
+.status-footer-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.status-footer-btn {
+    background: none;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    color: #666;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.status-footer-btn:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+}
+.status-footer-btn.highlight {
+    border-color: #2563eb;
+    color: #2563eb;
+    font-weight: 500;
+}
