@@ -1,6 +1,6 @@
 /**
  * Header Widget for aide-frame applications.
- * Standard header: App name (left) | About | ? (right)
+ * Standard header: App name (left) | Language | About | ? (right)
  */
 
 const HeaderWidget = {
@@ -9,6 +9,7 @@ const HeaderWidget = {
         appName: 'AIDE App',
         showAbout: true,
         showHelp: true,
+        showLanguage: true,
         aboutLink: '/about',
         helpLink: '/help',
         aboutText: 'About'
@@ -22,19 +23,39 @@ const HeaderWidget = {
     },
 
     render() {
-        const links = [];
+        const items = [];
+
+        // Language dropdown
+        if (this.options.showLanguage && typeof i18n !== 'undefined') {
+            const currentLang = i18n.lang || 'en';
+            const langOptions = i18n.supported.map(lang => {
+                const selected = lang === currentLang ? 'selected' : '';
+                const label = lang.toUpperCase();
+                return `<option value="${lang}" ${selected}>${label}</option>`;
+            }).join('');
+            items.push(`<select id="header-lang-select" class="header-lang-select" title="Language">${langOptions}</select>`);
+        }
+
         if (this.options.showAbout) {
-            links.push(`<a href="${this.options.aboutLink}" class="header-link">${this.options.aboutText}</a>`);
+            items.push(`<a href="${this.options.aboutLink}" class="header-link">${this.options.aboutText}</a>`);
         }
         if (this.options.showHelp) {
-            links.push(`<a href="${this.options.helpLink}" class="header-link" title="Help" style="font-weight: bold;">?</a>`);
+            items.push(`<a href="${this.options.helpLink}" class="header-link" title="Help" style="font-weight: bold;">?</a>`);
         }
 
         this.container.innerHTML = `
             <div class="header">
                 <h1>${this.options.appName}</h1>
-                <div style="display: flex; gap: 12px;">${links.join('')}</div>
+                <div style="display: flex; align-items: center; gap: 12px;">${items.join('')}</div>
             </div>
         `;
+
+        // Attach event listener for language change
+        const langSelect = document.getElementById('header-lang-select');
+        if (langSelect) {
+            langSelect.addEventListener('change', (e) => {
+                i18n.setLanguage(e.target.value);
+            });
+        }
     }
 };

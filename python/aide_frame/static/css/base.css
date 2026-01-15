@@ -335,3 +335,23 @@ button.wide { width: 100%; }
     color: #fff;
     text-decoration: none;
 }
+
+/* Language Selector */
+.header-lang-select {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    color: #333;
+    cursor: pointer;
+    min-width: 60px;
+}
+.header-lang-select:hover {
+    border-color: #2563eb;
+}
+.header-lang-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
