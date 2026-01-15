@@ -4,17 +4,15 @@ Python implementation of [AIDE Frame](../spec/README.md).
 
 ## Modules
 
-**Core** (with spec):
+**Modules** (with spec):
 [Logging](logging.md) ·
 [Paths](paths.md) ·
 [Config](config.md) ·
 [Platform Detection](platform-detect.md) ·
-[Remote Updates](update.md)
+[Remote Updates](update.md) ·
+[HTTP](http.md)
 
-**HTTP** (Python only):
-[HTTP Components](http.md)
-
-**Guide**:
+**Guide** (Python only):
 [Getting Started & Architecture](guide.md)
 
 ## Quick Start

@@ -1,6 +1,8 @@
 # HTTP Components (Python)
 
-HTTP server, routes, docs viewer, and widgets for web applications.
+**Modules:** `http_server.py`, `http_routes.py`, `update_routes.py`, `docs_viewer.py` | [Spec](../spec/http.md)
+
+Python implementation of HTTP server, routes, docs viewer, and widgets.
 
 ## HttpServer & JsonHandler
 
