@@ -1,35 +1,29 @@
 # Configuration (Python)
 
-**Module:** `config.py`
-
-Python implementation of [Configuration](../spec/config.md).
+**Module:** `config.py` | [Spec](../spec/config.md)
 
 ## Usage
 
 ```python
 from aide_frame.config import load_config
 
-# Load with defaults
 config = load_config("config.json", defaults={
     "port": 8080,
     "log_level": "INFO"
 })
 
-# Access settings
 port = config.get("port", 8080)
 ```
 
-## API
+## Exports
 
 ```python
 from aide_frame.config import load_config
 ```
 
-| Function | Parameters | Returns |
-|----------|------------|---------|
-| `load_config(path, defaults=None)` | path: str, defaults: dict | dict |
+- `load_config(path, defaults=None)` - Load JSON config, deep-merge with defaults
 
-### Deep Merge
+## Deep Merge
 
 ```python
 defaults = {"server": {"port": 8080, "host": "localhost"}}
@@ -41,44 +35,20 @@ config = load_config("config.json", defaults=defaults)
 
 ## Sample Config Pattern
 
-```python
-import os
-from aide_frame.config import load_config
-
-config_path = os.path.join(APP_DIR, 'config.json')
-if not os.path.exists(config_path):
-    print("No config.json found. Copy sample_config.json to config.json")
-
-config = load_config(config_path, defaults=DEFAULT_CONFIG)
+```
+app/
+├── sample_config.json   # In repo (template)
+└── config.json          # In .gitignore (user settings)
 ```
 
-### .gitignore
-
-```
-# User config (not tracked)
+```gitignore
 config.json
-
-# Sample config IS tracked
 !sample_config.json
-```
-
-## Example Configuration
-
-```json
-{
-    "port": 8080,
-    "log_level": "INFO",
-
-    "feature": {
-        "enabled": true,
-        "timeout": 30
-    }
-}
 ```
 
 ## Implementation Details
 
 - Uses Python's `json` module
 - Recursive merge for nested dicts
-- Returns empty dict if file not found and no defaults provided
+- Returns defaults if file not found
 - Raises `json.JSONDecodeError` on invalid JSON

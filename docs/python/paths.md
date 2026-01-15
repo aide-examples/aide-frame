@@ -1,8 +1,6 @@
 # Path Management (Python)
 
-**Module:** `paths.py`
-
-Python implementation of [Path Management](../spec/paths.md).
+**Module:** `paths.py` | [Spec](../spec/paths.md)
 
 ## Usage
 
@@ -17,58 +15,37 @@ paths.init(SCRIPT_DIR)
 print(paths.APP_DIR)       # /path/to/app
 print(paths.PROJECT_DIR)   # /path/to (parent)
 print(paths.STATIC_DIR)    # /path/to/app/static
-print(paths.VERSION_FILE)  # /path/to/app/VERSION
 
 # Register app-specific paths
 paths.register("DOCS_DIR", os.path.join(paths.APP_DIR, "docs"))
-paths.register("CACHE_DIR", os.path.join(paths.APP_DIR, ".cache"))
 
 # Access registered paths
-print(paths.DOCS_DIR)         # /path/to/app/docs
-print(paths.get("CACHE_DIR")) # Alternative access
+print(paths.DOCS_DIR)         # Attribute access
+print(paths.get("DOCS_DIR"))  # Function access
 ```
 
-## API
+## Exports
 
 ```python
 from aide_frame import paths
 from aide_frame.paths import resolve_safe_path, PathSecurityError, MIME_TYPES
 ```
 
-### Functions
+- `init(app_dir)` - Initialize paths with app directory
+- `register(name, path)` - Register a named path
+- `get(name)` - Get registered path by name
+- `resolve_safe_path(path, base_dir=None)` - Safely resolve path (blocks `..`)
+- `MIME_TYPES` - Dict mapping file extensions to MIME types
 
-| Function | Description |
-|----------|-------------|
-| `init(app_dir)` | Initialize paths with app directory |
-| `register(name, path)` | Register a named path |
-| `get(name)` | Get registered path by name |
-| `resolve_safe_path(path, base_dir=None)` | Safely resolve a path |
-
-### Path Security
+## Path Security
 
 ```python
 from aide_frame.paths import resolve_safe_path, PathSecurityError
 
-# Relative paths resolved against PROJECT_DIR
-path = resolve_safe_path("img/uploads")  # -> /project/img/uploads
-
-# Custom base directory
-path = resolve_safe_path("uploads", base_dir="/var/www")
-
-# Path traversal blocked
 try:
     path = resolve_safe_path("../../../etc/passwd")
 except PathSecurityError as e:
     print(f"Blocked: {e}")
-```
-
-### MIME Types
-
-```python
-from aide_frame.paths import MIME_TYPES
-
-ext = '.html'
-content_type = MIME_TYPES.get(ext, 'application/octet-stream')
 ```
 
 ## Implementation Details
@@ -76,4 +53,3 @@ content_type = MIME_TYPES.get(ext, 'application/octet-stream')
 - Paths stored as module-level variables
 - `register()` uses `setattr()` for attribute access
 - `resolve_safe_path()` uses `os.path.normpath()` for normalization
-- Path traversal check: reject if `..` in normalized path

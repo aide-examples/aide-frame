@@ -1,64 +1,28 @@
 # Logging (Python)
 
-**Module:** `log.py`
-
-Python implementation of [Logging](../spec/logging.md).
+**Module:** `log.py` | [Spec](../spec/logging.md)
 
 ## Usage
 
 ```python
 from aide_frame.log import logger, set_level
 
-# Set log level
 set_level("DEBUG")
 
-# Log messages
 logger.debug("Detailed info for debugging")
 logger.info("Normal operation info")
 logger.warning("Something unexpected but not fatal")
 logger.error("Something went wrong")
 ```
 
-## API
+## Exports
 
 ```python
 from aide_frame.log import logger, set_level
 ```
 
-| Export | Type | Description |
-|--------|------|-------------|
-| `logger` | `logging.Logger` | Pre-configured logger instance |
-| `set_level(level)` | function | Set logging verbosity |
-
-### set_level()
-
-```python
-set_level("DEBUG")      # String
-set_level(logging.INFO) # Integer constant
-```
-
-## Output Format
-
-```
-2024-01-15 10:30:45 INFO     Application started
-2024-01-15 10:30:45 INFO     HTTP server listening on port 8080
-2024-01-15 10:30:46 DEBUG    Loading resource: data.json
-```
-
-## Configuration
-
-Set via command line argument (application-specific):
-
-```bash
-python3 main.py --log-level DEBUG
-```
-
-Or in code:
-
-```python
-from aide_frame.log import set_level
-set_level("DEBUG")
-```
+- `logger` - Pre-configured `logging.Logger` instance
+- `set_level(level)` - Set verbosity (`"DEBUG"`, `"INFO"`, `"WARNING"`, `"ERROR"` or int)
 
 ## Implementation Details
 
