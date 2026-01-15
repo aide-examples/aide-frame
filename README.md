@@ -1,16 +1,22 @@
 # AIDE - Frame
 
-Lightweight application framework for Python projects, especially suited for Raspberry Pi deployments. A future version shall also support Javascript.
-
+Lightweight application framework with server-side (Python) and client-side (JS/CSS) components, especially suited for Raspberry Pi deployments.
 
 ## Features
 
+**Server-side:**
 - **Platform Detection** - Auto-detect Raspberry Pi, WSL, Linux, macOS
 - **Logging** - Configurable logging with systemd-friendly output
 - **Path Management** - Centralized path handling and static file serving
 - **Configuration** - JSON-based config with defaults and deep merge
 - **Remote Updates** - GitHub-based update mechanism with rollback
-- **HTTP Server** - Web server with JSON API, docs viewer, widgets
+- **HTTP Server** - Web server with JSON API, docs viewer
+
+**Client-side:**
+- **CSS Framework** - Base styles, cards, buttons, forms, status displays
+- **JavaScript Widgets** - HeaderWidget, StatusWidget, Update UI
+- **Internationalization** - i18n with EN/DE/ES, Google Translate integration
+- **Documentation Viewer** - Markdown rendering, Mermaid diagrams, TOC
 
 ## Documentation
 
