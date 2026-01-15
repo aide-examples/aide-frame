@@ -4,13 +4,16 @@ Python implementation of [AIDE Frame](../spec/README.md).
 
 ## Modules
 
-**Modules** (with spec):
+**Server-side** (with spec):
 [Logging](logging.md) ·
 [Paths](paths.md) ·
 [Config](config.md) ·
 [Platform Detection](platform-detect.md) ·
 [Remote Updates](update.md) ·
 [HTTP](http.md)
+
+**Client-side** (shared):
+[Static Assets](../spec/static.md) - CSS, JS widgets, i18n, templates
 
 **Guide** (Python only):
 [Getting Started & Architecture](guide.md)
