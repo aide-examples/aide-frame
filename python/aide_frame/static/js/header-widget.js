@@ -43,15 +43,15 @@ const HeaderWidget = {
         }
 
         if (this.options.showAbout) {
-            items.push(`<a href="${this.options.aboutLink}" class="header-link">${this.options.aboutText}</a>`);
+            items.push(`<a href="${this.options.aboutLink}" class="header-link notranslate">${this.options.aboutText}</a>`);
         }
         if (this.options.showHelp) {
-            items.push(`<a href="${this.options.helpLink}" class="header-link" title="Help" style="font-weight: bold;">?</a>`);
+            items.push(`<a href="${this.options.helpLink}" class="header-link notranslate" title="Help" style="font-weight: bold;">?</a>`);
         }
 
         this.container.innerHTML = `
             <div class="header">
-                <h1>${this.options.appName}</h1>
+                <h1 class="notranslate">${this.options.appName}</h1>
                 <div style="display: flex; align-items: center; gap: 12px;">${items.join('')}</div>
             </div>
         `;
