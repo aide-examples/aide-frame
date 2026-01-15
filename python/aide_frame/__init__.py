@@ -35,6 +35,7 @@ from . import http_routes
 from . import http_server
 from . import update_routes
 from . import args
+from . import qrcode_utils
 
 __version__ = "1.2.0"
 
@@ -48,4 +49,5 @@ __all__ = [
     'http_server',
     'update_routes',
     'args',
+    'qrcode_utils',
 ]

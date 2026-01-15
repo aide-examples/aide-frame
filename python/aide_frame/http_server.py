@@ -22,6 +22,8 @@ Usage:
 import os
 import json
 import signal
+import socket
+import time
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
@@ -29,6 +31,70 @@ from typing import Optional, Any, Dict, Type
 
 from . import paths, http_routes, update_routes
 from .log import logger
+
+
+def get_server_url(port: int, platform: str = None) -> str:
+    """
+    Get the best URL to reach the server.
+
+    Tries in order:
+    1. For WSL2: localhost (Windows host can access via localhost)
+    2. Local IP via UDP socket trick
+    3. FQDN if available
+    4. Hostname as fallback
+
+    Args:
+        port: Server port
+        platform: Platform string (e.g., 'wsl2', 'raspi', 'linux')
+
+    Returns:
+        URL string like "http://192.168.1.100:8080"
+    """
+    hostname = socket.gethostname()
+
+    # WSL2: localhost works for Windows host access
+    if platform == 'wsl2':
+        return f"http://localhost:{port}"
+
+    # Try to get local IP via UDP socket (doesn't actually send anything)
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return f"http://{ip}:{port}"
+    except Exception:
+        pass
+
+    # Try FQDN
+    try:
+        fqdn = socket.getfqdn()
+        if fqdn and fqdn != hostname and '.' in fqdn:
+            return f"http://{fqdn}:{port}"
+    except Exception:
+        pass
+
+    return f"http://{hostname}:{port}"
+
+
+def restart_server(delay: float = 0.5):
+    """
+    Restart the server process after a short delay.
+
+    This exits the process with code 0, expecting systemd or similar
+    to restart it automatically.
+
+    Args:
+        delay: Seconds to wait before exit (allows response to be sent)
+
+    Returns:
+        Dict with success message (for JSON response)
+    """
+    def delayed_exit():
+        time.sleep(delay)
+        os._exit(0)
+    threading.Thread(target=delayed_exit, daemon=True).start()
+    return {"success": True, "message": "Restarting..."}
 
 
 class JsonHandler(BaseHTTPRequestHandler):
@@ -333,4 +399,6 @@ class HttpServer:
 __all__ = [
     'JsonHandler',
     'HttpServer',
+    'get_server_url',
+    'restart_server',
 ]
