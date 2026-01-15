@@ -21,7 +21,7 @@ const StatusWidget = {
 
     render() {
         this.container.innerHTML = `
-            <div class="status-footer">
+            <div class="status-footer notranslate">
                 <span class="status-footer-info">
                     <span id="sw-version">--</span>
                     <span class="status-footer-sep">·</span>
