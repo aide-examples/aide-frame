@@ -16,7 +16,7 @@ class I18n {
     constructor() {
         this.polyglot = null;
         this.lang = 'en';
-        this.supported = ['en', 'de'];
+        this.supported = ['en', 'de', 'es'];
     }
 
     /**
