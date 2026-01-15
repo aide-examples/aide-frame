@@ -1,8 +1,8 @@
 # HTTP Server
 
-Das `http_server` Modul bietet eine einfache HTTP-Server-Infrastruktur für aide-frame Anwendungen.
+The `http_server` module provides a simple HTTP server infrastructure for aide-frame applications.
 
-## Übersicht
+## Overview
 
 ```python
 from aide_frame.http_server import HttpServer, JsonHandler
@@ -23,21 +23,21 @@ server.run()
 
 ## JsonHandler
 
-Basis-Klasse für HTTP-Request-Handler mit Convenience-Methoden.
+Base class for HTTP request handlers with convenience methods.
 
-### Response-Methoden
+### Response Methods
 
-| Methode | Beschreibung |
-|---------|-------------|
-| `send_json(data, status=200)` | JSON-Response senden |
-| `send_html(content, status=200)` | HTML-Response senden |
-| `send_text(content, content_type, status=200)` | Text mit beliebigem MIME-Type |
-| `send_file(filepath, content_type=None, binary=False)` | Datei senden (MIME-Type auto-detect) |
-| `file(filename)` | Datei aus `static/` Verzeichnis servieren |
+| Method | Description |
+|--------|-------------|
+| `send_json(data, status=200)` | Send JSON response |
+| `send_html(content, status=200)` | Send HTML response |
+| `send_text(content, content_type, status=200)` | Send text with any MIME type |
+| `send_file(filepath, content_type=None, binary=False)` | Send file (MIME type auto-detected) |
+| `file(filename)` | Serve file from `static/` directory |
 
-### Return-basierte Responses
+### Return-Based Responses
 
-Die `get()` und `post()` Methoden unterstützen verschiedene Return-Typen:
+The `get()` and `post()` methods support various return types:
 
 ```python
 def get(self, path, params):
@@ -47,44 +47,44 @@ def get(self, path, params):
     # String → HTML
     return '<h1>Hello</h1>'
 
-    # Tuple → Response mit Status-Code
+    # Tuple → Response with status code
     return {'error': 'Not found'}, 404
 
-    # None → Bereits behandelt (z.B. via self.file())
+    # None → Already handled (e.g., via self.file())
     return self.file('index.html')
 ```
 
 ### Docs/Help Integration
 
-Wenn `docs_config` gesetzt ist, werden `/about`, `/help` und die zugehörigen APIs automatisch behandelt:
+If `docs_config` is set, `/about`, `/help` and their associated APIs are automatically handled:
 
 ```python
 class MyHandler(JsonHandler):
     def get(self, path, params):
-        # Docs/Help werden automatisch vor get() geprüft
+        # Docs/Help are automatically checked before get()
         if path == '/': return self.file('index.html')
 ```
 
 ## HttpServer
 
-Verwaltet den Server-Lifecycle mit Start/Stop und Signal-Handling.
+Manages the server lifecycle with start/stop and signal handling.
 
-### Konstruktor
+### Constructor
 
 ```python
 server = HttpServer(
-    port=8080,                    # Port zum Lauschen
-    handler_class=MyHandler,      # Handler-Klasse (JsonHandler-Subklasse)
-    app_dir=SCRIPT_DIR,           # App-Verzeichnis (für paths.init)
-    static_dir=None,              # Static-Files Verzeichnis (default: app_dir/static)
-    docs_config=None,             # DocsConfig für /about und /help
-    update_config=None,           # UpdateConfig für Remote-Updates
+    port=8080,                    # Port to listen on
+    handler_class=MyHandler,      # Handler class (JsonHandler subclass)
+    app_dir=SCRIPT_DIR,           # App directory (for paths.init)
+    static_dir=None,              # Static files directory (default: app_dir/static)
+    docs_config=None,             # DocsConfig for /about and /help
+    update_config=None,           # UpdateConfig for remote updates
 )
 ```
 
-### Update-Integration
+### Update Integration
 
-Mit `update_config` werden automatisch Update-Routen und eine Update-Seite bereitgestellt:
+With `update_config`, update routes and an update page are automatically provided:
 
 ```python
 from aide_frame import update_routes
@@ -95,32 +95,32 @@ server = HttpServer(
     app_dir=SCRIPT_DIR,
     update_config=update_routes.UpdateConfig(
         github_repo="username/repo",
-        service_name="myapp"        # Für systemctl restart
+        service_name="myapp"        # For systemctl restart
     ),
 )
 ```
 
-Siehe [Update-Routen](update-routes.md) für Details.
+See [Update Routes](update-routes.md) for details.
 
-### Methoden
+### Methods
 
-| Methode | Beschreibung |
-|---------|-------------|
-| `start()` | Server im Hintergrund-Thread starten |
-| `stop()` | Server stoppen |
-| `run()` | Server starten und blockieren bis Ctrl+C |
+| Method | Description |
+|--------|-------------|
+| `start()` | Start server in background thread |
+| `stop()` | Stop server |
+| `run()` | Start server and block until Ctrl+C |
 
 ### Blocking vs Non-Blocking
 
 ```python
-# Blocking (für einfache Apps)
+# Blocking (for simple apps)
 server = HttpServer(port=8080, handler_class=MyHandler)
-server.run()  # Blockiert, handled Ctrl+C
+server.run()  # Blocks, handles Ctrl+C
 
-# Non-Blocking (für komplexere Apps)
+# Non-Blocking (for more complex apps)
 server = HttpServer(port=8080, handler_class=MyHandler)
 server.start()
-# ... andere Initialisierung ...
+# ... other initialization ...
 try:
     while True:
         time.sleep(1)
@@ -128,7 +128,7 @@ except KeyboardInterrupt:
     server.stop()
 ```
 
-## Vollständiges Beispiel
+## Complete Example
 
 ```python
 #!/usr/bin/env python3
@@ -162,7 +162,7 @@ class MyHandler(http_server.JsonHandler):
 
     def post(self, path, data):
         if path == '/api/process':
-            # Verarbeite data...
+            # Process data...
             return {'success': True, 'result': data}
         return {'error': 'Not found'}, 404
 
@@ -186,9 +186,9 @@ if __name__ == '__main__':
     main()
 ```
 
-## Siehe auch
+## See Also
 
-- [HTTP Routes](http-routes.md) - DocsConfig und Docs/Help-Routen
-- [Update-Routen](update-routes.md) - Remote-Update-System
-- [Widgets](widgets.md) - JavaScript-Widgets (Header, Status)
-- [Paths](paths.md) - Pfad-Management
+- [HTTP Routes](http-routes.md) - DocsConfig and docs/help routes
+- [Update Routes](update-routes.md) - Remote update system
+- [Widgets](widgets.md) - JavaScript widgets (Header, Status)
+- [Paths](paths.md) - Path management

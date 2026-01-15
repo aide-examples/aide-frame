@@ -1,34 +1,34 @@
 # Getting Started
 
-Anleitung zum Erstellen einer neuen aide-frame Anwendung.
+Guide for creating a new aide-frame application.
 
-## Projekt-Struktur
+## Project Structure
 
 ```
 my-app/
-├── aide-frame/              # Git-Submodul
+├── aide-frame/              # Git submodule
 │   └── python/
 │       └── aide_frame/
 ├── app/
-│   ├── main.py              # Haupt-Einstiegspunkt
+│   ├── main.py              # Main entry point
 │   ├── static/
-│   │   └── index.html       # Web-UI
-│   ├── docs/                # Dokumentation (optional)
+│   │   └── index.html       # Web UI
+│   ├── docs/                # Documentation (optional)
 │   │   └── index.md
-│   ├── help/                # User-Help (optional)
+│   ├── help/                # User help (optional)
 │   │   └── index.md
-│   ├── sample_config.json   # Konfig-Vorlage (im Repo)
-│   └── config.json          # User-Konfig (in .gitignore)
+│   ├── sample_config.json   # Config template (in repo)
+│   └── config.json          # User config (in .gitignore)
 └── .gitignore
 ```
 
-## Kanonische Initialisierungsreihenfolge
+## Canonical Initialization Order
 
-**Wichtig:** Diese Reihenfolge muss in jeder aide-frame App eingehalten werden!
+**Important:** This order must be followed in every aide-frame app!
 
 ```python
 #!/usr/bin/env python3
-"""My App - Beschreibung."""
+"""My App - Description."""
 
 import os
 import sys
@@ -67,14 +67,14 @@ from aide_frame.config import load_config
 # from my_module import MyClass
 ```
 
-### Warum diese Reihenfolge?
+### Why This Order?
 
-1. **PATH SETUP** muss zuerst erfolgen, damit Python aide-frame finden kann
-2. **paths.init()** registriert APP_DIR und ermöglicht Auto-Registrierung von docs/help
-3. **Andere aide-frame Imports** können dann sicher erfolgen, z.B. `DocsConfig` nutzt paths
-4. **App-spezifische Imports** kommen zuletzt
+1. **PATH SETUP** must come first so Python can find aide-frame
+2. **paths.init()** registers APP_DIR and enables auto-registration of docs/help
+3. **Other aide-frame imports** can then proceed safely, e.g., `DocsConfig` uses paths
+4. **App-specific imports** come last
 
-## Minimale App (hello-style)
+## Minimal App (hello-style)
 
 ```python
 #!/usr/bin/env python3
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
 ## Static Files
 
-Erstelle `app/static/index.html`:
+Create `app/static/index.html`:
 
 ```html
 <!DOCTYPE html>
@@ -152,16 +152,16 @@ Erstelle `app/static/index.html`:
 </html>
 ```
 
-aide-frame stellt `base.css` unter `/static/frame/css/base.css` bereit.
+aide-frame provides `base.css` at `/static/frame/css/base.css`.
 
-## Dokumentation hinzufügen
+## Adding Documentation
 
-Erstelle `app/docs/index.md`:
+Create `app/docs/index.md`:
 
 ```markdown
 # My App
 
-Kurze Beschreibung der App.
+Brief description of the app.
 
 ## Features
 
@@ -169,28 +169,28 @@ Kurze Beschreibung der App.
 - Feature 2
 ```
 
-Die Dokumentation ist dann unter `/about` erreichbar.
+The documentation is then accessible at `/about`.
 
-## User-Help hinzufügen
+## Adding User Help
 
-Erstelle `app/help/index.md`:
+Create `app/help/index.md`:
 
 ```markdown
-# My App - Hilfe
+# My App - Help
 
-Willkommen! Diese Seite erklärt die Benutzung.
+Welcome! This page explains how to use the app.
 
-## Erste Schritte
+## First Steps
 
-1. Schritt eins
-2. Schritt zwei
+1. Step one
+2. Step two
 ```
 
-Die Hilfe ist dann unter `/help` erreichbar.
+The help is then accessible at `/help`.
 
-## Konfiguration
+## Configuration
 
-Erstelle `app/sample_config.json` (wird im Repo getrackt):
+Create `app/sample_config.json` (tracked in repo):
 
 ```json
 {
@@ -200,14 +200,14 @@ Erstelle `app/sample_config.json` (wird im Repo getrackt):
 }
 ```
 
-Füge zu `.gitignore` hinzu:
+Add to `.gitignore`:
 
 ```
 # User config (not tracked)
 app/config.json
 ```
 
-Laden in der App:
+Loading in the app:
 
 ```python
 from aide_frame.config import load_config
@@ -216,16 +216,16 @@ config_path = os.path.join(SCRIPT_DIR, 'config.json')
 config = load_config(config_path, defaults={'port': 8080})
 ```
 
-Siehe [Config](config.md) für Details zum Sample Config Pattern.
+See [Config](config.md) for details on the sample config pattern.
 
-## aide-frame als Submodul
+## aide-frame as Submodule
 
 ```bash
 git submodule add ../aide-frame aide-frame
 git submodule update --init
 ```
 
-Update auf neueste Version:
+Update to latest version:
 
 ```bash
 git submodule update --remote aide-frame
@@ -233,10 +233,10 @@ git add aide-frame
 git commit -m "Update aide-frame"
 ```
 
-## Nächste Schritte
+## Next Steps
 
-- [HTTP Server](http-server.md) - JsonHandler und HttpServer Details
-- [HTTP Routes](http-routes.md) - DocsConfig und Viewer-API
-- [Paths](paths.md) - Pfad-Management
-- [Config](config.md) - Konfigurationsdateien
-- [Logging](logging.md) - Logger-Nutzung
+- [HTTP Server](http-server.md) - JsonHandler and HttpServer details
+- [HTTP Routes](http-routes.md) - DocsConfig and viewer API
+- [Paths](paths.md) - Path management
+- [Config](config.md) - Configuration files
+- [Logging](logging.md) - Logger usage

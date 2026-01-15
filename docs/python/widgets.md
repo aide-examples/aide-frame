@@ -1,17 +1,17 @@
 # JavaScript Widgets
 
-aide-frame stellt wiederverwendbare JavaScript-Widgets für Web-UIs bereit.
+aide-frame provides reusable JavaScript widgets for web UIs.
 
-## Verfügbare Widgets
+## Available Widgets
 
-| Widget | Datei | Beschreibung |
-|--------|-------|--------------|
-| HeaderWidget | `header-widget.js` | Standardisierte Kopfzeile |
-| StatusWidget | `status-widget.js` | System-Status mit Update-Info |
+| Widget | File | Description |
+|--------|------|-------------|
+| HeaderWidget | `header-widget.js` | Standardized header |
+| StatusWidget | `status-widget.js` | System status with update info |
 
-## Einbindung
+## Integration
 
-Die Widgets werden über `/static/frame/js/` bereitgestellt:
+The widgets are served via `/static/frame/js/`:
 
 ```html
 <script src="/static/frame/js/header-widget.js"></script>
@@ -22,9 +22,9 @@ Die Widgets werden über `/static/frame/js/` bereitgestellt:
 
 ## HeaderWidget
 
-Einheitliche Kopfzeile für alle Seiten: App-Name links, About und Help-Link rechts.
+Unified header for all pages: app name on the left, About and Help links on the right.
 
-### Verwendung
+### Usage
 
 ```html
 <div id="app-header"></div>
@@ -37,18 +37,18 @@ Einheitliche Kopfzeile für alle Seiten: App-Name links, About und Help-Link rec
 </script>
 ```
 
-### Optionen
+### Options
 
-| Option | Default | Beschreibung |
-|--------|---------|--------------|
-| `appName` | `'AIDE App'` | Angezeigter App-Name |
-| `showAbout` | `true` | About-Link anzeigen |
-| `showHelp` | `true` | Help-Link (?) anzeigen |
-| `aboutLink` | `'/about'` | URL für About |
-| `helpLink` | `'/help'` | URL für Help |
-| `aboutText` | `'About'` | Text des About-Links |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `appName` | `'AIDE App'` | Displayed app name |
+| `showAbout` | `true` | Show About link |
+| `showHelp` | `true` | Show Help link (?) |
+| `aboutLink` | `'/about'` | URL for About |
+| `helpLink` | `'/help'` | URL for Help |
+| `aboutText` | `'About'` | Text for About link |
 
-### Beispiel mit allen Optionen
+### Example with All Options
 
 ```javascript
 HeaderWidget.init('#app-header', {
@@ -61,7 +61,7 @@ HeaderWidget.init('#app-header', {
 });
 ```
 
-### Generiertes HTML
+### Generated HTML
 
 ```html
 <div class="header">
@@ -77,13 +77,13 @@ HeaderWidget.init('#app-header', {
 
 ## StatusWidget
 
-Kompakte System-Status-Anzeige mit:
-- Plattform (raspi, wsl2, linux, etc.)
-- Speicherverbrauch (used of total MB)
-- Version mit Update-Hinweis
-- Update- und Restart-Buttons
+Compact system status display with:
+- Platform (raspi, wsl2, linux, etc.)
+- Memory usage (used of total MB)
+- Version with update hint
+- Update and Restart buttons
 
-### Verwendung
+### Usage
 
 ```html
 <div id="status-widget"></div>
@@ -94,14 +94,14 @@ Kompakte System-Status-Anzeige mit:
 </script>
 ```
 
-### Optionen
+### Options
 
-| Option | Default | Beschreibung |
-|--------|---------|--------------|
-| `showRestart` | `true` | Restart-Button anzeigen |
-| `refreshInterval` | `30000` | Auto-Refresh in ms (0 = aus) |
+| Option | Default | Description |
+|--------|---------|-------------|
+| `showRestart` | `true` | Show restart button |
+| `refreshInterval` | `30000` | Auto-refresh in ms (0 = off) |
 
-### Beispiel
+### Example
 
 ```javascript
 StatusWidget.init('#status-widget', {
@@ -110,9 +110,9 @@ StatusWidget.init('#status-widget', {
 });
 ```
 
-### API-Anforderung
+### API Requirement
 
-Das Widget ruft `/api/update/status` auf und erwartet:
+The widget calls `/api/update/status` and expects:
 
 ```json
 {
@@ -126,7 +126,7 @@ Das Widget ruft `/api/update/status` auf und erwartet:
 }
 ```
 
-### Generiertes HTML
+### Generated HTML
 
 ```html
 <div class="card">
@@ -146,14 +146,14 @@ Das Widget ruft `/api/update/status` auf und erwartet:
 
 ---
 
-## Voraussetzungen
+## Prerequisites
 
-Die Widgets setzen voraus:
+The widgets require:
 
-1. **CSS**: `/static/frame/css/base.css` für Styling
-2. **Server**: `update_config` für StatusWidget-API
+1. **CSS**: `/static/frame/css/base.css` for styling
+2. **Server**: `update_config` for StatusWidget API
 
-### Vollständiges Beispiel
+### Complete Example
 
 ```html
 <!DOCTYPE html>
@@ -165,7 +165,7 @@ Die Widgets setzen voraus:
     <div class="container">
         <div id="app-header"></div>
 
-        <!-- App-Inhalt -->
+        <!-- App content -->
 
         <div id="status-widget"></div>
     </div>
@@ -180,7 +180,7 @@ Die Widgets setzen voraus:
 </html>
 ```
 
-## Siehe auch
+## See Also
 
-- [HTTP Server](http-server.md) - Server mit update_config
-- [Update-Routen](update-routes.md) - API für StatusWidget
+- [HTTP Server](http-server.md) - Server with update_config
+- [Update Routes](update-routes.md) - API for StatusWidget

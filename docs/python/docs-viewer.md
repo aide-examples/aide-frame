@@ -1,27 +1,27 @@
 # Documentation Viewer
 
-aide-frame enthält ein integriertes Dokumentations- und Help-System mit Web-UI.
+aide-frame includes an integrated documentation and help system with web UI.
 
-## Übersicht
+## Overview
 
-- `/about` - Projekt-Dokumentation (aus `docs/` Verzeichnis)
-- `/help` - User-Help (aus `help/` Verzeichnis)
+- `/about` - Project documentation (from `docs/` directory)
+- `/help` - User help (from `help/` directory)
 
-Beide nutzen das gleiche unified viewer Template mit:
-- Dynamische Sidebar-Navigation
-- Markdown-Rendering (marked.js)
-- Mermaid-Diagramm-Support
-- Table of Contents
-- Breadcrumb-Navigation
+Both use the same unified viewer template with:
+- Dynamic sidebar navigation
+- Markdown rendering (marked.js)
+- Mermaid diagram support
+- Table of contents
+- Breadcrumb navigation
 
-## Architektur
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Browser                                                     │
 │  ┌─────────────────────────────────────────────────────────┐│
 │  │  viewer.html (unified template)                          ││
-│  │  - Mode aus URL: /help → help, /about → docs            ││
+│  │  - Mode from URL: /help → help, /about → docs            ││
 │  │  - Unified API: /api/viewer/structure?root={mode}       ││
 │  │  - Unified API: /api/viewer/content?root={mode}&path=   ││
 │  └─────────────────────────────────────────────────────────┘│
@@ -30,20 +30,20 @@ Beide nutzen das gleiche unified viewer Template mit:
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  aide_frame/http_routes.py                                   │
-│  ├── handle_request()      → Route-Handling                  │
+│  ├── handle_request()      → Route handling                  │
 │  ├── /api/viewer/structure → get_docs_structure()           │
 │  ├── /api/viewer/content   → load_file()                    │
-│  ├── /api/app/config       → App-Konfiguration              │
-│  └── /static/frame/*       → aide-frame Assets              │
+│  ├── /api/app/config       → App configuration              │
+│  └── /static/frame/*       → aide-frame assets              │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  aide_frame/docs_viewer.py                                   │
-│  ├── get_docs_structure()  → Sections mit Titeln            │
-│  ├── get_structure()       → Flache Dateiliste              │
-│  ├── load_file()           → Markdown-Inhalt laden          │
-│  └── extract_title_and_description() → Metadaten parsen     │
+│  ├── get_docs_structure()  → Sections with titles            │
+│  ├── get_structure()       → Flat file list                  │
+│  ├── load_file()           → Load Markdown content           │
+│  └── extract_title_and_description() → Parse metadata        │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -60,17 +60,17 @@ Beide nutzen das gleiche unified viewer Template mit:
 
 ## Unified Viewer API
 
-Eine einheitliche API für beide Modi (docs und help):
+A unified API for both modes (docs and help):
 
-| Endpoint | Beschreibung |
+| Endpoint | Description |
 |----------|-------------|
-| `/api/viewer/structure?root=docs` | Docs-Struktur (mit Sections) |
-| `/api/viewer/structure?root=help` | Help-Struktur (flach) |
-| `/api/viewer/content?root=docs&path=file.md` | Docs-Inhalt |
-| `/api/viewer/content?root=help&path=file.md` | Help-Inhalt |
-| `/api/app/config` | App-Name, Back-Link, Features |
+| `/api/viewer/structure?root=docs` | Docs structure (with sections) |
+| `/api/viewer/structure?root=help` | Help structure (flat) |
+| `/api/viewer/content?root=docs&path=file.md` | Docs content |
+| `/api/viewer/content?root=help&path=file.md` | Help content |
+| `/api/app/config` | App name, back link, features |
 
-### Beispiel: Structure
+### Example: Structure
 
 ```bash
 curl "http://localhost:8080/api/viewer/structure?root=docs"
@@ -84,8 +84,8 @@ curl "http://localhost:8080/api/viewer/structure?root=docs"
       "docs": [
         {
           "path": "index.md",
-          "title": "Projekt Name",
-          "description": "Kurzbeschreibung."
+          "title": "Project Name",
+          "description": "Brief description."
         }
       ]
     }
@@ -93,7 +93,7 @@ curl "http://localhost:8080/api/viewer/structure?root=docs"
 }
 ```
 
-### Beispiel: Content
+### Example: Content
 
 ```bash
 curl "http://localhost:8080/api/viewer/content?root=help&path=index.md"
@@ -109,16 +109,16 @@ curl "http://localhost:8080/api/viewer/content?root=help&path=index.md"
 
 ## Docs vs Help
 
-| Aspekt | Docs (`/about`) | Help (`/help`) |
+| Aspect | Docs (`/about`) | Help (`/help`) |
 |--------|-----------------|----------------|
-| Zweck | Technische Dokumentation | User-Anleitung |
-| Struktur | Hierarchisch mit Sections | Flach |
-| Verzeichnis | `app/docs/` | `app/help/` |
-| Auto-Discovery | Nach Unterverzeichnissen | Alle .md Dateien |
+| Purpose | Technical documentation | User guide |
+| Structure | Hierarchical with sections | Flat |
+| Directory | `app/docs/` | `app/help/` |
+| Auto-discovery | By subdirectories | All .md files |
 
-## Section-Erkennung (Docs)
+## Section Detection (Docs)
 
-Docs-Sections werden automatisch aus Unterverzeichnissen erkannt:
+Docs sections are automatically detected from subdirectories:
 
 ```
 docs/
@@ -131,48 +131,48 @@ docs/
     └── index.md
 ```
 
-Standard-Reihenfolge:
-1. Overview (index.md im Root)
+Default order:
+1. Overview (index.md in root)
 2. Requirements
 3. Platform
 4. Implementation
 5. Deployment
 6. Development
 
-## Title und Description
+## Title and Description
 
-Aus jeder Markdown-Datei werden extrahiert:
+Extracted from each Markdown file:
 
 ```markdown
-# Mein Titel
+# My Title
 
-Dies ist die Beschreibung (erster Satz).
+This is the description (first sentence).
 
-Weitere Absätze...
+Further paragraphs...
 ```
 
-- **Title**: Erste `# Heading`
-- **Description**: Erster vollständiger Satz nach dem Titel
+- **Title**: First `# Heading`
+- **Description**: First complete sentence after the title
 
-## Web-UI Features
+## Web UI Features
 
 ### Sidebar
-- Auto-generiert aus API
-- Hover-Tooltips mit Beschreibungen
-- Active-Link-Highlighting
-- Mobile-Toggle
+- Auto-generated from API
+- Hover tooltips with descriptions
+- Active link highlighting
+- Mobile toggle
 
 ### Table of Contents
-- Auto-generiert aus Headings
+- Auto-generated from headings
 - Collapsible
-- Smooth-Scrolling
+- Smooth scrolling
 
-### Markdown-Support
+### Markdown Support
 - GitHub-Flavored Markdown
-- Tabellen, Code-Blöcke, Task-Listen
-- Syntax-Highlighting
+- Tables, code blocks, task lists
+- Syntax highlighting
 
-### Mermaid-Diagramme
+### Mermaid Diagrams
 
 ````markdown
 ```mermaid
@@ -182,55 +182,55 @@ flowchart TB
 ```
 ````
 
-Lädt von CDN, funktioniert auch offline wenn lokal verfügbar.
+Loads from CDN, also works offline if available locally.
 
 ### Navigation
 
-- **Deep-Links**: `/about?doc=implementation/index.md`
-- **Breadcrumbs**: Zeigt aktuelle Position
-- **Link-Interception**: `.md` Links laden via JavaScript
+- **Deep links**: `/about?doc=implementation/index.md`
+- **Breadcrumbs**: Shows current position
+- **Link interception**: `.md` links load via JavaScript
 
 ## Assets
 
-Bilder in docs/help werden über spezielle Asset-Routen geladen:
+Images in docs/help are loaded via special asset routes:
 
 ```markdown
 ![Diagram](architecture.png)
 ```
 
-Wird automatisch umgeschrieben zu:
-- `/docs-assets/architecture.png` (für docs)
-- `/help-assets/architecture.png` (für help)
+Automatically rewritten to:
+- `/docs-assets/architecture.png` (for docs)
+- `/help-assets/architecture.png` (for help)
 
-## Sicherheit
+## Security
 
-Path-Traversal-Schutz:
-- `..` in Pfaden wird blockiert
-- Pfade werden auf das jeweilige Verzeichnis beschränkt
+Path traversal protection:
+- `..` in paths is blocked
+- Paths are restricted to the respective directory
 
-## Dateien in aide-frame
+## Files in aide-frame
 
-| Datei | Zweck |
-|-------|-------|
-| `http_routes.py` | Route-Handler für /about, /help, APIs |
-| `docs_viewer.py` | Struktur-Parsing, Datei-Laden |
-| `static/templates/viewer.html` | Unified Web-UI Template |
-| `static/css/base.css` | Basis-CSS für Apps |
-| `static/css/docs-viewer.css` | Viewer-spezifisches CSS |
-| `static/js/marked.min.js` | Markdown-Parser |
+| File | Purpose |
+|------|---------|
+| `http_routes.py` | Route handlers for /about, /help, APIs |
+| `docs_viewer.py` | Structure parsing, file loading |
+| `static/templates/viewer.html` | Unified web UI template |
+| `static/css/base.css` | Base CSS for apps |
+| `static/css/docs-viewer.css` | Viewer-specific CSS |
+| `static/js/marked.min.js` | Markdown parser |
 
-## Legacy APIs (Kompatibilität)
+## Legacy APIs (Compatibility)
 
-Die alten APIs werden weiterhin unterstützt:
+The old APIs are still supported:
 
-| Legacy | Neu |
+| Legacy | New |
 |--------|-----|
 | `/api/docs/structure` | `/api/viewer/structure?root=docs` |
 | `/api/docs/{path}` | `/api/viewer/content?root=docs&path={path}` |
 | `/api/help/structure` | `/api/viewer/structure?root=help` |
 | `/api/help/{path}` | `/api/viewer/content?root=help&path={path}` |
 
-## Siehe auch
+## See Also
 
-- [HTTP Routes](http-routes.md) - DocsConfig und API-Details
-- [Getting Started](getting-started.md) - Neue App erstellen
+- [HTTP Routes](http-routes.md) - DocsConfig and API details
+- [Getting Started](getting-started.md) - Create a new app
