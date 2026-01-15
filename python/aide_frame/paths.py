@@ -59,13 +59,16 @@ def init(app_dir=None):
     _initialized = True
 
     # Register aide-frame's own paths
-    # __file__ is aide_frame/paths.py, so aide_frame/ is one level up
-    aide_frame_dir = os.path.dirname(os.path.abspath(__file__))
-    aide_frame_docs = os.path.join(aide_frame_dir, "docs")
+    # __file__ is python/aide_frame/paths.py
+    # aide-frame root is ../../ from here, docs is at aide-frame/docs/
+    aide_frame_pkg_dir = os.path.dirname(os.path.abspath(__file__))  # python/aide_frame/
+    aide_frame_python_dir = os.path.dirname(aide_frame_pkg_dir)       # python/
+    aide_frame_root = os.path.dirname(aide_frame_python_dir)          # aide-frame/
+    aide_frame_docs = os.path.join(aide_frame_root, "docs")
     if os.path.isdir(aide_frame_docs):
         register("AIDE_FRAME_DOCS_DIR", aide_frame_docs)
 
-    aide_frame_static = os.path.join(aide_frame_dir, "static")
+    aide_frame_static = os.path.join(aide_frame_pkg_dir, "static")
     if os.path.isdir(aide_frame_static):
         register("AIDE_FRAME_STATIC_DIR", aide_frame_static)
 
