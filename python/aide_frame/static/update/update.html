@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title data-i18n="update_title">System Update</title>
+    <link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+    <div class="container wide">
+        <div class="header">
+            <a href="/" class="back-link">&larr; <span data-i18n="back">Back</span></a>
+            <h1 data-i18n="update_title">System Update</h1>
+            <a href="/help" class="header-link" data-i18n-title="help" title="Help">?</a>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <div class="card">
+            <h2 data-i18n="update_version_info">Version Information</h2>
+            <div class="version-display">
+                <span class="version-label" data-i18n="update_current_version">Current Version</span>
+                <span class="version-value current" id="current-version">--</span>
+            </div>
+            <div class="version-display">
+                <span class="version-label" data-i18n="update_available_version">Available Version</span>
+                <span class="version-value" id="available-version">--</span>
+            </div>
+            <div class="version-display">
+                <span class="version-label" data-i18n="status">Status</span>
+                <span id="update-status"><span class="status-badge checking" data-i18n="loading">Loading...</span></span>
+            </div>
+            <div class="version-display" id="last-check-row">
+                <span class="version-label" data-i18n="update_last_check">Last Check</span>
+                <span class="version-value" id="last-check">--</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="update_actions">Actions</h2>
+            <div class="actions">
+                <button id="btn-check" onclick="checkForUpdates()">
+                    <span class="icon">🔍</span> <span data-i18n="update_check">Check for Updates</span>
+                </button>
+                <button id="btn-download" onclick="downloadUpdate()" class="secondary hidden">
+                    <span class="icon">📥</span> <span data-i18n="update_download">Download Update</span>
+                </button>
+                <button id="btn-apply" onclick="applyUpdate()" class="hidden">
+                    <span class="icon">🚀</span> <span data-i18n="update_install">Install Update & Restart</span>
+                </button>
+                <button id="btn-rollback" onclick="rollback()" class="danger hidden">
+                    <span class="icon">↩️</span> <span data-i18n="update_rollback">Rollback to Previous Version</span>
+                </button>
+                <button id="btn-enable" onclick="enableUpdates()" class="secondary hidden">
+                    <span class="icon">🔓</span> <span data-i18n="update_enable">Re-enable Updates</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card" id="source-info">
+            <h2 data-i18n="update_source">Update Source</h2>
+            <div class="details">
+                <span data-i18n="update_repository">Repository</span>: <code id="source-repo">--</code><br>
+                <span data-i18n="update_branch">Branch</span>: <code id="source-branch">--</code>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/frame/vendor/polyglot/polyglot.min.js"></script>
+    <script src="/static/frame/js/i18n.js"></script>
+    <script src="./update.js"></script>
+</body>
+</html>

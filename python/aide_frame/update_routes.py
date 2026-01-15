@@ -138,10 +138,17 @@ def handle_update_request(handler, path: str, method: str, data: dict, config: U
         handler.send_json(result)
         return True
 
-    # HTML pages
+    # HTML page - serve from static file
     if path == '/update':
-        html = render_update_page(config)
-        handler.send_html(html)
+        # Use the static HTML file instead of inline template
+        static_dir = os.path.dirname(__file__)
+        html_path = os.path.join(static_dir, 'static', 'update', 'update.html')
+        if os.path.exists(html_path):
+            handler.send_file(html_path)
+        else:
+            # Fallback to inline template for backwards compatibility
+            html = render_update_page(config)
+            handler.send_html(html)
         return True
 
     return False
