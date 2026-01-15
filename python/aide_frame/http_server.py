@@ -145,6 +145,15 @@ class JsonHandler(BaseHTTPRequestHandler):
         if self.update_config and update_routes.handle_update_request(self, path, 'GET', {}, self.update_config):
             return
 
+        # Serve static files from /static/ path (e.g., locales, images)
+        if path.startswith('/static/') and self.static_dir:
+            filename = path[8:]  # Remove '/static/' prefix
+            if '..' not in filename and not filename.startswith('/'):
+                filepath = os.path.join(self.static_dir, filename)
+                if os.path.isfile(filepath):
+                    self.send_file(filepath)
+                    return
+
         params = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(parsed.query).items()}
 
         result = self.get(path, params)

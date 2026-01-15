@@ -1,11 +1,11 @@
 /**
- * i18n Manager - Wrapper um Polyglot.js
+ * i18n Manager - Wrapper around Polyglot.js
  *
- * Lädt Framework-Strings und App-Strings, merged sie,
- * und nutzt Polyglot.js für Übersetzungen mit Pluralisierung.
+ * Loads framework strings and app strings, merges them,
+ * and uses Polyglot.js for translations with pluralization support.
  *
  * Usage:
- *   <script src="/static/frame/js/polyglot.min.js"></script>
+ *   <script src="/static/frame/vendor/polyglot/polyglot.min.js"></script>
  *   <script src="/static/frame/js/i18n.js"></script>
  *   <script>
  *       await i18n.init();
@@ -26,10 +26,10 @@ class I18n {
     async init(lang = null) {
         this.lang = this.normalizeLanguage(lang || this.detectLanguage());
 
-        // Load Framework strings (from aide-frame)
+        // Load framework strings (from aide-frame)
         const frame = await this.loadJson(`/static/frame/locales/${this.lang}.json`);
 
-        // Load App strings (override framework strings)
+        // Load app strings (override framework strings)
         const app = await this.loadJson(`/static/locales/${this.lang}.json`);
 
         // Initialize Polyglot with merged strings
