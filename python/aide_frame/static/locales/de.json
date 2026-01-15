@@ -1,0 +1,12 @@
+{
+    "loading": "Laden...",
+    "error": "Fehler",
+    "back": "Zurück",
+    "documentation": "Dokumentation",
+    "help": "Hilfe",
+    "toc": "Inhaltsverzeichnis",
+    "error_loading": "Fehler beim Laden",
+    "doc_not_found": "Dokument nicht gefunden: %{path}",
+    "nav_loading": "Navigation wird geladen...",
+    "nav_error": "Fehler beim Laden der Navigation"
+}

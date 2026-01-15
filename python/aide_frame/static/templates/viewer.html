@@ -29,6 +29,8 @@
     </button>
 
     <script src="/static/frame/js/marked.min.js"></script>
+    <script src="/static/frame/js/polyglot.min.js"></script>
+    <script src="/static/frame/js/i18n.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" onerror="window.MERMAID_FAILED=true"></script>
     <script>
         // Determine root from URL path
@@ -39,16 +41,16 @@
 
         if (pathname === '/about' || pathname.startsWith('/about/')) {
             viewerRoot = 'docs';
-            titleSuffix = 'Documentation';
+            titleSuffix = null;  // Will be set after i18n init
             assetPrefix = '/docs-assets/';
         } else if (pathname === '/help' || pathname.startsWith('/help/')) {
             viewerRoot = 'help';
-            titleSuffix = 'Help';
+            titleSuffix = null;
             assetPrefix = '/help-assets/';
         } else {
             // Custom root - extract name from path (e.g., /samples -> samples)
             viewerRoot = pathname.substring(1).split('/')[0];
-            titleSuffix = viewerRoot.charAt(0).toUpperCase() + viewerRoot.slice(1);
+            titleSuffix = null;
             assetPrefix = '/' + viewerRoot + '-assets/';
         }
 
@@ -91,15 +93,21 @@
                 const res = await fetch('/api/app/config');
                 if (res.ok) {
                     appConfig = await res.json();
-                    // Get title from custom_roots if available
+                    // Get title from custom_roots if available, otherwise from i18n
                     if (appConfig.custom_roots && appConfig.custom_roots[viewerRoot]) {
                         titleSuffix = appConfig.custom_roots[viewerRoot].title;
+                    } else if (viewerRoot === 'docs') {
+                        titleSuffix = i18n.t('documentation');
+                    } else if (viewerRoot === 'help') {
+                        titleSuffix = i18n.t('help');
+                    } else {
+                        titleSuffix = viewerRoot.charAt(0).toUpperCase() + viewerRoot.slice(1);
                     }
                     // Update page elements
                     document.getElementById('page-title').textContent = appConfig.app_name + ' - ' + titleSuffix;
                     document.title = titleSuffix + ' - ' + appConfig.app_name;
                     document.getElementById('back-link').href = appConfig.back_link;
-                    document.getElementById('back-link').textContent = appConfig.back_text;
+                    document.getElementById('back-link').textContent = i18n.t('back');
                 }
             } catch (e) {
                 console.warn('Could not load app config:', e);
@@ -138,7 +146,7 @@
             tocContainer.className = 'toc-container';
             tocContainer.innerHTML = `
                 <div class="toc-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <span class="toc-title">Table of Contents</span>
+                    <span class="toc-title">${i18n.t('toc')}</span>
                     <span class="toc-toggle">▼</span>
                 </div>
                 <div class="toc-content">${tocHtml}</div>
@@ -195,7 +203,7 @@
         async function loadDoc(docPath) {
             const container = document.getElementById('content');
             container.className = 'content-loading';
-            container.innerHTML = 'Loading...';
+            container.innerHTML = i18n.t('loading');
 
             try {
                 let data;
@@ -261,7 +269,7 @@
 
             } catch (e) {
                 container.className = 'markdown-body';
-                container.innerHTML = '<p style="color: #dc2626;">Error loading content: ' + e.message + '</p>';
+                container.innerHTML = '<p style="color: #dc2626;">' + i18n.t('error_loading') + ': ' + e.message + '</p>';
             }
         }
 
@@ -310,7 +318,7 @@
                 updateActiveLink(currentDoc);
 
             } catch (e) {
-                sidebar.innerHTML = '<p style="color: #dc2626;">Error loading navigation</p>';
+                sidebar.innerHTML = '<p style="color: #dc2626;">' + i18n.t('nav_error') + '</p>';
                 console.error('Failed to load navbar:', e);
             }
         }
@@ -323,6 +331,7 @@
 
         // Initialize
         async function init() {
+            await i18n.init();  // Load translations first
             await loadAppConfig();
             await buildNavbar();
             const urlParams = new URLSearchParams(window.location.search);

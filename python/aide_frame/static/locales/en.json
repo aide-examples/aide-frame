@@ -1,0 +1,12 @@
+{
+    "loading": "Loading...",
+    "error": "Error",
+    "back": "Back",
+    "documentation": "Documentation",
+    "help": "Help",
+    "toc": "Table of Contents",
+    "error_loading": "Error loading content",
+    "doc_not_found": "Document not found: %{path}",
+    "nav_loading": "Loading navigation...",
+    "nav_error": "Error loading navigation"
+}
