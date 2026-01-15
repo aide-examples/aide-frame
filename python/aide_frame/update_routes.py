@@ -24,6 +24,7 @@ Usage:
 """
 
 import os
+import threading
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -66,8 +67,11 @@ class UpdateConfig:
     branch: str = "main"
     show_memory: bool = True
     show_restart: bool = True
+    auto_verify: bool = True  # Auto-confirm update after verify_delay seconds
+    verify_delay: int = 60    # Seconds to wait before confirming update
     # Internal
     _manager: Optional[UpdateManager] = field(default=None, repr=False)
+    _verify_thread: Optional[threading.Thread] = field(default=None, repr=False)
 
     def get_manager(self) -> UpdateManager:
         """Get or create UpdateManager instance."""
@@ -81,7 +85,29 @@ class UpdateConfig:
                 },
                 "service_name": self.service_name
             })
+            # Start auto-verification if pending
+            if self.auto_verify:
+                self._start_verification_if_pending()
         return self._manager
+
+    def _start_verification_if_pending(self):
+        """Start verification thread if an update is pending confirmation."""
+        if self._manager and self._manager._state.get("pending_verification"):
+            if self._verify_thread is None or not self._verify_thread.is_alive():
+                logger.info(f"Update pending verification - will confirm after {self.verify_delay}s stable operation")
+                self._verify_thread = threading.Thread(
+                    target=self._delayed_verify,
+                    daemon=True
+                )
+                self._verify_thread.start()
+
+    def _delayed_verify(self):
+        """Wait and then confirm the update if still pending."""
+        import time
+        time.sleep(self.verify_delay)
+        if self._manager and self._manager._state.get("pending_verification"):
+            result = self._manager.confirm_update()
+            logger.info(f"Update verification: {result.get('message', 'done')}")
 
 
 def handle_update_request(handler, path: str, method: str, data: dict, config: UpdateConfig) -> bool:
