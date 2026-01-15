@@ -10,7 +10,10 @@
 <body>
     <div class="header sticky">
         <h1 id="page-title">Loading...</h1>
-        <a href="/" class="header-btn" id="back-link">Back</a>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span id="gt-container"></span>
+            <a href="/" class="header-btn" id="back-link">Back</a>
+        </div>
     </div>
 
     <div class="docs-layout">
@@ -31,6 +34,7 @@
     <script src="/static/frame/vendor/marked/marked.min.js"></script>
     <script src="/static/frame/vendor/polyglot/polyglot.min.js"></script>
     <script src="/static/frame/js/i18n.js"></script>
+    <script src="/static/frame/js/google-translate.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" onerror="window.MERMAID_FAILED=true"></script>
     <script>
         // Determine root from URL path
@@ -337,6 +341,9 @@
             const urlParams = new URLSearchParams(window.location.search);
             const initialDoc = urlParams.get('doc');
             loadDoc(initialDoc);
+
+            // Initialize Google Translate for docs viewer
+            GoogleTranslate.init('#gt-container');
         }
         init();
     </script>

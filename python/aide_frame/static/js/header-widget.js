@@ -10,6 +10,7 @@ const HeaderWidget = {
         showAbout: true,
         showHelp: true,
         showLanguage: true,
+        showGoogleTranslate: false,
         aboutLink: '/about',
         helpLink: '/help',
         aboutText: 'About'
@@ -36,6 +37,11 @@ const HeaderWidget = {
             items.push(`<select id="header-lang-select" class="header-lang-select" title="Language">${langOptions}</select>`);
         }
 
+        // Google Translate placeholder (initialized after render)
+        if (this.options.showGoogleTranslate) {
+            items.push(`<span id="header-gt-container"></span>`);
+        }
+
         if (this.options.showAbout) {
             items.push(`<a href="${this.options.aboutLink}" class="header-link">${this.options.aboutText}</a>`);
         }
@@ -56,6 +62,11 @@ const HeaderWidget = {
             langSelect.addEventListener('change', (e) => {
                 i18n.setLanguage(e.target.value);
             });
+        }
+
+        // Initialize Google Translate if enabled
+        if (this.options.showGoogleTranslate && typeof GoogleTranslate !== 'undefined') {
+            GoogleTranslate.init('#header-gt-container');
         }
     }
 };

@@ -96,6 +96,7 @@ class I18n {
 
     /**
      * Apply translations to all elements with data-i18n attribute
+     * Also adds 'notranslate' class to prevent Google Translate from re-translating
      * @param {Element} root - Root element to search (default: document)
      *
      * Example HTML:
@@ -107,6 +108,8 @@ class I18n {
             const key = el.dataset.i18n;
             const params = el.dataset.i18nParams ? JSON.parse(el.dataset.i18nParams) : {};
             el.textContent = this.t(key, params);
+            // Mark as notranslate for Google Translate
+            el.classList.add('notranslate');
         });
     }
 }
