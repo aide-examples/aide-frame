@@ -1,4 +1,4 @@
-# Logging
+# Logging (Python)
 
 **Module:** `log.py`
 

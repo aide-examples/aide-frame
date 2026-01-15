@@ -1,4 +1,4 @@
-# Configuration
+# Configuration (Python)
 
 **Module:** `config.py`
 

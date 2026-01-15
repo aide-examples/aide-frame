@@ -1,4 +1,4 @@
-# Path Management
+# Path Management (Spec)
 
 Centralized path management with extensible registration.
 

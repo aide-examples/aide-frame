@@ -1,4 +1,4 @@
-# Platform Detection
+# Platform Detection (Python)
 
 **Module:** `platform_detect.py`
 

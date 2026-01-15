@@ -415,6 +415,8 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             return None
 
         docs = []
+
+        # Scan root-level .md files
         for f in os.listdir(frame_dir):
             if f.endswith('.md'):
                 filepath = os.path.join(frame_dir, f)
@@ -425,10 +427,43 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
                         doc_entry["description"] = desc
                     docs.append(doc_entry)
 
+        # Scan subdirectories (spec/, python/, js/)
+        for subdir in os.listdir(frame_dir):
+            subdir_path = os.path.join(frame_dir, subdir)
+            if os.path.isdir(subdir_path) and not subdir.startswith('.'):
+                for f in os.listdir(subdir_path):
+                    if f.endswith('.md'):
+                        filepath = os.path.join(subdir_path, f)
+                        if os.path.isfile(filepath):
+                            title, desc = extract_title_and_description(filepath)
+                            rel_path = f"{subdir}/{f}"
+                            doc_entry = {"path": rel_path, "title": title, "framework": True}
+                            if desc:
+                                doc_entry["description"] = desc
+                            docs.append(doc_entry)
+
         if not docs:
             return None
 
-        docs.sort(key=lambda d: (0 if d["path"].endswith("index.md") else 1, d["path"]))
+        # Sort: root index.md first, then by directory (root, spec, python, js), then by path
+        def sort_key(d):
+            path = d["path"]
+            is_index = path.endswith("index.md")
+            is_root = "/" not in path
+
+            # Root index.md comes first
+            if is_root and is_index:
+                return (0, "", path)
+            # Root files next
+            if is_root:
+                return (1, "", path)
+            # Subdirectory files: group by directory, index.md first within each
+            subdir = path.split("/")[0]
+            # Order: spec before python before js
+            subdir_order = {"spec": 0, "python": 1, "js": 2}.get(subdir, 3)
+            return (2, subdir_order, 0 if is_index else 1, path)
+
+        docs.sort(key=sort_key)
         return {"name": "AIDE Frame", "docs": docs, "framework": True}
 
     # No docs dir? Return just framework if available

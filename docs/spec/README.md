@@ -1,4 +1,4 @@
-# aide-frame Specification
+# AIDE Frame (Spec)
 
 Language-agnostic specification for aide-frame modules.
 

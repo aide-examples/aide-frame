@@ -1,4 +1,4 @@
-# Path Management
+# Path Management (Python)
 
 **Module:** `paths.py`
 

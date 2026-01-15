@@ -1,4 +1,4 @@
-# Remote Updates
+# Remote Updates (Python)
 
 **Module:** `update.py`
 

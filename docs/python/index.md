@@ -1,4 +1,4 @@
-# AIDE Frame - Python
+# AIDE Frame (Python)
 
 Python implementation of [AIDE Frame](../spec/README.md).
 

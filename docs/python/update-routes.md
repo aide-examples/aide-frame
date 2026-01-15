@@ -1,4 +1,4 @@
-# Update Routes
+# Update Routes (Python)
 
 The `update_routes` module provides HTTP routes and UI for remote updates.
 

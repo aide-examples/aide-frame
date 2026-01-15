@@ -1,4 +1,4 @@
-# Configuration
+# Configuration (Spec)
 
 Loading and managing application configuration from JSON files.
 

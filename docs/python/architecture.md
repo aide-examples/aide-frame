@@ -1,4 +1,4 @@
-# Framework-Application Architecture
+# Framework-Application Architecture (Python)
 
 aide-frame is designed as a reusable framework that can be used across multiple applications. This document describes the architecture and mechanisms for separating framework and application.
 

@@ -1,4 +1,4 @@
-# Logging
+# Logging (Spec)
 
 Centralized, configurable logging for all application modules.
 

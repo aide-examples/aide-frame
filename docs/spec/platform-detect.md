@@ -1,4 +1,4 @@
-# Platform Detection
+# Platform Detection (Spec)
 
 Detecting the runtime environment to adapt application behavior.
 

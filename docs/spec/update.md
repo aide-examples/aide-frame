@@ -1,4 +1,4 @@
-# Remote Updates
+# Remote Updates (Spec)
 
 GitHub-based remote update system with staging, backup, and rollback.
 

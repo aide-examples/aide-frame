@@ -1,4 +1,4 @@
-# JavaScript Widgets
+# JavaScript Widgets (Python)
 
 aide-frame provides reusable JavaScript widgets for web UIs.
 
