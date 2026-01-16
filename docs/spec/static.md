@@ -252,7 +252,7 @@ Static assets are served via the HTTP server:
 | `/static/frame/{path}` | Framework static files |
 | `/static/{path}` | Application static files |
 
-Framework static files are served from the `static/` directory within the aide-frame package.
+Framework static files are served from the `static/` directory at the aide-frame repository root. This location is shared between all language implementations (Python, JavaScript).
 
 ## Usage in HTML
 

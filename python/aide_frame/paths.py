@@ -68,7 +68,7 @@ def init(app_dir=None):
     if os.path.isdir(aide_frame_docs):
         register("AIDE_FRAME_DOCS_DIR", aide_frame_docs)
 
-    aide_frame_static = os.path.join(aide_frame_pkg_dir, "static")
+    aide_frame_static = os.path.join(aide_frame_root, "static")
     if os.path.isdir(aide_frame_static):
         register("AIDE_FRAME_STATIC_DIR", aide_frame_static)
 

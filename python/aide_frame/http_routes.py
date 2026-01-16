@@ -33,8 +33,7 @@ from . import paths, docs_viewer
 from .log import logger
 
 
-# Path to aide_frame's static directory
-AIDE_FRAME_STATIC_DIR = os.path.join(os.path.dirname(__file__), 'static')
+# Note: AIDE_FRAME_STATIC_DIR is registered by paths.init() and accessed via paths.get()
 
 
 @dataclass
@@ -399,7 +398,9 @@ def _send_file(handler: Any, filepath: str, mime_type: str, binary: bool = False
 
 def _serve_template(handler: Any, template_name: str):
     """Serve an HTML template from aide-frame's static/templates directory."""
-    template_path = os.path.join(AIDE_FRAME_STATIC_DIR, 'templates', template_name)
+    paths.ensure_initialized()
+    static_dir = paths.get("AIDE_FRAME_STATIC_DIR")
+    template_path = os.path.join(static_dir, 'templates', template_name)
 
     if not os.path.isfile(template_path):
         handler.send_error(404, f"Template not found: {template_name}")
@@ -420,7 +421,9 @@ def _serve_frame_static(handler: Any, file_path: str):
         handler.send_error(403, "Forbidden")
         return
 
-    full_path = os.path.join(AIDE_FRAME_STATIC_DIR, file_path)
+    paths.ensure_initialized()
+    static_dir = paths.get("AIDE_FRAME_STATIC_DIR")
+    full_path = os.path.join(static_dir, file_path)
 
     if not os.path.isfile(full_path):
         handler.send_error(404, f"File not found: {file_path}")
@@ -463,5 +466,4 @@ __all__ = [
     'CustomRoot',
     'DocsConfig',
     'handle_request',
-    'AIDE_FRAME_STATIC_DIR',
 ]

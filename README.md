@@ -28,12 +28,13 @@ Lightweight application framework with server-side (Python) and client-side (JS/
 
 ```
 aide-frame/
+├── static/             # Shared frontend assets (CSS, JS, i18n)
 ├── docs/
 │   ├── spec/           # Language-agnostic specification
 │   └── python/         # Python implementation docs
-└── python/
-    └── aide_frame/     # Python source code
-        └── static/     # Shared frontend assets (CSS, JS, i18n)
+├── python/
+│   └── aide_frame/     # Python source code
+└── js/                 # Node.js implementation (planned)
 ```
 
 ## License
