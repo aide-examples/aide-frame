@@ -136,8 +136,17 @@ class HttpServer {
             this.app.use('/static', express.static(this.staticDir));
         }
 
-        // Docs and help routes will be set up by http-routes module
-        // Update routes will be set up by update-routes module
+        // Register docs/help routes if docsConfig provided
+        if (this.docsConfig) {
+            const httpRoutes = require('./http-routes');
+            httpRoutes.register(this.app, this.docsConfig);
+        }
+
+        // Register update routes if updateConfig provided
+        if (this.updateConfig) {
+            const updateRoutes = require('./update-routes');
+            updateRoutes.register(this.app, this.updateConfig);
+        }
     }
 
     /**

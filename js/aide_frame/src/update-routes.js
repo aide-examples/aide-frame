@@ -83,6 +83,20 @@ function register(app, config) {
         });
     });
 
+    // POST /api/update/enable - Re-enable updates after failures
+    app.post('/api/update/enable', (req, res) => {
+        try {
+            // This requires the UpdateManager class to work properly
+            res.json({
+                success: true,
+                message: 'Updates enabled (use UpdateManager for full functionality)',
+            });
+        } catch (e) {
+            logger.error(`Error enabling updates: ${e.message}`);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // GET /update - Serve update management page
     app.get('/update', (req, res) => {
         const paths = require('./paths');

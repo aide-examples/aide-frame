@@ -26,22 +26,32 @@ const { logger } = require('./log');
 
 /**
  * Configuration for a custom Markdown viewing root.
+ *
+ * Apps can define additional roots beyond docs/ and help/ for viewing
+ * Markdown files from custom directories (e.g., contracts, reports).
+ *
  * @typedef {object} CustomRoot
  * @property {string} dirKey - Key in paths registry
  * @property {string} title - Display title (e.g., "Contracts", "Reports")
  * @property {string} route - URL route (e.g., "/contracts")
  * @property {string} [subdir] - Auto-register from APP_DIR/subdir if set
  * @property {boolean} [useSections=false] - True for multi-section docs, False for flat
+ * @property {Array} [sectionDefs] - List of [sectionPath, sectionName] tuples
  */
 
 /**
  * Configuration for docs/help route handlers.
+ *
+ * Standard paths (docs/, help/) are auto-registered if they exist in APP_DIR.
+ *
  * @typedef {object} DocsConfig
  * @property {string} [appName="AIDE App"] - Application name
  * @property {string} [backLink="/"] - Back button link
  * @property {string} [backText="Back"] - Back button text
  * @property {string} [docsDirKey="DOCS_DIR"] - Key for docs directory in paths
  * @property {string} [helpDirKey="HELP_DIR"] - Key for help directory in paths
+ * @property {string} [frameworkDirKey="AIDE_FRAME_DOCS_DIR"] - Key for framework docs
+ * @property {Array} [sectionDefs] - Section definitions for docs
  * @property {Object.<string, CustomRoot>} [customRoots] - Custom roots
  * @property {boolean} [enableMermaid=true] - Enable Mermaid diagrams
  * @property {boolean} [enableDocs=true] - Enable /about route
@@ -82,6 +92,7 @@ function initConfig(config) {
         docsDirKey: config.docsDirKey || 'DOCS_DIR',
         helpDirKey: config.helpDirKey || 'HELP_DIR',
         frameworkDirKey: config.frameworkDirKey || 'AIDE_FRAME_DOCS_DIR',
+        sectionDefs: config.sectionDefs || null,
         customRoots: config.customRoots || {},
         enableMermaid: config.enableMermaid !== false,
         enableDocs: config.enableDocs !== false,
@@ -101,6 +112,27 @@ function initConfig(config) {
         }
     }
 
+    // Validate that enabled features have their directories
+    if (cfg.enableDocs) {
+        const docsDir = paths.get(cfg.docsDirKey);
+        if (!docsDir || !fs.existsSync(docsDir)) {
+            logger.warning(
+                `Docs enabled but ${cfg.docsDirKey} not found. ` +
+                `Create docs/ directory or set enableDocs: false`
+            );
+        }
+    }
+
+    if (cfg.enableHelp) {
+        const helpDir = paths.get(cfg.helpDirKey);
+        if (!helpDir || !fs.existsSync(helpDir)) {
+            logger.warning(
+                `Help enabled but ${cfg.helpDirKey} not found. ` +
+                `Create help/ directory or set enableHelp: false`
+            );
+        }
+    }
+
     return cfg;
 }
 
@@ -116,6 +148,7 @@ function _getViewerConfig(config, root) {
         return {
             dirKey: config.docsDirKey,
             frameworkDirKey: config.frameworkDirKey,
+            sectionDefs: config.sectionDefs,
             titleSuffix: 'Documentation',
             useSections: true,
         };
@@ -123,6 +156,7 @@ function _getViewerConfig(config, root) {
         return {
             dirKey: config.helpDirKey,
             frameworkDirKey: null,
+            sectionDefs: null,
             titleSuffix: 'Help',
             useSections: false,
         };
@@ -131,6 +165,7 @@ function _getViewerConfig(config, root) {
         return {
             dirKey: custom.dirKey,
             frameworkDirKey: null,
+            sectionDefs: custom.sectionDefs || null,
             titleSuffix: custom.title,
             useSections: custom.useSections || false,
         };
@@ -148,7 +183,7 @@ function register(app, config) {
 
     // App config API
     app.get('/api/app/config', (req, res) => {
-        res.json({
+        const response = {
             app_name: cfg.appName,
             back_link: cfg.backLink,
             back_text: cfg.backText,
@@ -157,7 +192,18 @@ function register(app, config) {
                 docs: cfg.enableDocs,
                 help: cfg.enableHelp,
             }
-        });
+        };
+        // Include custom roots info
+        if (cfg.customRoots && Object.keys(cfg.customRoots).length > 0) {
+            response.custom_roots = {};
+            for (const [name, root] of Object.entries(cfg.customRoots)) {
+                response.custom_roots[name] = {
+                    title: root.title,
+                    route: root.route,
+                };
+            }
+        }
+        res.json(response);
     });
 
     // Viewer structure API
@@ -174,7 +220,25 @@ function register(app, config) {
             return res.status(404).json({ error: 'Directory not configured' });
         }
 
-        const structure = docsViewer.getStructure(docsDir, viewerCfg.useSections);
+        let structure;
+        if (viewerCfg.useSections) {
+            // Multi-section structure
+            structure = docsViewer.getDocsStructure({
+                docsDirKey: viewerCfg.dirKey,
+                frameworkDirKey: viewerCfg.frameworkDirKey,
+                sectionDefs: viewerCfg.sectionDefs,
+            });
+        } else {
+            // Flat structure - wrap in single section for consistent API format
+            const flat = docsViewer.getStructure(viewerCfg.dirKey, { includeDescription: true });
+            structure = {
+                sections: [{
+                    name: viewerCfg.titleSuffix,
+                    docs: flat.files || [],
+                }]
+            };
+        }
+
         res.json(structure);
     });
 
@@ -188,27 +252,38 @@ function register(app, config) {
             return res.status(404).json({ error: `Unknown root: ${root}` });
         }
 
-        const docsDir = paths.get(viewerCfg.dirKey);
-        if (!docsDir) {
-            return res.status(404).json({ error: 'Directory not configured' });
-        }
-
         // Security: block path traversal
         if (docPath.includes('..') || docPath.startsWith('/')) {
             return res.status(403).json({ error: 'Forbidden' });
         }
 
-        const fullPath = path.join(docsDir, docPath);
+        // Check for framework docs
+        let framework = false;
+        let actualPath = docPath;
+        if (docPath.startsWith('framework/')) {
+            framework = true;
+            actualPath = docPath.substring(10); // Remove 'framework/' prefix
+        }
+
+        const dirKey = framework ? viewerCfg.frameworkDirKey : viewerCfg.dirKey;
+        const docsDir = paths.get(dirKey);
+        if (!docsDir) {
+            return res.status(404).json({ error: 'Directory not configured' });
+        }
+
+        const fullPath = path.join(docsDir, actualPath);
         if (!fs.existsSync(fullPath)) {
             return res.status(404).json({ error: `File not found: ${docPath}` });
         }
 
         try {
             const content = fs.readFileSync(fullPath, 'utf8');
+            const { title } = docsViewer.extractTitleAndDescription(fullPath);
             res.json({
-                path: docPath,
+                path: actualPath,
                 content: content,
-                title: docsViewer.extractTitle(content) || docPath,
+                title: title || docPath,
+                framework: framework,
             });
         } catch (e) {
             res.status(500).json({ error: `Error reading file: ${e.message}` });
@@ -236,6 +311,44 @@ function register(app, config) {
             _serveViewer(res, name);
         });
     }
+
+    // Docs assets (images, etc.)
+    app.get('/docs-assets/*', (req, res) => {
+        const assetPath = req.params[0];
+        _serveDocsAsset(res, assetPath, cfg.docsDirKey);
+    });
+
+    app.get('/help-assets/*', (req, res) => {
+        const assetPath = req.params[0];
+        _serveDocsAsset(res, assetPath, cfg.helpDirKey);
+    });
+
+    // Custom root assets
+    for (const [name, root] of Object.entries(cfg.customRoots)) {
+        app.get(`/${name}-assets/*`, (req, res) => {
+            const assetPath = req.params[0];
+            _serveDocsAsset(res, assetPath, root.dirKey);
+        });
+    }
+
+    // Legacy API compatibility
+    if (cfg.enableDocs) {
+        app.get('/api/docs/structure', (req, res) => {
+            const structure = docsViewer.getDocsStructure({
+                docsDirKey: cfg.docsDirKey,
+                frameworkDirKey: cfg.frameworkDirKey,
+                sectionDefs: cfg.sectionDefs,
+            });
+            res.json(structure);
+        });
+    }
+
+    if (cfg.enableHelp) {
+        app.get('/api/help/structure', (req, res) => {
+            const structure = docsViewer.getStructure(cfg.helpDirKey, { includeDescription: true });
+            res.json(structure);
+        });
+    }
 }
 
 /**
@@ -256,10 +369,34 @@ function _serveViewer(res, root) {
         return res.status(404).send('Viewer template not found');
     }
 
-    // Read and send template with root parameter
-    let content = fs.readFileSync(templatePath, 'utf8');
-    // The template will use JavaScript to read the root from URL or default
-    res.type('html').send(content);
+    res.type('html').sendFile(templatePath);
+}
+
+/**
+ * Serve a docs asset file (images, etc.).
+ * @param {express.Response} res - Express response
+ * @param {string} assetPath - Relative asset path
+ * @param {string} dirKey - Path key for docs directory
+ * @private
+ */
+function _serveDocsAsset(res, assetPath, dirKey) {
+    // Security: block path traversal
+    if (assetPath.includes('..') || assetPath.startsWith('/')) {
+        return res.status(403).send('Forbidden');
+    }
+
+    paths.ensureInitialized();
+    const docsDir = paths.get(dirKey);
+    if (!docsDir) {
+        return res.status(404).send('Directory not configured');
+    }
+
+    const fullPath = path.join(docsDir, assetPath);
+    if (!fs.existsSync(fullPath)) {
+        return res.status(404).send('Asset not found');
+    }
+
+    res.sendFile(fullPath);
 }
 
 module.exports = {
