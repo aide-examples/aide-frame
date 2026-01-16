@@ -181,7 +181,7 @@ async function checkForUpdate(config) {
  */
 function getStatus() {
     const localVersion = getLocalVersion();
-    const platform = platformDetect.detect();
+    const platform = platformDetect.PLATFORM;
 
     // Memory info
     const totalMem = os.totalmem();
@@ -194,7 +194,7 @@ function getStatus() {
         available_version: cachedState.availableVersion,
         update_available: cachedState.updateAvailable,
         last_check: cachedState.lastCheck,
-        platform: platform.platform,
+        platform: platform,
         memory: {
             total_mb: Math.round(totalMem / 1024 / 1024),
             used_mb: Math.round(usedMem / 1024 / 1024),
