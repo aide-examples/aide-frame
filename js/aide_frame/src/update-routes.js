@@ -9,6 +9,10 @@
  *   updateRoutes.register(app, {
  *       githubRepo: 'user/repo',
  *       serviceName: 'my-app',
+ *       updateableDirs: ['static', 'demos'],  // Directories where files can be deleted
+ *       requiredFiles: ['VERSION'],           // Files that must be in the update
+ *       autoVerify: true,                     // Auto-confirm after verifyDelay
+ *       verifyDelay: 60,                      // Seconds to wait before confirming
  *   });
  */
 
@@ -21,7 +25,47 @@ const { logger } = require('./log');
  * @property {string} githubRepo - GitHub repository (e.g., "user/repo")
  * @property {string} [branch="main"] - Branch to check for updates
  * @property {string} [serviceName] - Systemd service name for restart
+ * @property {boolean} [useReleases=true] - Use GitHub Releases (tarball) vs raw files
+ * @property {string[]} [updateableDirs=[]] - Directories where files may be deleted
+ * @property {string[]} [requiredFiles=["VERSION"]] - Files that must be in update
+ * @property {boolean} [autoVerify=true] - Auto-confirm update after verifyDelay
+ * @property {number} [verifyDelay=60] - Seconds to wait before confirming update
  */
+
+// Module-level manager instance
+let _manager = null;
+
+/**
+ * Get or create UpdateManager instance.
+ * @param {UpdateConfig} config - Update configuration
+ * @returns {update.UpdateManager}
+ */
+function getManager(config) {
+    if (!_manager) {
+        _manager = new update.UpdateManager({
+            enabled: config.enabled !== false,
+            source: {
+                repo: config.githubRepo,
+                branch: config.branch || 'main',
+                useReleases: config.useReleases !== false,
+            },
+            serviceName: config.serviceName,
+            autoCheck: config.autoCheck !== false,
+            autoCheckHours: config.autoCheckHours || 24,
+            updateableDirs: config.updateableDirs || [],
+            requiredFiles: config.requiredFiles || ['VERSION'],
+        });
+
+        // Start auto-check
+        _manager.startAutoCheck();
+
+        // Start verification if pending
+        if (config.autoVerify !== false) {
+            _manager.scheduleVerification(config.verifyDelay || 60);
+        }
+    }
+    return _manager;
+}
 
 /**
  * Register update routes on an Express app.
@@ -37,7 +81,8 @@ function register(app, config) {
     // GET /api/update/status - Get current update status (no network calls)
     app.get('/api/update/status', (req, res) => {
         try {
-            const status = update.getStatus();
+            const manager = getManager(config);
+            const status = manager.getStatus();
             res.json(status);
         } catch (e) {
             logger.error(`Error getting update status: ${e.message}`);
@@ -48,7 +93,8 @@ function register(app, config) {
     // POST /api/update/check - Check for available updates
     app.post('/api/update/check', async (req, res) => {
         try {
-            const result = await update.checkForUpdate(config);
+            const manager = getManager(config);
+            const result = await manager.checkForUpdates();
             res.json(result);
         } catch (e) {
             logger.error(`Error checking for updates: ${e.message}`);
@@ -56,43 +102,62 @@ function register(app, config) {
         }
     });
 
-    // POST /api/update/download - Download update (placeholder)
+    // POST /api/update/download - Download update and stage it
     app.post('/api/update/download', async (req, res) => {
-        // TODO: Implement actual download functionality
-        res.json({
-            success: false,
-            message: 'Download not yet implemented in Node.js version',
-        });
+        try {
+            const manager = getManager(config);
+            const result = await manager.downloadUpdate();
+            res.json(result);
+        } catch (e) {
+            logger.error(`Error downloading update: ${e.message}`);
+            res.status(500).json({ error: e.message });
+        }
     });
 
-    // POST /api/update/apply - Apply staged update (placeholder)
+    // POST /api/update/apply - Apply staged update
     app.post('/api/update/apply', async (req, res) => {
-        // TODO: Implement actual apply functionality
-        res.json({
-            success: false,
-            message: 'Apply not yet implemented in Node.js version',
-        });
+        try {
+            const manager = getManager(config);
+            const result = await manager.applyUpdate();
+            res.json(result);
+        } catch (e) {
+            logger.error(`Error applying update: ${e.message}`);
+            res.status(500).json({ error: e.message });
+        }
     });
 
-    // POST /api/update/rollback - Rollback to previous version (placeholder)
+    // POST /api/update/rollback - Rollback to previous version
     app.post('/api/update/rollback', async (req, res) => {
-        // TODO: Implement actual rollback functionality
-        res.json({
-            success: false,
-            message: 'Rollback not yet implemented in Node.js version',
-        });
+        try {
+            const manager = getManager(config);
+            const result = await manager.rollback();
+            res.json(result);
+        } catch (e) {
+            logger.error(`Error rolling back: ${e.message}`);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     // POST /api/update/enable - Re-enable updates after failures
     app.post('/api/update/enable', (req, res) => {
         try {
-            // This requires the UpdateManager class to work properly
-            res.json({
-                success: true,
-                message: 'Updates enabled (use UpdateManager for full functionality)',
-            });
+            const manager = getManager(config);
+            const result = manager.enableUpdates();
+            res.json(result);
         } catch (e) {
             logger.error(`Error enabling updates: ${e.message}`);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // POST /api/update/confirm - Manually confirm update (if not auto-verify)
+    app.post('/api/update/confirm', (req, res) => {
+        try {
+            const manager = getManager(config);
+            const result = manager.confirmUpdate();
+            res.json(result);
+        } catch (e) {
+            logger.error(`Error confirming update: ${e.message}`);
             res.status(500).json({ error: e.message });
         }
     });
@@ -118,12 +183,10 @@ function register(app, config) {
         res.sendFile(updateHtml);
     });
 
-    // Start automatic periodic update checks
-    update.startAutoCheck(config);
-
     logger.debug(`Update routes registered for ${config.githubRepo}`);
 }
 
 module.exports = {
     register,
+    getManager,
 };
