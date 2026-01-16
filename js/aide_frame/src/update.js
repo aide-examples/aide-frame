@@ -143,21 +143,30 @@ async function checkForUpdate(config) {
 }
 
 /**
- * Get current update status.
- * @param {object} config - Update configuration
- * @returns {Promise<object>} Status object
+ * Get current update status (local info only, no network calls).
+ * @returns {object} Status object with local version and platform info
  */
-async function getStatus(config) {
+function getStatus() {
+    const os = require('os');
+    const platformDetect = require('./platform-detect');
+
     const localVersion = getLocalVersion();
-    const remoteVersion = await getRemoteVersion(config);
+    const platform = platformDetect.detect();
+
+    // Memory info
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
 
     return {
         state: UpdateState.IDLE,
-        localVersion,
-        remoteVersion,
-        updateAvailable: remoteVersion && localVersion
-            ? compareVersions(localVersion, remoteVersion) < 0
-            : false,
+        current_version: localVersion,
+        platform: platform.platform,
+        memory: {
+            total_mb: Math.round(totalMem / 1024 / 1024),
+            used_mb: Math.round(usedMem / 1024 / 1024),
+            free_mb: Math.round(freeMem / 1024 / 1024),
+        },
     };
 }
 

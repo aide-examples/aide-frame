@@ -34,10 +34,10 @@ function register(app, config) {
         return;
     }
 
-    // GET /api/update/status - Get current update status
-    app.get('/api/update/status', async (req, res) => {
+    // GET /api/update/status - Get current update status (no network calls)
+    app.get('/api/update/status', (req, res) => {
         try {
-            const status = await update.getStatus(config);
+            const status = update.getStatus();
             res.json(status);
         } catch (e) {
             logger.error(`Error getting update status: ${e.message}`);
