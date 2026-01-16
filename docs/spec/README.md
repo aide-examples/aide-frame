@@ -36,4 +36,4 @@ Implementations (Python, JavaScript, etc.) follow this specification and provide
 | Language | Documentation | Status |
 |----------|---------------|--------|
 | Python | [docs/python/](../python/) | Available |
-| JavaScript | docs/js/ | Planned |
+| JavaScript | [docs/js/](../js/) | Available |
