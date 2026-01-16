@@ -88,6 +88,8 @@ class UpdateConfig:
             # Start auto-verification if pending
             if self.auto_verify:
                 self._start_verification_if_pending()
+            # Start periodic update checks
+            self._manager.start_auto_check()
         return self._manager
 
     def _start_verification_if_pending(self):

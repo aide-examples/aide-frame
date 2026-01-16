@@ -16,9 +16,11 @@
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const paths = require('./paths');
 const { fetchJson, fetchText } = require('./web-request');
 const { logger } = require('./log');
+const platformDetect = require('./platform-detect');
 
 /**
  * Update states
@@ -33,6 +35,27 @@ const UpdateState = {
     FAILED: 'failed',
     DISABLED: 'disabled',
 };
+
+/**
+ * Default configuration for UpdateManager
+ */
+const DEFAULT_CONFIG = {
+    enabled: true,
+    autoCheck: true,
+    autoCheckHours: 24,
+};
+
+/**
+ * Cached state for update checks (module-level singleton)
+ */
+let cachedState = {
+    availableVersion: null,
+    lastCheck: null,
+    updateAvailable: false,
+};
+
+let autoCheckTimer = null;
+let currentConfig = null;
 
 /**
  * Get the local version from VERSION file.
@@ -111,7 +134,11 @@ async function checkForUpdate(config) {
     const localVersion = getLocalVersion();
     const remoteVersion = await getRemoteVersion(config);
 
+    // Update cached state
+    cachedState.lastCheck = new Date().toISOString();
+
     if (!localVersion) {
+        cachedState.updateAvailable = false;
         return {
             available: false,
             error: 'Local version not found',
@@ -121,6 +148,7 @@ async function checkForUpdate(config) {
     }
 
     if (!remoteVersion) {
+        cachedState.updateAvailable = false;
         return {
             available: false,
             error: 'Could not fetch remote version',
@@ -131,6 +159,10 @@ async function checkForUpdate(config) {
 
     const comparison = compareVersions(localVersion, remoteVersion);
     const available = comparison < 0;
+
+    // Update cached state
+    cachedState.availableVersion = remoteVersion;
+    cachedState.updateAvailable = available;
 
     return {
         available,
@@ -144,12 +176,10 @@ async function checkForUpdate(config) {
 
 /**
  * Get current update status (local info only, no network calls).
+ * Returns cached update info from last check.
  * @returns {object} Status object with local version and platform info
  */
 function getStatus() {
-    const os = require('os');
-    const platformDetect = require('./platform-detect');
-
     const localVersion = getLocalVersion();
     const platform = platformDetect.detect();
 
@@ -161,6 +191,9 @@ function getStatus() {
     return {
         state: UpdateState.IDLE,
         current_version: localVersion,
+        available_version: cachedState.availableVersion,
+        update_available: cachedState.updateAvailable,
+        last_check: cachedState.lastCheck,
         platform: platform.platform,
         memory: {
             total_mb: Math.round(totalMem / 1024 / 1024),
@@ -170,6 +203,100 @@ function getStatus() {
     };
 }
 
+/**
+ * Start automatic periodic update checks.
+ * @param {object} config - Update configuration with githubRepo
+ */
+function startAutoCheck(config) {
+    if (!config || !config.githubRepo) {
+        return;
+    }
+
+    currentConfig = { ...DEFAULT_CONFIG, ...config };
+
+    if (!currentConfig.enabled || !currentConfig.autoCheck) {
+        return;
+    }
+
+    const intervalMs = (currentConfig.autoCheckHours || 24) * 3600 * 1000;
+
+    async function doCheck() {
+        try {
+            const result = await checkForUpdate(currentConfig);
+            if (result.available) {
+                logger.info(`Update available: ${result.remoteVersion}`);
+            } else {
+                logger.debug(`Auto-check complete: ${result.message || 'up to date'}`);
+            }
+        } catch (e) {
+            logger.warning(`Auto-check failed: ${e.message}`);
+        }
+
+        // Schedule next check
+        scheduleNextCheck(intervalMs);
+    }
+
+    // Check if we need to run immediately
+    let runNow = true;
+    const lastCheck = cachedState.lastCheck;
+
+    if (lastCheck) {
+        try {
+            const lastDt = new Date(lastCheck);
+            const elapsed = Date.now() - lastDt.getTime();
+            if (elapsed < intervalMs) {
+                // Schedule for remaining time
+                const remaining = intervalMs - elapsed;
+                logger.debug(`Next update check in ${(remaining / 3600000).toFixed(1)} hours`);
+                scheduleNextCheck(remaining);
+                runNow = false;
+            }
+        } catch (e) {
+            // Invalid date, run now
+        }
+    }
+
+    if (runNow) {
+        // Run first check after short delay (don't block startup)
+        autoCheckTimer = setTimeout(doCheck, 5000);
+        logger.debug('Update auto-check scheduled (first check in 5s)');
+    }
+}
+
+/**
+ * Schedule the next auto-check.
+ * @param {number} ms - Milliseconds until next check
+ */
+function scheduleNextCheck(ms) {
+    if (autoCheckTimer) {
+        clearTimeout(autoCheckTimer);
+    }
+
+    autoCheckTimer = setTimeout(async () => {
+        try {
+            const result = await checkForUpdate(currentConfig);
+            if (result.available) {
+                logger.info(`Update available: ${result.remoteVersion}`);
+            }
+        } catch (e) {
+            logger.warning(`Auto-check failed: ${e.message}`);
+        }
+        // Reschedule
+        const hours = (currentConfig && currentConfig.autoCheckHours) || 24;
+        scheduleNextCheck(hours * 3600 * 1000);
+    }, ms);
+}
+
+/**
+ * Stop automatic update checks.
+ */
+function stopAutoCheck() {
+    if (autoCheckTimer) {
+        clearTimeout(autoCheckTimer);
+        autoCheckTimer = null;
+    }
+}
+
 module.exports = {
     UpdateState,
     getLocalVersion,
@@ -177,4 +304,6 @@ module.exports = {
     compareVersions,
     checkForUpdate,
     getStatus,
+    startAutoCheck,
+    stopAutoCheck,
 };

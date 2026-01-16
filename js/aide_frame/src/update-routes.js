@@ -104,6 +104,9 @@ function register(app, config) {
         res.sendFile(updateHtml);
     });
 
+    // Start automatic periodic update checks
+    update.startAutoCheck(config);
+
     logger.debug(`Update routes registered for ${config.githubRepo}`);
 }
 

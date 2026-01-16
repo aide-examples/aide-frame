@@ -38,10 +38,12 @@ import json
 import os
 import shutil
 import subprocess
+import threading
 import urllib.error
 import urllib.request
 
 from . import paths
+from .log import logger
 
 
 def get_local_version():
@@ -136,6 +138,7 @@ class UpdateManager:
         self.state_file = os.path.join(self.state_dir, "state.json") if self.state_dir else None
         self._ensure_state_dir()
         self._state = self._load_state()
+        self._auto_check_timer = None
 
     def _ensure_state_dir(self):
         """Create state directory if it doesn't exist."""
@@ -181,6 +184,85 @@ class UpdateManager:
                 json.dump(self._state, f, indent=2)
         except OSError:
             pass  # May fail on read-only filesystem
+
+    def start_auto_check(self):
+        """
+        Start automatic periodic update checks.
+
+        Checks immediately if last_check is older than auto_check_hours,
+        then schedules recurring checks.
+        """
+        if not self.config.get("auto_check", True):
+            return
+
+        if not self.config.get("enabled", True):
+            return
+
+        hours = self.config.get("auto_check_hours", 24)
+        interval_seconds = hours * 3600
+
+        def do_check():
+            try:
+                result = self.check_for_updates()
+                if result.get("update_available"):
+                    logger.info(f"Update available: {result.get('available_version')}")
+                else:
+                    logger.debug(f"Auto-check complete: {result.get('message', 'up to date')}")
+            except Exception as e:
+                logger.warning(f"Auto-check failed: {e}")
+
+            # Schedule next check
+            self._schedule_next_check(interval_seconds)
+
+        # Check if we need to run immediately
+        last_check = self._state.get("last_check")
+        run_now = True
+
+        if last_check:
+            try:
+                last_dt = datetime.datetime.fromisoformat(last_check)
+                elapsed = (datetime.datetime.now() - last_dt).total_seconds()
+                if elapsed < interval_seconds:
+                    # Schedule for remaining time
+                    remaining = interval_seconds - elapsed
+                    logger.debug(f"Next update check in {remaining/3600:.1f} hours")
+                    self._schedule_next_check(remaining)
+                    run_now = False
+            except (ValueError, TypeError):
+                pass  # Invalid date, run now
+
+        if run_now:
+            # Run first check after short delay (don't block startup)
+            self._auto_check_timer = threading.Timer(5.0, do_check)
+            self._auto_check_timer.daemon = True
+            self._auto_check_timer.start()
+            logger.debug("Update auto-check scheduled (first check in 5s)")
+
+    def _schedule_next_check(self, seconds):
+        """Schedule the next auto-check."""
+        def do_check():
+            try:
+                result = self.check_for_updates()
+                if result.get("update_available"):
+                    logger.info(f"Update available: {result.get('available_version')}")
+            except Exception as e:
+                logger.warning(f"Auto-check failed: {e}")
+            # Reschedule
+            hours = self.config.get("auto_check_hours", 24)
+            self._schedule_next_check(hours * 3600)
+
+        if self._auto_check_timer:
+            self._auto_check_timer.cancel()
+
+        self._auto_check_timer = threading.Timer(seconds, do_check)
+        self._auto_check_timer.daemon = True
+        self._auto_check_timer.start()
+
+    def stop_auto_check(self):
+        """Stop automatic update checks."""
+        if self._auto_check_timer:
+            self._auto_check_timer.cancel()
+            self._auto_check_timer = None
 
     def get_status(self):
         """Get current update status for API response."""
