@@ -5,7 +5,7 @@
 
 const StatusWidget = {
     container: null,
-    options: { showRestart: true, showUpdate: true, refreshInterval: 30000 },
+    options: { showRestart: true, showUpdate: true, showInstall: true, refreshInterval: 30000 },
     status: {},
 
     init(selector, options = {}) {
@@ -30,6 +30,9 @@ const StatusWidget = {
                     <span id="sw-memory">--</span>
                 </span>
                 <span class="status-footer-actions">
+                    ${this.options.showInstall ? `
+                    <a href="#" id="sw-install-link" class="status-footer-btn" style="display:none" onclick="StatusWidget.install(); return false;">Install App</a>
+                    ` : ''}
                     ${this.options.showUpdate ? `
                     <a href="/update" id="sw-update-link" class="status-footer-btn">Update</a>
                     ` : ''}
@@ -84,5 +87,11 @@ const StatusWidget = {
         try { await fetch('/api/restart', { method: 'POST' }); } catch (e) {}
         alert('Server is restarting...');
         setTimeout(() => location.reload(), 3000);
+    },
+
+    async install() {
+        if (typeof PWA !== 'undefined' && PWA.canInstall()) {
+            await PWA.install();
+        }
     }
 };
