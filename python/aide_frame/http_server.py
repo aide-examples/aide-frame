@@ -25,7 +25,7 @@ import signal
 import socket
 import time
 import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from typing import Optional, Any, Dict, Type
 
@@ -357,7 +357,8 @@ class HttpServer:
         self.handler_class.docs_config = self.docs_config
         self.handler_class.update_config = self.update_config
 
-        self._server = HTTPServer(('0.0.0.0', self.port), self.handler_class)
+        # Use ThreadingHTTPServer to handle concurrent requests (prevents blocking during background tasks)
+        self._server = ThreadingHTTPServer(('0.0.0.0', self.port), self.handler_class)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
         self._running = True
