@@ -82,9 +82,9 @@ class PWAConfig:
     background_color: str = "#ffffff"
     display: str = "standalone"
     start_url: str = "/"
-    # Icon paths relative to /static/frame/icons/
-    icon_192: str = "icons/icon-192.svg"
-    icon_512: str = "icons/icon-512.svg"
+    # Icon paths (absolute URLs, e.g., "/static/icons/icon-192.svg")
+    icon_192: str = "/static/frame/icons/icon-192.svg"
+    icon_512: str = "/static/frame/icons/icon-512.svg"
 
 
 @dataclass
@@ -412,6 +412,10 @@ def _send_html(handler: Any, content: str, status: int = 200):
 
 def _serve_manifest(handler: Any, pwa: 'PWAConfig'):
     """Serve PWA manifest.json."""
+    # Determine icon type from extension
+    icon_ext = pwa.icon_192.rsplit('.', 1)[-1].lower()
+    icon_type = "image/svg+xml" if icon_ext == "svg" else f"image/{icon_ext}"
+
     manifest = {
         "name": pwa.name,
         "short_name": pwa.short_name,
@@ -422,15 +426,15 @@ def _serve_manifest(handler: Any, pwa: 'PWAConfig'):
         "background_color": pwa.background_color,
         "icons": [
             {
-                "src": f"/static/frame/{pwa.icon_192}",
+                "src": pwa.icon_192,
                 "sizes": "192x192",
-                "type": "image/svg+xml",
+                "type": icon_type,
                 "purpose": "any maskable"
             },
             {
-                "src": f"/static/frame/{pwa.icon_512}",
+                "src": pwa.icon_512,
                 "sizes": "512x512",
-                "type": "image/svg+xml",
+                "type": icon_type,
                 "purpose": "any maskable"
             }
         ]
