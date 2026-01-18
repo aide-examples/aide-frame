@@ -124,4 +124,4 @@ The update system includes a web-based management interface. See [Static Assets]
 | Language | Module | Status |
 |----------|--------|--------|
 | Python | [update.py](../python/update.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | update.js | Available |

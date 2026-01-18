@@ -287,4 +287,4 @@ Static assets are language-agnostic and shared across all implementations.
 | Language | Serving Module | Status |
 |----------|----------------|--------|
 | Python | [http.md](../python/http.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | [http.md](../js/http.md) | Available |

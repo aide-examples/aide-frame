@@ -73,4 +73,4 @@ If detection files are unreadable, assume non-Raspberry Pi environment. Never th
 | Language | Module | Status |
 |----------|--------|--------|
 | Python | [platform_detect.py](../python/platform-detect.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | platform-detect.js | Available |

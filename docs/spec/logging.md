@@ -84,4 +84,4 @@ Logging operations must be thread-safe for use in multi-threaded applications.
 | Language | Module | Status |
 |----------|--------|--------|
 | Python | [log.py](../python/logging.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | log.js | Available |

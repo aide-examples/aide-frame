@@ -89,4 +89,4 @@ Path traversal (`..`) should be blocked by the application for security.
 | Language | Module | Status |
 |----------|--------|--------|
 | Python | [config.py](../python/config.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | config.js | Available |

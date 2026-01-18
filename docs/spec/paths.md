@@ -95,4 +95,4 @@ Path traversal protection:
 | Language | Module | Status |
 |----------|--------|--------|
 | Python | [paths.py](../python/paths.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | paths.js | Available |

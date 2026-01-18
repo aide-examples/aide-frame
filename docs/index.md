@@ -8,6 +8,6 @@ Reusable application framework for Raspberry Pi projects.
 |---------|-------------|
 | [Specification](spec/README.md) | API and behavior specification |
 | [Python](python/index.md) | Python implementation |
-| JavaScript | Planned |
+| [JavaScript](js/index.md) | Node.js implementation |
 
 **New to AIDE Frame?** Start with [Getting Started (Python)](python/getting-started.md).

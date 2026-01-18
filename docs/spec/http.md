@@ -232,4 +232,4 @@ Requires `/api/update/status` endpoint.
 | Language | Module | Status |
 |----------|--------|--------|
 | Python | [http.md](../python/http.md) | Available |
-| JavaScript | — | Planned |
+| JavaScript | [http.md](../js/http.md) | Available |
