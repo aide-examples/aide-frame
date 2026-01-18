@@ -60,24 +60,6 @@ class CustomRoot:
 
 
 @dataclass
-class PWAConfig:
-    """Configuration for Progressive Web App (PWA) support.
-
-    When enabled, the app can be installed as a standalone app on desktop/mobile.
-    """
-    enabled: bool = False
-    name: Optional[str] = None  # Falls back to DocsConfig.app_name
-    short_name: Optional[str] = None  # Falls back to name[:12]
-    description: str = ""
-    theme_color: str = "#2563eb"
-    background_color: str = "#ffffff"
-    # Icon paths relative to /static/ (app provides these)
-    # Falls back to framework defaults if not set
-    icon_192: Optional[str] = None  # e.g., "icons/icon-192.png"
-    icon_512: Optional[str] = None  # e.g., "icons/icon-512.png"
-
-
-@dataclass
 class DocsConfig:
     """Configuration for docs/help route handlers.
 
@@ -108,9 +90,6 @@ class DocsConfig:
     enable_mermaid: bool = True
     enable_docs: bool = True
     enable_help: bool = True
-
-    # PWA support
-    pwa: Optional[PWAConfig] = None
 
     def __post_init__(self):
         """Auto-register standard paths and validate configuration."""
@@ -206,14 +185,6 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
     parsed = urlparse(path)
     query_path = parsed.path
     params = parse_qs(parsed.query)
-
-    # PWA manifest.json
-    if query_path == '/manifest.json':
-        if config.pwa and config.pwa.enabled:
-            _serve_manifest(handler, config)
-        else:
-            handler.send_error(404, "PWA not enabled")
-        return True
 
     # App config API
     if query_path == '/api/app/config':
@@ -386,60 +357,6 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
     return False
 
 
-def _serve_manifest(handler: Any, config: DocsConfig):
-    """Generate and serve PWA manifest.json dynamically."""
-    pwa = config.pwa
-    name = pwa.name or config.app_name
-    short_name = pwa.short_name or name[:12]
-
-    # Determine icon paths - use app icons if provided, else framework defaults
-    if pwa.icon_192:
-        icon_192_src = f"/static/{pwa.icon_192}"
-    else:
-        icon_192_src = "/static/frame/icons/icon-192.svg"
-
-    if pwa.icon_512:
-        icon_512_src = f"/static/{pwa.icon_512}"
-    else:
-        icon_512_src = "/static/frame/icons/icon-512.svg"
-
-    # Determine icon type from extension
-    def get_icon_type(path):
-        if path.endswith('.svg'):
-            return 'image/svg+xml'
-        elif path.endswith('.png'):
-            return 'image/png'
-        elif path.endswith('.webp'):
-            return 'image/webp'
-        return 'image/png'
-
-    manifest = {
-        "name": name,
-        "short_name": short_name,
-        "description": pwa.description,
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": pwa.background_color,
-        "theme_color": pwa.theme_color,
-        "icons": [
-            {
-                "src": icon_192_src,
-                "sizes": "192x192",
-                "type": get_icon_type(icon_192_src),
-                "purpose": "any"
-            },
-            {
-                "src": icon_512_src,
-                "sizes": "512x512",
-                "type": get_icon_type(icon_512_src),
-                "purpose": "any"
-            }
-        ]
-    }
-
-    _send_json(handler, manifest)
-
-
 def _send_json(handler: Any, data: dict, status: int = 200):
     """Send JSON response."""
     handler.send_response(status)
@@ -548,6 +465,5 @@ def _serve_docs_asset(handler: Any, asset_path: str, docs_dir_key: str):
 __all__ = [
     'CustomRoot',
     'DocsConfig',
-    'PWAConfig',
     'handle_request',
 ]
