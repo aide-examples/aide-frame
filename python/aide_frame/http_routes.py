@@ -60,6 +60,34 @@ class CustomRoot:
 
 
 @dataclass
+class PWAConfig:
+    """Configuration for Progressive Web App (PWA) support.
+
+    When enabled, the framework serves /manifest.json and supports
+    service worker registration for app installability.
+
+    Example:
+        PWAConfig(
+            enabled=True,
+            name="My App",
+            short_name="MyApp",
+            theme_color="#2563eb",
+        )
+    """
+    enabled: bool = False
+    name: str = "AIDE App"
+    short_name: str = "AIDE"
+    description: str = ""
+    theme_color: str = "#2563eb"
+    background_color: str = "#ffffff"
+    display: str = "standalone"
+    start_url: str = "/"
+    # Icon paths relative to /static/frame/icons/
+    icon_192: str = "icons/icon-192.svg"
+    icon_512: str = "icons/icon-512.svg"
+
+
+@dataclass
 class DocsConfig:
     """Configuration for docs/help route handlers.
 
@@ -85,6 +113,9 @@ class DocsConfig:
 
     # Custom roots for app-specific Markdown directories
     custom_roots: Optional[Dict[str, CustomRoot]] = None
+
+    # PWA configuration
+    pwa: Optional[PWAConfig] = None
 
     # Features
     enable_mermaid: bool = True
@@ -185,6 +216,11 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
     parsed = urlparse(path)
     query_path = parsed.path
     params = parse_qs(parsed.query)
+
+    # PWA manifest
+    if query_path == '/manifest.json' and config.pwa and config.pwa.enabled:
+        _serve_manifest(handler, config.pwa)
+        return True
 
     # App config API
     if query_path == '/api/app/config':
@@ -374,6 +410,34 @@ def _send_html(handler: Any, content: str, status: int = 200):
     handler.wfile.write(content.encode())
 
 
+def _serve_manifest(handler: Any, pwa: 'PWAConfig'):
+    """Serve PWA manifest.json."""
+    manifest = {
+        "name": pwa.name,
+        "short_name": pwa.short_name,
+        "description": pwa.description,
+        "start_url": pwa.start_url,
+        "display": pwa.display,
+        "theme_color": pwa.theme_color,
+        "background_color": pwa.background_color,
+        "icons": [
+            {
+                "src": f"/static/frame/{pwa.icon_192}",
+                "sizes": "192x192",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            },
+            {
+                "src": f"/static/frame/{pwa.icon_512}",
+                "sizes": "512x512",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }
+        ]
+    }
+    _send_json(handler, manifest)
+
+
 def _send_file(handler: Any, filepath: str, mime_type: str, binary: bool = False):
     """Send file content."""
     try:
@@ -465,5 +529,6 @@ def _serve_docs_asset(handler: Any, asset_path: str, docs_dir_key: str):
 __all__ = [
     'CustomRoot',
     'DocsConfig',
+    'PWAConfig',
     'handle_request',
 ]
