@@ -453,21 +453,16 @@ function getDocsStructure(options = {}) {
     }
 
     /**
-     * Build framework sections: "Getting Started" (expanded) and "AIDE Frame" (collapsed)
-     * Returns { gettingStarted, aideFrame } where each may be null
+     * Build AIDE Frame section from framework docs directory
      */
-    function buildFrameworkSections() {
-        if (!frameworkDirKey) return { gettingStarted: null, aideFrame: null };
+    function buildFrameworkSection() {
+        if (!frameworkDirKey) return null;
         const frameDir = paths.get(frameworkDirKey);
         if (!frameDir || !fs.existsSync(frameDir) || !fs.statSync(frameDir).isDirectory()) {
-            return { gettingStarted: null, aideFrame: null };
+            return null;
         }
 
-        const gettingStartedDocs = [];
-        const aideFrameDocs = [];
-
-        // Files that belong in "Getting Started" section
-        const gettingStartedFiles = new Set(['start-your-own-app.md']);
+        const docs = [];
 
         // Scan root-level .md files
         for (const f of fs.readdirSync(frameDir)) {
@@ -478,12 +473,7 @@ function getDocsStructure(options = {}) {
             const { title, description } = extractTitleAndDescription(filepath);
             const docEntry = { path: f, title, framework: true };
             if (description) docEntry.description = description;
-
-            if (gettingStartedFiles.has(f)) {
-                gettingStartedDocs.push(docEntry);
-            } else {
-                aideFrameDocs.push(docEntry);
-            }
+            docs.push(docEntry);
         }
 
         // Scan subdirectories (spec/, python/, js/)
@@ -500,12 +490,14 @@ function getDocsStructure(options = {}) {
                 const relPath = `${subdir}/${f}`;
                 const docEntry = { path: relPath, title, framework: true };
                 if (description) docEntry.description = description;
-                aideFrameDocs.push(docEntry);
+                docs.push(docEntry);
             }
         }
 
-        // Sort AIDE Frame docs: root index.md first, then by directory, then by path
-        aideFrameDocs.sort((a, b) => {
+        if (docs.length === 0) return null;
+
+        // Sort: root index.md first, then by directory, then by path
+        docs.sort((a, b) => {
             const pathA = a.path;
             const pathB = b.path;
             const isIndexA = pathA.endsWith('index.md');
@@ -532,32 +524,19 @@ function getDocsStructure(options = {}) {
             return pathA.localeCompare(pathB);
         });
 
-        return {
-            gettingStarted: gettingStartedDocs.length > 0
-                ? { name: 'Getting Started', docs: gettingStartedDocs, framework: true, expanded: true }
-                : null,
-            aideFrame: aideFrameDocs.length > 0
-                ? { name: 'AIDE Frame', docs: aideFrameDocs, framework: true }
-                : null,
-        };
+        return { name: 'AIDE Frame', docs, framework: true };
     }
 
-    // No docs dir? Return just framework sections if available
+    // No docs dir? Return just framework section if available
     if (!baseDir || !fs.existsSync(baseDir) || !fs.statSync(baseDir).isDirectory()) {
-        const { gettingStarted, aideFrame } = buildFrameworkSections();
-        if (gettingStarted) sections.push(gettingStarted);
-        if (aideFrame) sections.push(aideFrame);
+        const frameSection = buildFrameworkSection();
+        if (frameSection) sections.push(frameSection);
         return { sections };
     }
 
     // Build sections from definitions
-    const { gettingStarted, aideFrame } = buildFrameworkSections();
+    const frameSection = buildFrameworkSection();
     let aideFrameInserted = false;
-
-    // Insert "Getting Started" first (before app sections)
-    if (gettingStarted) {
-        sections.push(gettingStarted);
-    }
 
     // Sections that should come after AIDE Frame
     const lateSections = new Set(['deployment', 'development']);
@@ -567,8 +546,8 @@ function getDocsStructure(options = {}) {
         if (sectionPath === 'AIDE_FRAME') continue;
 
         // Insert AIDE Frame before late sections
-        if (lateSections.has(sectionPath) && aideFrame && !aideFrameInserted) {
-            sections.push(aideFrame);
+        if (lateSections.has(sectionPath) && frameSection && !aideFrameInserted) {
+            sections.push(frameSection);
             aideFrameInserted = true;
         }
 
@@ -577,8 +556,8 @@ function getDocsStructure(options = {}) {
     }
 
     // Add AIDE Frame docs at end if not inserted before late sections
-    if (aideFrame && !aideFrameInserted) {
-        sections.push(aideFrame);
+    if (frameSection && !aideFrameInserted) {
+        sections.push(frameSection);
     }
 
     return { sections };

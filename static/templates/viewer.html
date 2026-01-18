@@ -299,13 +299,12 @@
                     for (const section of data.sections) {
                         // Only show section header if there are multiple sections or name differs from titleSuffix
                         const showHeader = data.sections.length > 1 || section.name !== titleSuffix;
-                        // Framework section is collapsed by default, unless explicitly expanded
+                        // Framework section is collapsed by default
                         // Section may have 'docs' (Python) or 'files' (Node.js) array
                         const sectionDocs = section.docs || section.files || [];
                         const isFramework = sectionDocs.some(d => d.framework);
-                        const shouldCollapse = isFramework && !section.expanded;
                         if (showHeader) {
-                            html += `<div class="section${shouldCollapse ? ' collapsed' : ''}">`;
+                            html += `<div class="section${isFramework ? ' collapsed' : ''}">`;
                             html += `<h3 onclick="this.parentElement.classList.toggle('collapsed')"><span class="section-toggle">▼</span>${section.name}</h3>`;
                         }
                         html += '<ul>';

@@ -407,23 +407,15 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             section_defs = [(None, "Overview")]
 
     # Helper to build framework section
-    def build_framework_sections():
-        """Build framework sections: 'Getting Started' (expanded) and 'AIDE Frame' (collapsed).
-
-        Returns:
-            dict with 'getting_started' and 'aide_frame' keys, each may be None
-        """
+    def build_framework_section():
+        """Build AIDE Frame section from framework docs directory."""
         if not framework_dir_key:
-            return {"getting_started": None, "aide_frame": None}
+            return None
         frame_dir = paths.get(framework_dir_key)
         if not frame_dir or not os.path.isdir(frame_dir):
-            return {"getting_started": None, "aide_frame": None}
+            return None
 
-        getting_started_docs = []
-        aide_frame_docs = []
-
-        # Files that belong in "Getting Started" section
-        getting_started_files = {"start-your-own-app.md"}
+        docs = []
 
         # Scan root-level .md files
         for f in os.listdir(frame_dir):
@@ -434,10 +426,7 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
                     doc_entry = {"path": f, "title": title, "framework": True}
                     if desc:
                         doc_entry["description"] = desc
-                    if f in getting_started_files:
-                        getting_started_docs.append(doc_entry)
-                    else:
-                        aide_frame_docs.append(doc_entry)
+                    docs.append(doc_entry)
 
         # Scan subdirectories (spec/, python/, js/)
         for subdir in os.listdir(frame_dir):
@@ -452,9 +441,12 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
                             doc_entry = {"path": rel_path, "title": title, "framework": True}
                             if desc:
                                 doc_entry["description"] = desc
-                            aide_frame_docs.append(doc_entry)
+                            docs.append(doc_entry)
 
-        # Sort AIDE Frame docs: root index.md first, then by directory (root, spec, python, js), then by path
+        if not docs:
+            return None
+
+        # Sort: root index.md first, then by directory (root, spec, python, js), then by path
         def sort_key(d):
             path = d["path"]
             is_index = path.endswith("index.md")
@@ -472,29 +464,20 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             subdir_order = {"spec": 0, "python": 1, "js": 2}.get(subdir, 3)
             return (2, subdir_order, 0 if is_index else 1, path)
 
-        aide_frame_docs.sort(key=sort_key)
+        docs.sort(key=sort_key)
 
-        return {
-            "getting_started": {"name": "Getting Started", "docs": getting_started_docs, "framework": True, "expanded": True} if getting_started_docs else None,
-            "aide_frame": {"name": "AIDE Frame", "docs": aide_frame_docs, "framework": True} if aide_frame_docs else None,
-        }
+        return {"name": "AIDE Frame", "docs": docs, "framework": True}
 
-    # No docs dir? Return just framework sections if available
+    # No docs dir? Return just framework section if available
     if not base_dir or not os.path.isdir(base_dir):
-        frame_sections = build_framework_sections()
-        if frame_sections["getting_started"]:
-            sections.append(frame_sections["getting_started"])
-        if frame_sections["aide_frame"]:
-            sections.append(frame_sections["aide_frame"])
+        frame_section = build_framework_section()
+        if frame_section:
+            sections.append(frame_section)
         return {"sections": sections}
 
     # Build sections from definitions
-    frame_sections = build_framework_sections()
+    frame_section = build_framework_section()
     aide_frame_inserted = False
-
-    # Insert "Getting Started" first (before app sections)
-    if frame_sections["getting_started"]:
-        sections.append(frame_sections["getting_started"])
 
     # Sections that should come after AIDE Frame
     late_sections = {"deployment", "development"}
@@ -505,8 +488,8 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             continue
 
         # Insert AIDE Frame before late sections (deployment, development)
-        if section_path in late_sections and frame_sections["aide_frame"] and not aide_frame_inserted:
-            sections.append(frame_sections["aide_frame"])
+        if section_path in late_sections and frame_section and not aide_frame_inserted:
+            sections.append(frame_section)
             aide_frame_inserted = True
 
         section = build_section_from_dir(base_dir, section_path, section_name)
@@ -514,7 +497,7 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             sections.append(section)
 
     # Add AIDE Frame docs at end if not inserted before late sections
-    if frame_sections["aide_frame"] and not aide_frame_inserted:
-        sections.append(frame_sections["aide_frame"])
+    if frame_section and not aide_frame_inserted:
+        sections.append(frame_section)
 
     return {"sections": sections}
