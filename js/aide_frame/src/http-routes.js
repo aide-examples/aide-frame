@@ -40,6 +40,22 @@ const { logger } = require('./log');
  */
 
 /**
+ * Configuration for Progressive Web App (PWA) support.
+ *
+ * @typedef {object} PWAConfig
+ * @property {boolean} [enabled=false] - Enable PWA support
+ * @property {string} [name="AIDE App"] - Application name
+ * @property {string} [shortName="AIDE"] - Short name for app icon
+ * @property {string} [description=""] - Application description
+ * @property {string} [themeColor="#2563eb"] - Theme color
+ * @property {string} [backgroundColor="#ffffff"] - Background color
+ * @property {string} [display="standalone"] - Display mode
+ * @property {string} [startUrl="/"] - Start URL
+ * @property {string} [icon192="/static/frame/icons/icon-192.svg"] - 192x192 icon path
+ * @property {string} [icon512="/static/frame/icons/icon-512.svg"] - 512x512 icon path
+ */
+
+/**
  * Configuration for docs/help route handlers.
  *
  * Standard paths (docs/, help/) are auto-registered if they exist in APP_DIR.
@@ -53,6 +69,7 @@ const { logger } = require('./log');
  * @property {string} [frameworkDirKey="AIDE_FRAME_DOCS_DIR"] - Key for framework docs
  * @property {Array} [sectionDefs] - Section definitions for docs
  * @property {Object.<string, CustomRoot>} [customRoots] - Custom roots
+ * @property {PWAConfig} [pwa] - PWA configuration
  * @property {boolean} [enableMermaid=true] - Enable Mermaid diagrams
  * @property {boolean} [enableDocs=true] - Enable /about route
  * @property {boolean} [enableHelp=true] - Enable /help route
@@ -94,6 +111,7 @@ function initConfig(config) {
         frameworkDirKey: config.frameworkDirKey || 'AIDE_FRAME_DOCS_DIR',
         sectionDefs: config.sectionDefs || null,
         customRoots: config.customRoots || {},
+        pwa: config.pwa || null,
         enableMermaid: config.enableMermaid !== false,
         enableDocs: config.enableDocs !== false,
         enableHelp: config.enableHelp !== false,
@@ -180,6 +198,13 @@ function _getViewerConfig(config, root) {
  */
 function register(app, config) {
     const cfg = initConfig(config);
+
+    // PWA manifest
+    if (cfg.pwa && cfg.pwa.enabled) {
+        app.get('/manifest.json', (req, res) => {
+            _serveManifest(res, cfg.pwa);
+        });
+    }
 
     // App config API
     app.get('/api/app/config', (req, res) => {
@@ -399,9 +424,50 @@ function _serveDocsAsset(res, assetPath, dirKey) {
     res.sendFile(fullPath);
 }
 
+/**
+ * Serve PWA manifest.json.
+ * @param {express.Response} res - Express response
+ * @param {PWAConfig} pwa - PWA configuration
+ * @private
+ */
+function _serveManifest(res, pwa) {
+    // Determine icon type from extension
+    const icon192 = pwa.icon192 || '/static/frame/icons/icon-192.svg';
+    const icon512 = pwa.icon512 || '/static/frame/icons/icon-512.svg';
+    const iconExt = icon192.split('.').pop().toLowerCase();
+    const iconType = iconExt === 'svg' ? 'image/svg+xml' : `image/${iconExt}`;
+
+    const manifest = {
+        name: pwa.name || 'AIDE App',
+        short_name: pwa.shortName || pwa.short_name || 'AIDE',
+        description: pwa.description || '',
+        start_url: pwa.startUrl || pwa.start_url || '/',
+        display: pwa.display || 'standalone',
+        theme_color: pwa.themeColor || pwa.theme_color || '#2563eb',
+        background_color: pwa.backgroundColor || pwa.background_color || '#ffffff',
+        icons: [
+            {
+                src: icon192,
+                sizes: '192x192',
+                type: iconType,
+                purpose: 'any maskable'
+            },
+            {
+                src: icon512,
+                sizes: '512x512',
+                type: iconType,
+                purpose: 'any maskable'
+            }
+        ]
+    };
+
+    res.json(manifest);
+}
+
 module.exports = {
     register,
     initConfig,
     DocsConfig: null, // For documentation purposes
     CustomRoot: null, // For documentation purposes
+    PWAConfig: null, // For documentation purposes
 };

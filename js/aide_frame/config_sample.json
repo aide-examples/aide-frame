@@ -1,0 +1,14 @@
+{
+    "_comment": "Copy this file to config.json and customize for your app",
+    "port": 8080,
+    "pwa": {
+        "enabled": true,
+        "name": "My App",
+        "short_name": "MyApp",
+        "description": "My AIDE Frame Application",
+        "theme_color": "#2563eb",
+        "background_color": "#ffffff",
+        "icon_192": "/static/icons/icon-192.svg",
+        "icon_512": "/static/icons/icon-512.svg"
+    }
+}
