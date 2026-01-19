@@ -51,7 +51,9 @@ Reusable UI components for aide-frame applications.
 | Component | Classes | Description |
 |-----------|---------|-------------|
 | Container | `.container`, `.wide`, `.full` | Responsive content wrapper |
-| Header | `.header`, `.sticky` | App header with navigation |
+| App Container | `.app-container`, `.page-fill` | App wrapper with optional page-fill mode |
+| Main Content | `.main-content`, `.scroll-content` | Flexbox layout for page-fill mode |
+| Header | `.header`, `.sticky`, `.compact` | App header with navigation |
 | Cards | `.card` | Content cards with shadow |
 | Buttons | `button`, `.secondary`, `.danger`, `.wide` | Styled buttons |
 | Forms | `.form-group`, `.form-row`, `.checkbox-group` | Form elements |
@@ -59,7 +61,7 @@ Reusable UI components for aide-frame applications.
 | Messages | `.message.info/success/warning/error` | Alert messages |
 | Progress | `.progress-bar-container`, `.progress-bar` | Progress bars |
 | Stats | `.progress-stats`, `.stat-box` | Statistics grid |
-| Footer | `.status-footer`, `.status-footer-btn` | Compact status footer |
+| Footer | `.status-footer`, `.status-footer-btn`, `.compact` | Compact status footer |
 
 ### docs-viewer.css
 
@@ -114,6 +116,8 @@ Compact footer displaying version, platform, memory, and action buttons.
 StatusWidget.init('#container', {
     showRestart: true,
     showUpdate: true,
+    showLayoutToggle: true,
+    layoutDefault: 'flow',
     refreshInterval: 30000
 });
 ```
@@ -122,9 +126,34 @@ StatusWidget.init('#container', {
 |--------|------|---------|-------------|
 | `showRestart` | bool | true | Show restart button |
 | `showUpdate` | bool | true | Show update link |
+| `showLayoutToggle` | bool | false | Show layout toggle button |
+| `layoutDefault` | string | "flow" | Default layout mode ("flow" or "page-fill") |
 | `refreshInterval` | int | 30000 | Status refresh interval (ms), 0 to disable |
 
 Requires `/api/update/status` endpoint (see [HTTP Spec](http.md)).
+
+#### Layout Modes
+
+The layout toggle switches between two modes:
+
+- **flow** (default): Content grows, page scrolls. Standard responsive behavior.
+- **page-fill**: Fixed viewport height, content area scrolls internally. Header and footer stay fixed.
+
+To support page-fill mode, your HTML structure should be:
+
+```html
+<div class="app-container">
+    <div id="app-header"></div>
+    <main class="main-content">
+        <div class="scroll-content">
+            <!-- Your scrollable content here -->
+        </div>
+        <div id="status-widget"></div>
+    </main>
+</div>
+```
+
+User preference is saved to localStorage and persists across page reloads.
 
 ---
 
