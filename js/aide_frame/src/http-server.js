@@ -29,7 +29,6 @@ const dgram = require('dgram');
 
 const paths = require('./paths');
 const { logger } = require('./log');
-const { detectPlatform } = require('./platform-detect');
 
 /**
  * Get the best URL to reach the server.
@@ -178,15 +177,9 @@ class HttpServer {
                 return;
             }
 
-            // Bind to localhost on WSL2 to avoid conflict with Windows port forwarding,
-            // bind to all interfaces elsewhere for cross-host access
-            const platform = detectPlatform();
-            const bindAddress = platform === 'wsl2' ? '127.0.0.1' : '0.0.0.0';
-
-            this._server = this.app.listen(this.port, bindAddress, () => {
+            this._server = this.app.listen(this.port, '0.0.0.0', () => {
                 this._running = true;
-                const displayAddr = bindAddress === '0.0.0.0' ? 'all interfaces' : 'localhost';
-                logger.info(`Server started on http://localhost:${this.port} (bound to ${displayAddr})`);
+                logger.info(`Server started on http://localhost:${this.port}`);
                 resolve();
             });
         });
