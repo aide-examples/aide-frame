@@ -29,6 +29,7 @@ const updateRoutes = require('./src/update-routes');
 // Utilities
 const args = require('./src/args');
 const qrcodeUtils = require('./src/qrcode-utils');
+const iconGenerator = require('./src/icon-generator');
 
 module.exports = {
     // Core
@@ -52,4 +53,5 @@ module.exports = {
     // Utilities
     args,
     qrcodeUtils,
+    iconGenerator,
 };

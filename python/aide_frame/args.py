@@ -23,6 +23,7 @@ from .config import load_config
 def add_common_args(parser: argparse.ArgumentParser,
                     include_log: bool = True,
                     include_config: bool = True,
+                    include_icons: bool = True,
                     config_default: str = 'config.json') -> None:
     """
     Add common aide-frame arguments to a parser.
@@ -31,6 +32,7 @@ def add_common_args(parser: argparse.ArgumentParser,
         parser: The ArgumentParser to add arguments to
         include_log: Add --log-level argument
         include_config: Add --config argument
+        include_icons: Add --regenerate-icons argument
         config_default: Default config file name
     """
     if include_log:
@@ -48,10 +50,18 @@ def add_common_args(parser: argparse.ArgumentParser,
             help=f'Config file path (default: {config_default})'
         )
 
+    if include_icons:
+        parser.add_argument(
+            '--regenerate-icons',
+            action='store_true',
+            help='Force regeneration of PWA icons'
+        )
+
 
 def apply_common_args(args: argparse.Namespace,
                       config_search_paths: Optional[List[str]] = None,
-                      config_defaults: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+                      config_defaults: Optional[Dict[str, Any]] = None,
+                      app_dir: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """
     Apply common aide-frame arguments.
 
@@ -59,6 +69,7 @@ def apply_common_args(args: argparse.Namespace,
         args: Parsed arguments namespace
         config_search_paths: Additional paths to search for config file
         config_defaults: Default config values
+        app_dir: App directory for icon generation (if not provided, icons won't be auto-generated)
 
     Returns:
         Loaded config dict if --config was used, None otherwise
@@ -76,5 +87,13 @@ def apply_common_args(args: argparse.Namespace,
             search_paths=search_paths,
             defaults=config_defaults or {}
         )
+
+    # Handle icon generation
+    if app_dir and config:
+        force_icons = getattr(args, 'regenerate_icons', False)
+        pwa_config = config.get('pwa', {})
+        if pwa_config.get('icon'):
+            from .icon_generator import ensure_icons
+            ensure_icons(app_dir, pwa_config, force=force_icons)
 
     return config

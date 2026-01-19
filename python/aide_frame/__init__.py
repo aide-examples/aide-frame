@@ -36,6 +36,7 @@ from . import http_server
 from . import update_routes
 from . import args
 from . import qrcode_utils
+from . import icon_generator
 
 __version__ = "1.2.0"
 
@@ -50,4 +51,5 @@ __all__ = [
     'update_routes',
     'args',
     'qrcode_utils',
+    'icon_generator',
 ]

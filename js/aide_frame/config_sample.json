@@ -9,7 +9,17 @@
         "theme_color": "#2563eb",
         "background_color": "#ffffff",
         "icon_192": "/static/icons/icon-192.svg",
-        "icon_512": "/static/icons/icon-512.svg"
+        "icon_512": "/static/icons/icon-512.svg",
+        "icon": {
+            "_comment": "Icon generator config - icons auto-generated if line2_text is set",
+            "background": "#2563eb",
+            "line1_text": "aide",
+            "line1_color": "#94a3b8",
+            "line1_size": 0.25,
+            "line2_text": "App",
+            "line2_color": "#ffffff",
+            "line2_size": 0.45
+        }
     },
     "layout": {
         "default": "flow",

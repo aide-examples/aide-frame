@@ -16,6 +16,7 @@
 const { Command } = require('commander');
 const { setLevel } = require('./log');
 const { loadConfig } = require('./config');
+const { ensureIcons } = require('./icon-generator');
 
 /**
  * Add common aide-frame arguments to a commander program.
@@ -24,12 +25,14 @@ const { loadConfig } = require('./config');
  * @param {object} options - Options
  * @param {boolean} options.includeLog - Add --log-level argument (default: true)
  * @param {boolean} options.includeConfig - Add --config argument (default: true)
+ * @param {boolean} options.includeIcons - Add --regenerate-icons argument (default: true)
  * @param {string} options.configDefault - Default config file name (default: 'config.json')
  */
 function addCommonArgs(program, options = {}) {
     const {
         includeLog = true,
         includeConfig = true,
+        includeIcons = true,
         configDefault = 'config.json',
     } = options;
 
@@ -48,6 +51,13 @@ function addCommonArgs(program, options = {}) {
             configDefault
         );
     }
+
+    if (includeIcons) {
+        program.option(
+            '--regenerate-icons',
+            'Force regeneration of PWA icons'
+        );
+    }
 }
 
 /**
@@ -57,12 +67,14 @@ function addCommonArgs(program, options = {}) {
  * @param {object} options - Additional options
  * @param {string[]} options.configSearchPaths - Additional paths to search for config file
  * @param {object} options.configDefaults - Default config values
+ * @param {string} options.appDir - App directory for icon generation (optional)
  * @returns {object|null} Loaded config object if --config was used
  */
 function applyCommonArgs(opts, options = {}) {
     const {
         configSearchPaths = [],
         configDefaults = {},
+        appDir = null,
     } = options;
 
     // Apply log level
@@ -74,6 +86,11 @@ function applyCommonArgs(opts, options = {}) {
     let config = null;
     if (opts.config) {
         config = loadConfig(opts.config, configDefaults, configSearchPaths);
+    }
+
+    // Generate icons if configured and appDir provided
+    if (appDir && config && config.pwa) {
+        ensureIcons(appDir, config.pwa, opts.regenerateIcons || false);
     }
 
     return config;
