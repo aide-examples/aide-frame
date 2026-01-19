@@ -1,11 +1,11 @@
 /**
  * Status Widget for aide-frame applications.
- * Compact single-line footer: version · platform · memory | Update | Restart
+ * Compact single-line footer: version · platform · memory | Layout | Update | Restart
  */
 
 const StatusWidget = {
     container: null,
-    options: { showRestart: true, showUpdate: true, showInstall: true, refreshInterval: 30000 },
+    options: { showRestart: true, showUpdate: true, showInstall: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000 },
     status: {},
 
     init(selector, options = {}) {
@@ -14,6 +14,7 @@ const StatusWidget = {
         this.options = { ...this.options, ...options };
         this.render();
         this.loadStatus();
+        this.initLayout();
         if (this.options.refreshInterval > 0) {
             setInterval(() => this.loadStatus(), this.options.refreshInterval);
         }
@@ -30,6 +31,9 @@ const StatusWidget = {
                     <span id="sw-memory">--</span>
                 </span>
                 <span class="status-footer-actions">
+                    ${this.options.showLayoutToggle ? `
+                    <button onclick="StatusWidget.toggleLayout()" class="status-footer-btn" id="sw-layout-btn" title="Toggle layout mode">⊞</button>
+                    ` : ''}
                     ${this.options.showInstall ? `
                     <a href="#" id="sw-install-link" class="status-footer-btn" style="display:none" onclick="StatusWidget.install(); return false;">Install App</a>
                     ` : ''}
@@ -42,6 +46,43 @@ const StatusWidget = {
                 </span>
             </div>
         `;
+    },
+
+    initLayout() {
+        // Determine initial layout: localStorage overrides config default
+        const stored = localStorage.getItem('aide-layout');
+        const mode = stored || this.options.layoutDefault || 'flow';
+        this.applyLayout(mode);
+    },
+
+    applyLayout(mode) {
+        const container = document.querySelector('.app-container');
+        const header = document.querySelector('.header');
+        const footer = document.querySelector('.status-footer');
+
+        if (mode === 'page-fill') {
+            container?.classList.add('page-fill');
+            header?.classList.add('compact');
+            footer?.classList.add('compact');
+        } else {
+            container?.classList.remove('page-fill');
+            header?.classList.remove('compact');
+            footer?.classList.remove('compact');
+        }
+
+        // Update button state
+        const btn = document.getElementById('sw-layout-btn');
+        if (btn) {
+            btn.classList.toggle('highlight', mode === 'page-fill');
+        }
+    },
+
+    toggleLayout() {
+        const container = document.querySelector('.app-container');
+        const isPageFill = container?.classList.contains('page-fill');
+        const newMode = isPageFill ? 'flow' : 'page-fill';
+        localStorage.setItem('aide-layout', newMode);
+        this.applyLayout(newMode);
     },
 
     async loadStatus() {

@@ -10,5 +10,9 @@
         "background_color": "#ffffff",
         "icon_192": "/static/icons/icon-192.svg",
         "icon_512": "/static/icons/icon-512.svg"
+    },
+    "layout": {
+        "default": "flow",
+        "allow_toggle": true
     }
 }

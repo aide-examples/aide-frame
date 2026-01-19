@@ -401,3 +401,40 @@ button.wide { width: 100%; }
     color: #2563eb;
     font-weight: 500;
 }
+
+/* =============================================================================
+   Page-fill Layout Mode
+   ============================================================================= */
+
+/* Page-fill layout: viewport-height container with internal scrolling */
+.app-container.page-fill {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.app-container.page-fill .main-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.app-container.page-fill .scroll-content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* Compact header (reduced vertical spacing) */
+.header.compact {
+    margin-bottom: 0;
+}
+
+/* Compact status footer (reduced vertical spacing) */
+.status-footer.compact {
+    margin-top: 4px;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
