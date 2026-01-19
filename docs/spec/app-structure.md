@@ -123,3 +123,57 @@ For subsections within `if __name__ == '__main__':` (Python), use shorter separa
     # 8. SERVER SETUP
     # =========================================================================
 ```
+
+## Submodule Development Setup
+
+Apps include aide-frame as a git submodule. The `.gitmodules` file points to GitHub for portability:
+
+```
+[submodule "aide-frame"]
+    url = https://github.com/aide-examples/aide-frame.git
+```
+
+### Local Development Override
+
+For local development, override the submodule URL to use your local aide-frame directory. This lets you test framework changes instantly without pushing to GitHub.
+
+Run this once per app repo on your dev machine:
+
+```bash
+git config submodule.aide-frame.url /home/gero/aide-examples/aide-frame
+```
+
+This writes to `.git/config` (not committed), so:
+- **Your machine**: Uses local aide-frame (instant changes)
+- **New clones**: Uses GitHub URL (works anywhere)
+
+To set up all apps at once:
+
+```bash
+for repo in aide-frame-demo-py aide-frame-demo-js aide-slideshow aide-mylan; do
+    cd /home/gero/aide-examples/$repo
+    git config submodule.aide-frame.url /home/gero/aide-examples/aide-frame
+done
+```
+
+### Workflow
+
+1. Edit aide-frame code → immediately available in all local apps
+2. Test in your apps → works instantly
+3. When satisfied, commit and push aide-frame to GitHub
+4. Update submodule reference in apps: `git submodule update --remote`
+5. Commit and push apps
+
+### Checking Current Configuration
+
+To see which URL a repo uses:
+
+```bash
+git config --get submodule.aide-frame.url
+```
+
+To remove the local override (use GitHub URL again):
+
+```bash
+git config --unset submodule.aide-frame.url
+```
