@@ -36,10 +36,11 @@ def _compute_icon_hash(icon_config: dict, theme_color: str) -> str:
         Short hash string
     """
     # Create a stable representation of the config
+    # Default line1_color: #cbd5e1 (slate-300) for good contrast on colored backgrounds
     config_for_hash = {
         'background': icon_config.get('background', theme_color or '#2563eb'),
         'line1_text': icon_config.get('line1_text', 'aide'),
-        'line1_color': icon_config.get('line1_color', '#94a3b8'),
+        'line1_color': icon_config.get('line1_color', '#cbd5e1'),
         'line1_size': icon_config.get('line1_size', 0.25),
         'line2_text': icon_config.get('line2_text', ''),
         'line2_color': icon_config.get('line2_color', '#ffffff'),
@@ -94,9 +95,10 @@ def _generate_svg(size: int, icon_config: dict, theme_color: str, config_hash: s
         SVG content as string
     """
     # Extract config with defaults
+    # Default line1_color: #cbd5e1 (slate-300) for good contrast on colored backgrounds
     background = icon_config.get('background', theme_color or '#2563eb')
     line1_text = icon_config.get('line1_text', 'aide')
-    line1_color = icon_config.get('line1_color', '#94a3b8')
+    line1_color = icon_config.get('line1_color', '#cbd5e1')
     line1_size = icon_config.get('line1_size', 0.25)
     line2_text = icon_config.get('line2_text', '')
     line2_color = icon_config.get('line2_color', '#ffffff')
@@ -107,10 +109,11 @@ def _generate_svg(size: int, icon_config: dict, theme_color: str, config_hash: s
     font_size_2 = int(size * line2_size)
 
     # Calculate Y positions for visual balance
-    # Line 1: small text near top, positioned at ~35% from top
-    # Line 2: larger text centered, positioned at ~70% from top
-    y1 = int(size * 0.35)
-    y2 = int(size * 0.70)
+    # Line 1: small text near top, positioned at ~28% from top
+    # Line 2: larger text below, positioned at ~68% from top
+    # This ensures adequate spacing between the two lines
+    y1 = int(size * 0.28)
+    y2 = int(size * 0.68)
 
     # Center X position
     cx = size // 2

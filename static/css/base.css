@@ -11,6 +11,11 @@ body {
     line-height: 1.6;
 }
 
+/* App Container - default horizontal padding */
+.app-container {
+    padding: 0 16px;
+}
+
 /* Container */
 .container { max-width: 400px; margin: 0 auto; padding: 20px; }
 .container.wide { max-width: 500px; }
