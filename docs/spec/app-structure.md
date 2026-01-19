@@ -72,11 +72,11 @@ HttpServer automatically registers docs/help and update routes when configs are 
 
 ### Pass PWA Config to DocsConfig
 
-For manifest.json serving, pass the PWA config to docsConfig:
+For manifest.json serving, pass the PWA config to docsConfig. Use `from_dict()` to filter out unknown keys (like `icon` used by the icon generator):
 
 Python:
 ```python
-pwa=http_routes.PWAConfig(**config.get('pwa', {})) if config.get('pwa', {}).get('enabled') else None
+pwa=http_routes.PWAConfig.from_dict(config.get('pwa', {})) if config.get('pwa', {}).get('enabled') else None
 ```
 
 JavaScript:

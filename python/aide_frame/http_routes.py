@@ -73,6 +73,9 @@ class PWAConfig:
             short_name="MyApp",
             theme_color="#2563eb",
         )
+
+    Use from_dict() to create from config that may have extra keys (like 'icon'):
+        PWAConfig.from_dict(config.get('pwa', {}))
     """
     enabled: bool = False
     name: str = "AIDE App"
@@ -85,6 +88,13 @@ class PWAConfig:
     # Icon paths (absolute URLs, e.g., "/static/icons/icon-192.svg")
     icon_192: str = "/static/frame/icons/icon-192.svg"
     icon_512: str = "/static/frame/icons/icon-512.svg"
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'PWAConfig':
+        """Create PWAConfig from dict, ignoring unknown keys (like 'icon')."""
+        valid_keys = {f.name for f in cls.__dataclass_fields__.values()}
+        filtered = {k: v for k, v in data.items() if k in valid_keys}
+        return cls(**filtered)
 
 
 @dataclass
