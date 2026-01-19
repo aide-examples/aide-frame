@@ -12,6 +12,12 @@ The specification defines:
 
 Implementations (Python, JavaScript, etc.) follow this specification and provide language-specific documentation.
 
+## Guides
+
+| Guide | Description |
+|-------|-------------|
+| [Application Structure](app-structure.md) | Standard code structure patterns for aide-frame apps |
+
 ## Modules
 
 **Server-side:**
