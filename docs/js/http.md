@@ -76,7 +76,15 @@ When `docsConfig` is provided, these routes are registered:
 | `/help` | Help viewer |
 | `/api/app/config` | App configuration |
 | `/api/viewer/structure` | Docs structure |
-| `/api/viewer/content` | Markdown content |
+| `/api/viewer/content` | Markdown content (GET) / Save content (POST) |
+
+### Online Editing
+
+When `docsEditable` or `helpEditable` is set to `true`, users can edit Markdown documents directly in the browser:
+
+- Right-click on any heading opens a section editor
+- Edits are saved via `POST /api/viewer/content`
+- Framework documentation is always read-only
 
 ### DocsConfig Options
 
@@ -90,6 +98,8 @@ When `docsConfig` is provided, these routes are registered:
     enableMermaid: true,    // Enable Mermaid diagrams
     enableDocs: true,       // Enable /about route
     enableHelp: true,       // Enable /help route
+    docsEditable: false,    // Enable editing for /about (default: false)
+    helpEditable: false,    // Enable editing for /help (default: false)
     customRoots: {},        // Additional Markdown roots
 }
 ```

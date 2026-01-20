@@ -94,6 +94,39 @@ aide-frame applications expose a web interface with:
 }
 ```
 
+### POST /api/viewer/content (Editing Feature)
+
+Save modified Markdown content. Requires editing to be enabled for the root.
+
+**Request:**
+```json
+{
+  "root": "docs",
+  "path": "requirements/index.md",
+  "content": "# Updated Title\n\nNew content..."
+}
+```
+
+**Response (success):**
+```json
+{
+  "success": true
+}
+```
+
+**Response (error):**
+```json
+{
+  "error": "Editing disabled for this root"
+}
+```
+
+**Error codes:**
+- 400: Missing path or content
+- 403: Editing disabled, framework docs, or path traversal attempt
+- 404: File not found
+- 500: Write error
+
 ### GET /api/update/status
 
 ```json
@@ -136,6 +169,8 @@ aide-frame applications expose a web interface with:
 | `enable_docs` | true | Enable /about |
 | `enable_help` | true | Enable /help |
 | `enable_mermaid` | true | Enable Mermaid diagrams |
+| `docsEditable` | false | Enable editing for /about |
+| `helpEditable` | false | Enable editing for /help |
 
 ### UpdateConfig
 
@@ -222,10 +257,33 @@ Requires `/api/update/status` endpoint.
 - Table of contents auto-generated
 - Internal `.md` links intercepted
 
+### Online Editing (Optional)
+
+When editing is enabled for a root (`docsEditable` or `helpEditable`):
+
+- Right-click on any heading opens a section editor
+- Section = heading + all content until next heading of same/higher level
+- MediaWiki-style: edit individual sections, not entire documents
+- Editor provides CSS-based Markdown syntax highlighting
+- After save, view scrolls to the edited heading
+
+**Usage:**
+1. Set `docsEditable: true` in app config
+2. Right-click any H1-H6 heading in the rendered document
+3. Edit the Markdown in the modal
+4. Click "Save" to persist changes
+
+**Limitations:**
+- Framework docs (`framework/` prefix) are always read-only
+- No concurrent edit detection
+- No backup before save (consider version control)
+
 ### Security
 
 - Path traversal blocked in all file operations
 - Paths restricted to configured directories
+- Editing only possible when explicitly enabled per root
+- Framework documentation always protected
 
 ## Implementations
 

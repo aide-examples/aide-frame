@@ -37,6 +37,7 @@ const { logger } = require('./log');
  * @property {string} [subdir] - Auto-register from APP_DIR/subdir if set
  * @property {boolean} [useSections=false] - True for multi-section docs, False for flat
  * @property {Array} [sectionDefs] - List of [sectionPath, sectionName] tuples
+ * @property {boolean} [editable=false] - Enable editing of this root via right-click
  */
 
 /**
@@ -73,6 +74,8 @@ const { logger } = require('./log');
  * @property {boolean} [enableMermaid=true] - Enable Mermaid diagrams
  * @property {boolean} [enableDocs=true] - Enable /about route
  * @property {boolean} [enableHelp=true] - Enable /help route
+ * @property {boolean} [docsEditable=false] - Enable editing of docs via right-click
+ * @property {boolean} [helpEditable=false] - Enable editing of help via right-click
  */
 
 /**
@@ -115,6 +118,8 @@ function initConfig(config) {
         enableMermaid: config.enableMermaid !== false,
         enableDocs: config.enableDocs !== false,
         enableHelp: config.enableHelp !== false,
+        docsEditable: config.docsEditable === true,
+        helpEditable: config.helpEditable === true,
     };
 
     paths.ensureInitialized();
@@ -210,12 +215,17 @@ function register(app, config) {
     app.get('/api/app/config', (req, res) => {
         const response = {
             app_name: cfg.appName,
+            app_description: cfg.pwa?.description || '',
             back_link: cfg.backLink,
             back_text: cfg.backText,
             features: {
                 mermaid: cfg.enableMermaid,
                 docs: cfg.enableDocs,
                 help: cfg.enableHelp,
+            },
+            editable: {
+                docs: cfg.docsEditable,
+                help: cfg.helpEditable,
             }
         };
         // Include custom roots info
@@ -225,6 +235,7 @@ function register(app, config) {
                 response.custom_roots[name] = {
                     title: root.title,
                     route: root.route,
+                    editable: root.editable === true,
                 };
             }
         }
@@ -312,6 +323,67 @@ function register(app, config) {
             });
         } catch (e) {
             res.status(500).json({ error: `Error reading file: ${e.message}` });
+        }
+    });
+
+    // Viewer content save API (POST)
+    app.post('/api/viewer/content', (req, res) => {
+        const { root = 'docs', path: docPath, content } = req.body;
+
+        // Check if editing is enabled for this root
+        let isEditable = false;
+        if (root === 'docs') {
+            isEditable = cfg.docsEditable;
+        } else if (root === 'help') {
+            isEditable = cfg.helpEditable;
+        } else if (cfg.customRoots && cfg.customRoots[root]) {
+            isEditable = cfg.customRoots[root].editable === true;
+        }
+
+        if (!isEditable) {
+            return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
+        }
+
+        const viewerCfg = _getViewerConfig(cfg, root);
+        if (!viewerCfg) {
+            return res.status(404).json({ error: `Unknown root: ${root}` });
+        }
+
+        // Security: block path traversal
+        if (!docPath || docPath.includes('..') || docPath.startsWith('/')) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        // Framework docs are always read-only
+        if (docPath.startsWith('framework/')) {
+            return res.status(403).json({ error: 'Framework docs are read-only' });
+        }
+
+        // Validate content
+        if (typeof content !== 'string') {
+            return res.status(400).json({ error: 'Content must be a string' });
+        }
+
+        const docsDir = paths.get(viewerCfg.dirKey);
+        if (!docsDir) {
+            return res.status(404).json({ error: 'Directory not configured' });
+        }
+
+        const fullPath = path.join(docsDir, docPath);
+
+        // Ensure parent directory exists
+        const parentDir = path.dirname(fullPath);
+        if (!fs.existsSync(parentDir)) {
+            fs.mkdirSync(parentDir, { recursive: true });
+        }
+
+        try {
+            fs.writeFileSync(fullPath, content, 'utf8');
+            logger.info(`Saved document: ${docPath}`);
+            res.json({ success: true, path: docPath });
+        } catch (e) {
+            logger.error(`Error saving file ${docPath}: ${e.message}`);
+            res.status(500).json({ error: `Error saving file: ${e.message}` });
         }
     });
 

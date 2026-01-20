@@ -31,6 +31,24 @@
         ☰
     </button>
 
+    <!-- Editor Modal -->
+    <div id="editor-modal" class="editor-modal" style="display: none;">
+        <div class="editor-modal-content">
+            <div class="editor-header">
+                <span id="editor-title">Edit Section</span>
+                <button class="editor-close" onclick="closeEditor()">&times;</button>
+            </div>
+            <div id="editor-container" class="editor-container">
+                <textarea id="editor-textarea" class="editor-textarea" spellcheck="false"></textarea>
+                <div id="editor-highlight" class="editor-highlight"></div>
+            </div>
+            <div class="editor-footer">
+                <button class="editor-btn editor-btn-cancel" onclick="closeEditor()">Cancel</button>
+                <button class="editor-btn editor-btn-save" onclick="saveSection()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/frame/vendor/marked/marked.min.js"></script>
     <script src="/static/frame/vendor/polyglot/polyglot.min.js"></script>
     <script src="/static/frame/js/i18n.js"></script>
@@ -63,8 +81,225 @@
             app_name: 'App',
             back_link: '/',
             back_text: 'Back',
-            features: { mermaid: true }
+            features: { mermaid: true },
+            editable: { docs: false, help: false }
         };
+
+        // Current document state for editing
+        let currentDocPath = null;
+        let currentMarkdown = null;
+        let editingSection = null;  // { start, end, headingText, headingLevel }
+
+        // =============================================================================
+        // EDITOR FUNCTIONS
+        // =============================================================================
+
+        /**
+         * Check if current root is editable
+         */
+        function isCurrentRootEditable() {
+            if (viewerRoot === 'docs') return appConfig.editable?.docs === true;
+            if (viewerRoot === 'help') return appConfig.editable?.help === true;
+            if (appConfig.custom_roots && appConfig.custom_roots[viewerRoot]) {
+                return appConfig.custom_roots[viewerRoot].editable === true;
+            }
+            return false;
+        }
+
+        /**
+         * Extract a section from markdown starting at a heading.
+         * Returns { start, end, content } where start/end are character indices.
+         */
+        function extractSection(markdown, headingText, headingLevel) {
+            const lines = markdown.split('\n');
+            const prefix = '#'.repeat(headingLevel) + ' ';
+            let start = -1;
+            let end = markdown.length;
+            let charPos = 0;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const lineStart = charPos;
+                charPos += line.length + 1; // +1 for newline
+
+                // Find start: match heading level and text
+                if (start === -1) {
+                    if (line.startsWith(prefix) && line.substring(prefix.length).trim() === headingText.trim()) {
+                        start = lineStart;
+                    }
+                    continue;
+                }
+
+                // Find end: next heading of same or higher level
+                if (line.match(/^#{1,6} /)) {
+                    const matchLevel = line.match(/^(#+)/)[1].length;
+                    if (matchLevel <= headingLevel) {
+                        end = lineStart;
+                        break;
+                    }
+                }
+            }
+
+            if (start === -1) return null;
+
+            return {
+                start,
+                end,
+                content: markdown.substring(start, end)
+            };
+        }
+
+        /**
+         * Replace a section in the markdown.
+         */
+        function replaceSection(markdown, start, end, newContent) {
+            return markdown.substring(0, start) + newContent + markdown.substring(end);
+        }
+
+        /**
+         * Apply simple CSS-based syntax highlighting to markdown.
+         */
+        function highlightMarkdown(text) {
+            // Escape HTML
+            let html = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            // Highlight patterns (order matters)
+            html = html
+                // Headers
+                .replace(/^(#{1,6} .*)$/gm, '<span class="md-heading">$1</span>')
+                // Bold
+                .replace(/(\*\*[^*]+\*\*)/g, '<span class="md-bold">$1</span>')
+                // Italic
+                .replace(/(\*[^*]+\*)/g, '<span class="md-italic">$1</span>')
+                // Code inline
+                .replace(/(`[^`]+`)/g, '<span class="md-code">$1</span>')
+                // Links
+                .replace(/(\[[^\]]+\]\([^)]+\))/g, '<span class="md-link">$1</span>')
+                // Lists
+                .replace(/^(\s*[-*+] )/gm, '<span class="md-list">$1</span>')
+                .replace(/^(\s*\d+\. )/gm, '<span class="md-list">$1</span>');
+
+            return html;
+        }
+
+        /**
+         * Update the highlight overlay to match textarea content.
+         */
+        function updateHighlight() {
+            const textarea = document.getElementById('editor-textarea');
+            const highlight = document.getElementById('editor-highlight');
+            highlight.innerHTML = highlightMarkdown(textarea.value) + '\n';
+        }
+
+        /**
+         * Open editor for a section.
+         */
+        function openEditor(headingText, headingLevel) {
+            if (!currentMarkdown) return;
+
+            const section = extractSection(currentMarkdown, headingText, headingLevel);
+            if (!section) {
+                console.error('Could not find section:', headingText);
+                return;
+            }
+
+            editingSection = {
+                start: section.start,
+                end: section.end,
+                headingText,
+                headingLevel
+            };
+
+            document.getElementById('editor-title').textContent = 'Edit: ' + headingText;
+            const textarea = document.getElementById('editor-textarea');
+            textarea.value = section.content;
+            updateHighlight();
+
+            document.getElementById('editor-modal').style.display = 'flex';
+            textarea.focus();
+        }
+
+        /**
+         * Close the editor without saving.
+         */
+        function closeEditor() {
+            document.getElementById('editor-modal').style.display = 'none';
+            editingSection = null;
+        }
+
+        // Heading to scroll to after reload
+        let scrollToHeadingText = null;
+
+        /**
+         * Save the edited section.
+         */
+        async function saveSection() {
+            if (!editingSection || !currentDocPath) return;
+
+            const textarea = document.getElementById('editor-textarea');
+            let newContent = textarea.value;
+
+            // Ensure section ends with newline
+            if (!newContent.endsWith('\n')) {
+                newContent += '\n';
+            }
+
+            // Extract the new heading text from edited content (first line)
+            const firstLine = newContent.split('\n')[0];
+            const headingMatch = firstLine.match(/^#+\s+(.+)$/);
+            scrollToHeadingText = headingMatch ? headingMatch[1].trim() : editingSection.headingText;
+
+            const newMarkdown = replaceSection(
+                currentMarkdown,
+                editingSection.start,
+                editingSection.end,
+                newContent
+            );
+
+            try {
+                const res = await fetch('/api/viewer/content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        root: viewerRoot,
+                        path: currentDocPath,
+                        content: newMarkdown
+                    })
+                });
+
+                const data = await res.json();
+                if (data.error) throw new Error(data.error);
+
+                closeEditor();
+                // Reload the document to show changes
+                loadDoc(currentDocPath);
+
+            } catch (e) {
+                alert('Error saving: ' + e.message);
+            }
+        }
+
+        /**
+         * Handle right-click on headings.
+         */
+        function handleHeadingRightClick(e) {
+            if (!isCurrentRootEditable()) return;
+
+            e.preventDefault();
+            const heading = e.target.closest('h1, h2, h3, h4, h5, h6');
+            if (!heading) return;
+
+            // Don't edit framework docs
+            if (currentDocPath && currentDocPath.startsWith('framework/')) return;
+
+            const headingText = heading.textContent;
+            const headingLevel = parseInt(heading.tagName.substring(1));
+
+            openEditor(headingText, headingLevel);
+        }
 
         // Initialize mermaid if available
         if (typeof mermaid !== 'undefined' && !window.MERMAID_FAILED) {
@@ -218,6 +453,10 @@
                 if (data.error) throw new Error(data.error);
                 docPath = apiPath;
 
+                // Store for editing
+                currentDocPath = docPath;
+                currentMarkdown = data.content;
+
                 container.className = 'markdown-body';
                 container.innerHTML = marked.parse(data.content);
 
@@ -260,6 +499,16 @@
                     });
                 });
 
+                // Add right-click handler on headings for editing
+                if (isCurrentRootEditable() && !docPath.startsWith('framework/')) {
+                    container.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
+                        // Skip TOC headings
+                        if (heading.closest('.toc-container')) return;
+                        heading.style.cursor = 'context-menu';
+                        heading.addEventListener('contextmenu', handleHeadingRightClick);
+                    });
+                }
+
                 updateBreadcrumb(docPath);
                 updateActiveLink(docPath);
 
@@ -269,7 +518,28 @@
                 }
 
                 document.getElementById('sidebar').classList.remove('open');
-                window.scrollTo(0, 0);
+
+                // Scroll to edited heading if set, otherwise scroll to top
+                if (scrollToHeadingText) {
+                    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                    for (const h of headings) {
+                        if (h.textContent.trim() === scrollToHeadingText) {
+                            // Scroll with offset from top
+                            const headerHeight = 70; // Account for sticky header
+                            const elementTop = h.getBoundingClientRect().top + window.pageYOffset;
+                            window.scrollTo({ top: elementTop - headerHeight, behavior: 'smooth' });
+                            scrollToHeadingText = null;
+                            break;
+                        }
+                    }
+                    if (scrollToHeadingText) {
+                        // Heading not found (maybe renamed), scroll to top
+                        window.scrollTo(0, 0);
+                        scrollToHeadingText = null;
+                    }
+                } else {
+                    window.scrollTo(0, 0);
+                }
 
             } catch (e) {
                 container.className = 'markdown-body';
@@ -358,6 +628,17 @@
 
             // Initialize Google Translate for docs viewer
             GoogleTranslate.init('#gt-container');
+
+            // Setup editor textarea sync for highlighting
+            const editorTextarea = document.getElementById('editor-textarea');
+            if (editorTextarea) {
+                editorTextarea.addEventListener('input', updateHighlight);
+                editorTextarea.addEventListener('scroll', () => {
+                    const highlight = document.getElementById('editor-highlight');
+                    highlight.scrollTop = editorTextarea.scrollTop;
+                    highlight.scrollLeft = editorTextarea.scrollLeft;
+                });
+            }
         }
         init();
     </script>

@@ -124,56 +124,98 @@ For subsections within `if __name__ == '__main__':` (Python), use shorter separa
     # =========================================================================
 ```
 
-## Submodule Development Setup
+## Framework Integration: Development vs Production
 
-Apps include aide-frame as a git submodule. The `.gitmodules` file points to GitHub for portability:
+Apps include aide-frame as a git submodule pointing to GitHub. This ensures that cloning an app "just works" - users get a working copy without needing local aide-frame.
 
 ```
 [submodule "aide-frame"]
     url = https://github.com/aide-examples/aide-frame.git
 ```
 
-### Local Development Override
+### Two Modes
 
-For local development, override the submodule URL to use your local aide-frame directory. This lets you test framework changes instantly without pushing to GitHub.
+| Mode | aide-frame is... | Use case |
+|------|------------------|----------|
+| **Production** (default) | Git submodule from GitHub | Users, testers, CI/CD |
+| **Development** | Symlink to local directory | Framework developers |
 
-Run this once per app repo on your dev machine:
+### For Users/Testers (Production Mode)
 
-```bash
-git config submodule.aide-frame.url /home/gero/aide-examples/aide-frame
-```
-
-This writes to `.git/config` (not committed), so:
-- **Your machine**: Uses local aide-frame (instant changes)
-- **New clones**: Uses GitHub URL (works anywhere)
-
-To set up all apps at once:
+Clone with submodules and run:
 
 ```bash
-for repo in aide-frame-demo-py aide-frame-demo-js aide-slideshow aide-mylan; do
-    cd /home/gero/aide-examples/$repo
-    git config submodule.aide-frame.url /home/gero/aide-examples/aide-frame
-done
+git clone --recurse-submodules https://github.com/aide-examples/aide-irma.git
+cd aide-irma
+npm install  # or: pip install (for Python apps)
+./run
 ```
 
-### Workflow
+### For Developers (Development Mode)
 
-1. Edit aide-frame code → immediately available in all local apps
-2. Test in your apps → works instantly
-3. When satisfied, commit and push aide-frame to GitHub
-4. Update submodule reference in apps: `git submodule update --remote`
-5. Commit and push apps
-
-### Checking Current Configuration
-
-To see which URL a repo uses:
+If you're developing aide-frame alongside apps, use symlinks for instant changes:
 
 ```bash
-git config --get submodule.aide-frame.url
+# From the app directory:
+../aide-frame/dev-mode.sh
 ```
 
-To remove the local override (use GitHub URL again):
+This script:
+1. Removes the submodule
+2. Creates a symlink: `aide-frame` → `/home/gero/aide-examples/aide-frame`
+3. Adds `aide-frame` to `.gitignore` (local only, not committed)
+
+Now any change to `/home/gero/aide-examples/aide-frame` is instantly visible in the app.
+
+### Switching Back to Production Mode
+
+To restore the submodule (e.g., before committing or releasing):
 
 ```bash
-git config --unset submodule.aide-frame.url
+# From the app directory:
+../aide-frame/prod-mode.sh [commit-or-tag]
 ```
+
+This script:
+1. Removes the symlink
+2. Adds aide-frame as a submodule from GitHub
+3. Checks out the specified commit (or current aide-frame HEAD)
+4. Removes `aide-frame` from `.gitignore`
+
+### Development Workflow
+
+1. Set up dev mode in your apps: `../aide-frame/dev-mode.sh`
+2. Edit aide-frame code → changes visible instantly in all apps
+3. Test in your apps
+4. When satisfied, commit and push aide-frame to GitHub
+5. Switch apps to prod mode: `../aide-frame/prod-mode.sh`
+6. Commit and push apps
+
+### What Gets Committed
+
+The app repository **never** contains a copy of aide-frame files. Git stores:
+- `.gitmodules` - URL pointing to GitHub
+- A commit SHA reference - which aide-frame version to use
+
+The actual framework files are fetched from GitHub when cloning.
+
+### Creating Release Archives
+
+When in dev mode (symlink), creating tar/zip archives would include the symlink rather than the actual framework files. Use the build-release script to create proper archives:
+
+```bash
+# From the app directory:
+../aide-frame/build-release.sh           # Creates .tar.gz
+../aide-frame/build-release.sh zip       # Creates .zip
+../aide-frame/build-release.sh both      # Creates both formats
+../aide-frame/build-release.sh tar v1.0  # Use specific aide-frame version
+```
+
+This script:
+1. Detects if in dev mode (symlink)
+2. Switches to prod mode temporarily (submodule)
+3. Creates archive with version from `app/VERSION` if present
+4. Switches back to dev mode automatically
+5. Outputs to `releases/` directory (gitignored)
+
+The resulting archive contains aide-frame as a proper submodule, so users can extract and run without having aide-frame locally.

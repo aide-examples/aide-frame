@@ -402,3 +402,160 @@
     .markdown-body table { font-size: 0.85rem; }
     .markdown-body th, .markdown-body td { padding: 6px 8px; }
 }
+
+/* =============================================================================
+   Markdown Editor Modal
+   ============================================================================= */
+
+.editor-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.editor-modal-content {
+    background: #fff;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 900px;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 8px 8px 0 0;
+}
+
+.editor-header span {
+    font-weight: 600;
+    color: #374151;
+}
+
+.editor-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0 5px;
+}
+
+.editor-close:hover {
+    color: #dc2626;
+}
+
+.editor-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.editor-textarea,
+.editor-highlight {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    border: none;
+    resize: none;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.editor-textarea {
+    background: transparent;
+    color: transparent;
+    caret-color: #333;
+    z-index: 2;
+    outline: none;
+}
+
+.editor-highlight {
+    background: #fff;
+    color: #333;
+    z-index: 1;
+    pointer-events: none;
+    overflow: auto;
+}
+
+.editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 0 0 8px 8px;
+}
+
+.editor-btn {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.editor-btn-cancel {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.editor-btn-cancel:hover {
+    background: #d1d5db;
+}
+
+.editor-btn-save {
+    background: #2563eb;
+    color: #fff;
+}
+
+.editor-btn-save:hover {
+    background: #1d4ed8;
+}
+
+/* Markdown syntax highlighting */
+.md-heading { color: #1e40af; font-weight: bold; }
+.md-bold { color: #b91c1c; }
+.md-italic { color: #7c3aed; font-style: italic; }
+.md-code { background: #f3f4f6; color: #dc2626; border-radius: 3px; }
+.md-link { color: #2563eb; }
+.md-list { color: #059669; }
+
+/* Editable heading cursor hint */
+.markdown-body h1[style*="context-menu"]:hover,
+.markdown-body h2[style*="context-menu"]:hover,
+.markdown-body h3[style*="context-menu"]:hover,
+.markdown-body h4[style*="context-menu"]:hover,
+.markdown-body h5[style*="context-menu"]:hover,
+.markdown-body h6[style*="context-menu"]:hover {
+    background: rgba(37, 99, 235, 0.05);
+    border-radius: 4px;
+    margin-left: -8px;
+    margin-right: -8px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
