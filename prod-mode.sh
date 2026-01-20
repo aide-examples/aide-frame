@@ -54,6 +54,8 @@ fi
 git -C "$APP_DIR" submodule deinit -f aide-frame 2>/dev/null || true
 rm -rf "$APP_DIR/.git/modules/aide-frame" 2>/dev/null || true
 git -C "$APP_DIR" rm -f --cached aide-frame 2>/dev/null || true
+# Remove directory that might be left over after git rm
+rm -rf "$AIDE_FRAME_PATH" 2>/dev/null || true
 
 # Add as submodule from GitHub
 SUBMODULE_URL="https://github.com/aide-examples/aide-frame.git"
