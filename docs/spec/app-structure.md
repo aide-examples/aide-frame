@@ -63,8 +63,14 @@ args.addCommonArgs(program);
 program.option('-p, --port <number>', 'Override port', parseInt);
 program.parse();
 
-const cfg = args.applyCommonArgs(opts, { configDefaults: DEFAULT_CONFIG, appDir: SCRIPT_DIR });
+const cfg = args.applyCommonArgs(opts, {
+    configDefaults: DEFAULT_CONFIG,
+    configSearchPaths: [path.join(SCRIPT_DIR, 'config.json')],
+    appDir: SCRIPT_DIR,
+});
 ```
+
+**Important:** Always include `configSearchPaths` pointing to `SCRIPT_DIR` so the config is found regardless of where the app is started from (e.g., when using PM2 or systemd).
 
 ### Let HttpServer Auto-Register Routes
 
