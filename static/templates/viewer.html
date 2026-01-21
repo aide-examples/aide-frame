@@ -362,14 +362,20 @@
             if (contentHeadings.length <= 3) return null;
 
             const tocItems = [];
+            const usedIds = new Set();
             contentHeadings.forEach((heading, index) => {
                 const text = heading.textContent;
-                const slug = text.toLowerCase()
+                let slug = text.toLowerCase()
                     .replace(/[^\w\s-]/g, '')
                     .replace(/\s+/g, '-')
                     .replace(/-+/g, '-')
                     .replace(/^-+|-+$/g, '');
-                const id = (slug || 'heading') + '-' + index;
+                // Use slug as ID, append index only if duplicate
+                let id = slug || 'heading';
+                if (usedIds.has(id)) {
+                    id = id + '-' + index;
+                }
+                usedIds.add(id);
                 heading.setAttribute('id', id);
                 tocItems.push({ text, id, level: heading.tagName.toLowerCase() });
             });
@@ -439,7 +445,9 @@
         }
 
         // Load documentation
-        async function loadDoc(docPath) {
+        // @param {string} docPath - Path to the document
+        // @param {string} anchor - Optional anchor to scroll to (e.g., '#section-name')
+        async function loadDoc(docPath, anchor = '') {
             const container = document.getElementById('content');
             container.className = 'content-loading';
             container.innerHTML = i18n.t('loading');
@@ -478,12 +486,21 @@
                     await mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
                 }
 
-                // Intercept .md links
-                container.querySelectorAll('a[href$=".md"]').forEach(link => {
+                // Intercept .md links (including those with anchors like file.md#section)
+                container.querySelectorAll('a[href*=".md"]').forEach(link => {
                     link.addEventListener('click', (e) => {
-                        const href = link.getAttribute('href');
+                        let href = link.getAttribute('href');
                         if (href.startsWith('http://') || href.startsWith('https://')) return;
                         e.preventDefault();
+
+                        // Extract anchor if present
+                        let anchor = '';
+                        if (href.includes('#')) {
+                            const hashIdx = href.indexOf('#');
+                            anchor = href.substring(hashIdx);
+                            href = href.substring(0, hashIdx);
+                        }
+
                         let targetDoc = href;
                         if (!href.startsWith('/') && docPath && docPath.includes('/')) {
                             const currentDir = docPath.substring(0, docPath.lastIndexOf('/'));
@@ -495,7 +512,7 @@
                             if (part === '..') normalized.pop();
                             else if (part !== '.') normalized.push(part);
                         }
-                        loadDoc(normalized.join('/'));
+                        loadDoc(normalized.join('/'), anchor);
                     });
                 });
 
@@ -519,8 +536,31 @@
 
                 document.getElementById('sidebar').classList.remove('open');
 
-                // Scroll to edited heading if set, otherwise scroll to top
-                if (scrollToHeadingText) {
+                // Scroll to anchor, edited heading, or top
+                if (anchor) {
+                    // Scroll to anchor (e.g., #section-name)
+                    const anchorId = anchor.startsWith('#') ? anchor.substring(1) : anchor;
+                    let targetElement = document.getElementById(anchorId);
+
+                    // If exact match not found, search for duplicate-suffixed IDs (e.g., operationalstatus-6)
+                    if (!targetElement) {
+                        const allElements = document.querySelectorAll('[id]');
+                        for (const el of allElements) {
+                            if (el.id === anchorId || el.id.startsWith(anchorId + '-')) {
+                                targetElement = el;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (targetElement) {
+                        const headerHeight = 70; // Account for sticky header
+                        const elementTop = targetElement.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: elementTop - headerHeight, behavior: 'smooth' });
+                    } else {
+                        window.scrollTo(0, 0);
+                    }
+                } else if (scrollToHeadingText) {
                     const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
                     for (const h of headings) {
                         if (h.textContent.trim() === scrollToHeadingText) {
