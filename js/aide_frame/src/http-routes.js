@@ -107,6 +107,7 @@ function _autoRegisterPath(key, subdir) {
 function initConfig(config) {
     const cfg = {
         appName: config.appName || 'AIDE App',
+        titleHtml: config.titleHtml || null,
         backLink: config.backLink || '/',
         backText: config.backText || 'Back',
         docsDirKey: config.docsDirKey || 'DOCS_DIR',
@@ -215,6 +216,7 @@ function register(app, config) {
     app.get('/api/app/config', (req, res) => {
         const response = {
             app_name: cfg.appName,
+            title_html: cfg.titleHtml || null,
             app_description: cfg.pwa?.description || '',
             back_link: cfg.backLink,
             back_text: cfg.backText,
