@@ -87,6 +87,7 @@ Standard application header with app name, language selector, and navigation lin
 ```javascript
 HeaderWidget.init('#container', {
     appName: 'My App',
+    titleHtml: null,
     showAbout: true,
     showHelp: true,
     showLanguage: true,
@@ -99,7 +100,8 @@ HeaderWidget.init('#container', {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `appName` | string | "AIDE App" | Application name |
+| `appName` | string | "AIDE App" | Application name (text) |
+| `titleHtml` | string | null | Custom HTML for the title area. When set, replaces `appName` in the `<h1>` |
 | `showAbout` | bool | true | Show "About" link |
 | `showHelp` | bool | true | Show "?" help link |
 | `showLanguage` | bool | true | Show language selector |
@@ -118,7 +120,9 @@ StatusWidget.init('#container', {
     showUpdate: true,
     showLayoutToggle: true,
     layoutDefault: 'flow',
-    refreshInterval: 30000
+    refreshInterval: 30000,
+    extraInfo: null,
+    extraActions: null
 });
 ```
 
@@ -129,6 +133,8 @@ StatusWidget.init('#container', {
 | `showLayoutToggle` | bool | false | Show layout toggle button |
 | `layoutDefault` | string | "flow" | Default layout mode ("flow" or "page-fill") |
 | `refreshInterval` | int | 30000 | Status refresh interval (ms), 0 to disable |
+| `extraInfo` | string | null | Raw HTML appended to the info area (after memory). App controls full markup including separators |
+| `extraActions` | string | null | Raw HTML appended to the actions area (after last button) |
 
 Requires `/api/update/status` endpoint (see [HTTP Spec](http.md)).
 

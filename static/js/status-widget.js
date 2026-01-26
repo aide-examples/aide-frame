@@ -5,7 +5,7 @@
 
 const StatusWidget = {
     container: null,
-    options: { showRestart: true, showUpdate: true, showInstall: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000 },
+    options: { showRestart: true, showUpdate: true, showInstall: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
     status: {},
 
     init(selector, options = {}) {
@@ -29,6 +29,7 @@ const StatusWidget = {
                     <span id="sw-platform">--</span>
                     <span class="status-footer-sep">·</span>
                     <span id="sw-memory">--</span>
+                    ${this.options.extraInfo || ''}
                 </span>
                 <span class="status-footer-actions">
                     ${this.options.showLayoutToggle ? `
@@ -43,6 +44,7 @@ const StatusWidget = {
                     ${this.options.showRestart ? `
                     <button onclick="StatusWidget.restart()" class="status-footer-btn">Restart</button>
                     ` : ''}
+                    ${this.options.extraActions || ''}
                 </span>
             </div>
         `;

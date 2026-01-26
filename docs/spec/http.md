@@ -55,6 +55,7 @@ aide-frame applications expose a web interface with:
 ```json
 {
   "app_name": "My App",
+  "title_html": null,
   "back_link": "/",
   "back_text": "Home",
   "features": {
@@ -64,6 +65,8 @@ aide-frame applications expose a web interface with:
   }
 }
 ```
+
+`title_html` is optional. When set (via `docsConfig.titleHtml`), it provides custom HTML for the header title area.
 
 ### GET /api/viewer/structure
 

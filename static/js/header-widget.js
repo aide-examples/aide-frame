@@ -7,6 +7,7 @@ const HeaderWidget = {
     container: null,
     options: {
         appName: 'AIDE App',
+        titleHtml: null,
         showAbout: true,
         showHelp: true,
         showLanguage: true,
@@ -51,7 +52,7 @@ const HeaderWidget = {
 
         this.container.innerHTML = `
             <div class="header">
-                <h1 class="notranslate">${this.options.appName}</h1>
+                <h1 class="notranslate">${this.options.titleHtml || this.options.appName}</h1>
                 <div style="display: flex; align-items: center; gap: 12px;">${items.join('')}</div>
             </div>
         `;
