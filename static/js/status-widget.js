@@ -5,7 +5,7 @@
 
 const StatusWidget = {
     container: null,
-    options: { showRestart: true, showUpdate: true, showInstall: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
+    options: { showUpdate: true, showInstall: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
     status: {},
 
     init(selector, options = {}) {
@@ -41,9 +41,7 @@ const StatusWidget = {
                     ${this.options.showUpdate ? `
                     <a href="/update" id="sw-update-link" class="status-footer-btn">Update</a>
                     ` : ''}
-                    ${this.options.showRestart ? `
-                    <button onclick="StatusWidget.restart()" class="status-footer-btn">Restart</button>
-                    ` : ''}
+                    <button onclick="StatusWidget.restart()" class="status-footer-btn sw-restart-btn" style="display:none">Restart</button>
                     ${this.options.extraActions || ''}
                 </span>
             </div>
@@ -122,6 +120,12 @@ const StatusWidget = {
         if (updateLink && this.status.update_available) {
             updateLink.classList.add('highlight');
             updateLink.textContent = 'Update ✦';
+        }
+
+        // Show/hide restart button based on server capability
+        const restartBtn = this.container.querySelector('.sw-restart-btn');
+        if (restartBtn) {
+            restartBtn.style.display = this.status.can_restart ? '' : 'none';
         }
     },
 

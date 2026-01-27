@@ -376,6 +376,12 @@ function register(app, config) {
 
         const fullPath = path.join(docsDir, docPath);
 
+        // Validate JSON code blocks in markdown
+        const jsonError = _validateJsonBlocks(content);
+        if (jsonError) {
+            return res.status(400).json({ error: jsonError });
+        }
+
         // Ensure parent directory exists
         const parentDir = path.dirname(fullPath);
         if (!fs.existsSync(parentDir)) {
@@ -451,6 +457,35 @@ function register(app, config) {
             res.json(structure);
         });
     }
+}
+
+/**
+ * Validate all ```json code blocks in markdown content.
+ * Returns null if all blocks are valid, or an error message string.
+ * @param {string} content - Markdown content
+ * @returns {string|null} Error message or null
+ * @private
+ */
+function _validateJsonBlocks(content) {
+    const regex = /```json\s*\n([\s\S]*?)```/g;
+    let match;
+    let blockIndex = 0;
+
+    while ((match = regex.exec(content)) !== null) {
+        blockIndex++;
+        const jsonText = match[1].trim();
+        if (!jsonText) continue;
+
+        try {
+            JSON.parse(jsonText);
+        } catch (e) {
+            // Extract a short preview of the block for context
+            const preview = jsonText.substring(0, 40).replace(/\n/g, ' ');
+            return `Invalid JSON in code block ${blockIndex} (${preview}...): ${e.message}`;
+        }
+    }
+
+    return null;
 }
 
 /**

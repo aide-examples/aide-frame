@@ -33,6 +33,15 @@ from .platform_detect import PLATFORM
 from .log import logger
 
 
+def is_managed_process() -> bool:
+    """Detect if running under a process manager (pm2 or systemd)."""
+    return bool(
+        os.environ.get('PM2_HOME') or
+        os.environ.get('pm_id') or
+        os.environ.get('INVOCATION_ID')
+    )
+
+
 def get_memory_info():
     """Get memory info: process RSS and total system memory in MB."""
     result = {}
@@ -66,7 +75,7 @@ class UpdateConfig:
     use_releases: bool = True
     branch: str = "main"
     show_memory: bool = True
-    show_restart: bool = True
+    offer_restart: bool = True  # Show restart button when process manager detected
     auto_verify: bool = True  # Auto-confirm update after verify_delay seconds
     verify_delay: int = 60    # Seconds to wait before confirming update
     # Internal
@@ -138,6 +147,8 @@ def handle_update_request(handler, path: str, method: str, data: dict, config: U
             mem = get_memory_info()
             if mem:
                 status['memory'] = mem
+        # Add restart capability
+        status['can_restart'] = is_managed_process() and config.offer_restart
         handler.send_json(status)
         return True
 
@@ -164,6 +175,15 @@ def handle_update_request(handler, path: str, method: str, data: dict, config: U
     if path == '/api/update/enable' and method == 'POST':
         result = manager.enable_updates()
         handler.send_json(result)
+        return True
+
+    if path == '/api/restart' and method == 'POST':
+        if is_managed_process() and config.offer_restart:
+            from .http_server import restart_server
+            result = restart_server()
+            handler.send_json(result)
+        else:
+            handler.send_json({'error': 'Restart not available'}, 403)
         return True
 
     # HTML page - serve from static file
