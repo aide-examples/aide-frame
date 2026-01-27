@@ -62,11 +62,14 @@ aide-frame applications expose a web interface with:
     "mermaid": true,
     "docs": true,
     "help": true
-  }
+  },
+  "viewer_hooks": "/static/app/viewer-hooks.js"
 }
 ```
 
 `title_html` is optional. When set (via `docsConfig.titleHtml`), it provides custom HTML for the header title area.
+
+`viewer_hooks` is optional. When set, the viewer loads this script and calls `window.viewerContentHook(container, context)` after rendering each page. See [Content Hook](#content-hook).
 
 ### GET /api/viewer/structure
 
@@ -174,6 +177,7 @@ Save modified Markdown content. Requires editing to be enabled for the root.
 | `enable_mermaid` | true | Enable Mermaid diagrams |
 | `docsEditable` | false | Enable editing for /about |
 | `helpEditable` | false | Enable editing for /help |
+| `viewerHooks` | null | URL to a JS file for content post-processing |
 
 ### UpdateConfig
 
@@ -259,6 +263,28 @@ Requires `/api/update/status` endpoint.
 - Mermaid diagrams supported
 - Table of contents auto-generated
 - Internal `.md` links intercepted
+- Optional content hook for app-specific post-processing
+
+### Content Hook
+
+When `viewerHooks` is set in DocsConfig, the viewer dynamically loads the specified script at startup. After rendering each page, it calls:
+
+```javascript
+await window.viewerContentHook(container, {
+    docPath,      // current document path (e.g., "requirements/classes/Aircraft.md")
+    viewerRoot,   // root name ("docs", "help", or custom)
+    docNames      // [{name, path}] — all document names, sorted by name length desc
+});
+```
+
+The hook function may be synchronous or async. `docNames` contains base filenames (without `.md`) mapped to their full viewer paths, enabling cross-reference linkification or other DOM transformations.
+
+**Example** (in app's DocsConfig):
+```javascript
+docsConfig: {
+    viewerHooks: '/static/app/viewer-hooks.js'
+}
+```
 
 ### Online Editing (Optional)
 

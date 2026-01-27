@@ -100,6 +100,7 @@ When `docsEditable` or `helpEditable` is set to `true`, users can edit Markdown 
     enableHelp: true,       // Enable /help route
     docsEditable: false,    // Enable editing for /about (default: false)
     helpEditable: false,    // Enable editing for /help (default: false)
+    viewerHooks: null,      // URL to JS file for content post-processing
     customRoots: {},        // Additional Markdown roots
 }
 ```

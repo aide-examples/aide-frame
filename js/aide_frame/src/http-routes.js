@@ -76,6 +76,7 @@ const { logger } = require('./log');
  * @property {boolean} [enableHelp=true] - Enable /help route
  * @property {boolean} [docsEditable=false] - Enable editing of docs via right-click
  * @property {boolean} [helpEditable=false] - Enable editing of help via right-click
+ * @property {string} [viewerHooks=null] - URL to a JS file loaded by the viewer for content post-processing
  */
 
 /**
@@ -121,6 +122,7 @@ function initConfig(config) {
         enableHelp: config.enableHelp !== false,
         docsEditable: config.docsEditable === true,
         helpEditable: config.helpEditable === true,
+        viewerHooks: config.viewerHooks || null,
     };
 
     paths.ensureInitialized();
@@ -228,7 +230,8 @@ function register(app, config) {
             editable: {
                 docs: cfg.docsEditable,
                 help: cfg.helpEditable,
-            }
+            },
+            viewer_hooks: cfg.viewerHooks,
         };
         // Include custom roots info
         if (cfg.customRoots && Object.keys(cfg.customRoots).length > 0) {

@@ -90,6 +90,9 @@
         let currentMarkdown = null;
         let editingSection = null;  // { start, end, headingText, headingLevel }
 
+        // Document names for cross-reference hooks (built from navigation structure)
+        let docNamesList = null;  // [{name, path}] sorted by name length desc
+
         // =============================================================================
         // EDITOR FUNCTIONS
         // =============================================================================
@@ -347,6 +350,17 @@
                     document.title = titleSuffix + ' - ' + appConfig.app_name;
                     document.getElementById('back-link').href = appConfig.back_link;
                     document.getElementById('back-link').textContent = i18n.t('back');
+
+                    // Load viewer hooks script if configured
+                    if (appConfig.viewer_hooks) {
+                        await new Promise((resolve) => {
+                            const script = document.createElement('script');
+                            script.src = appConfig.viewer_hooks;
+                            script.onload = resolve;
+                            script.onerror = resolve;  // Optional — don't fail if missing
+                            document.head.appendChild(script);
+                        });
+                    }
                 }
             } catch (e) {
                 console.warn('Could not load app config:', e);
@@ -516,6 +530,15 @@
                     });
                 });
 
+                // Post-processing hook (app-specific content enhancement, may be async)
+                if (typeof window.viewerContentHook === 'function') {
+                    await window.viewerContentHook(container, {
+                        docPath,
+                        viewerRoot,
+                        docNames: docNamesList || []
+                    });
+                }
+
                 // Add right-click handler on headings for editing
                 if (isCurrentRootEditable() && !docPath.startsWith('framework/')) {
                     container.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
@@ -633,6 +656,24 @@
                 }
 
                 sidebar.innerHTML = html;
+
+                // Collect document names for content hook cross-referencing
+                docNamesList = [];
+                const collectDocName = (doc, isFramework) => {
+                    const p = isFramework ? 'framework/' + doc.path : doc.path;
+                    const name = doc.path.replace('.md', '').split('/').pop();
+                    if (name !== 'index') {
+                        docNamesList.push({ name, path: p });
+                    }
+                };
+                if (data.files && !data.sections) {
+                    data.files.forEach(d => collectDocName(d, false));
+                } else if (data.sections) {
+                    for (const section of data.sections) {
+                        (section.docs || section.files || []).forEach(d => collectDocName(d, d.framework));
+                    }
+                }
+                docNamesList.sort((a, b) => b.name.length - a.name.length);
 
                 sidebar.querySelectorAll('a').forEach(a => {
                     a.addEventListener('click', (e) => {
