@@ -180,7 +180,7 @@ function generateSvg(size, iconConfig, themeColor, configHash) {
  *       console.log('Icons up to date');
  *   }
  */
-function ensureIcons(appDir, pwaConfig, force = false) {
+function ensureIcons(appDir, pwaConfig, force = false, outputDir = null) {
     // Check if icon generation is configured
     const iconConfig = pwaConfig.icon || {};
 
@@ -190,8 +190,8 @@ function ensureIcons(appDir, pwaConfig, force = false) {
         return false;
     }
 
-    // Set up paths
-    const iconsDir = path.join(appDir, 'static', 'icons');
+    // Set up paths - use outputDir if provided, otherwise default to appDir/static/icons
+    const iconsDir = outputDir || path.join(appDir, 'static', 'icons');
     const icon192Path = path.join(iconsDir, 'icon-192.svg');
     const icon512Path = path.join(iconsDir, 'icon-512.svg');
 

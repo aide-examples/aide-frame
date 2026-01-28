@@ -13,6 +13,7 @@
  *   const config = args.applyCommonArgs(program.opts());
  */
 
+const path = require('path');
 const { Command } = require('commander');
 const { setLevel } = require('./log');
 const { loadConfig } = require('./config');
@@ -75,6 +76,7 @@ function applyCommonArgs(opts, options = {}) {
         configSearchPaths = [],
         configDefaults = {},
         appDir = null,
+        systemDir = null,
     } = options;
 
     // Apply log level
@@ -90,7 +92,14 @@ function applyCommonArgs(opts, options = {}) {
 
     // Generate icons if configured and appDir provided
     if (appDir && config && config.pwa) {
-        ensureIcons(appDir, config.pwa, opts.regenerateIcons || false);
+        let outputDir = null;
+        const iconConfig = config.pwa.icon || {};
+
+        if (systemDir && iconConfig.outputDir === 'system') {
+            outputDir = path.join(systemDir, 'icons');
+        }
+
+        ensureIcons(appDir, config.pwa, opts.regenerateIcons || false, outputDir);
     }
 
     return config;
