@@ -110,7 +110,7 @@ class HttpServer {
 
         // Initialize Express app
         this.app = express();
-        this.app.use(express.json());
+        this.app.use(express.json({ limit: '5mb' }));
 
         // Initialize paths if appDir provided
         if (this.appDir) {
