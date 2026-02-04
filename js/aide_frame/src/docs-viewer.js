@@ -413,9 +413,12 @@ function getStructure(dirKey, options = {}) {
  * @param {string} baseDir - Base docs directory path
  * @param {string|null} sectionPath - Subdirectory path (null for root level)
  * @param {string} sectionName - Name for the section
+ * @param {object} options - Options
+ * @param {boolean} options.recursive - Scan subdirectories recursively (for shallow sections)
  * @returns {object|null} Object with "name" and "docs" list, or null if empty
  */
-function buildSectionFromDir(baseDir, sectionPath, sectionName) {
+function buildSectionFromDir(baseDir, sectionPath, sectionName, options = {}) {
+    const { recursive = false } = options;
     const scanDir = sectionPath ? path.join(baseDir, sectionPath) : baseDir;
 
     if (!fs.existsSync(scanDir) || !fs.statSync(scanDir).isDirectory()) {
@@ -423,17 +426,28 @@ function buildSectionFromDir(baseDir, sectionPath, sectionName) {
     }
 
     const docs = [];
-    for (const f of fs.readdirSync(scanDir)) {
-        if (!f.endsWith('.md')) continue;
-        const filepath = path.join(scanDir, f);
-        if (!fs.statSync(filepath).isFile()) continue;
 
-        const { title, description } = extractTitleAndDescription(filepath);
-        const relPath = sectionPath ? `${sectionPath}/${f}` : f;
-        const docEntry = { path: relPath, title };
-        if (description) docEntry.description = description;
-        docs.push(docEntry);
+    function scanDirectory(dir, relPrefix) {
+        for (const f of fs.readdirSync(dir)) {
+            const filepath = path.join(dir, f);
+            const stat = fs.statSync(filepath);
+
+            if (stat.isFile() && f.endsWith('.md')) {
+                const { title, description } = extractTitleAndDescription(filepath);
+                const relPath = relPrefix ? `${relPrefix}/${f}` : f;
+                const docEntry = { path: relPath, title };
+                if (description) docEntry.description = description;
+                docs.push(docEntry);
+            } else if (recursive && stat.isDirectory() && !f.startsWith('.')) {
+                // Recurse into subdirectories
+                const subPrefix = relPrefix ? `${relPrefix}/${f}` : f;
+                scanDirectory(filepath, subPrefix);
+            }
+        }
     }
+
+    const startPrefix = sectionPath || '';
+    scanDirectory(scanDir, startPrefix);
 
     if (docs.length === 0) return null;
 
@@ -574,6 +588,9 @@ function getDocsStructure(options = {}) {
     // Sections that should come after AIDE Frame
     const lateSections = new Set(['deployment', 'development']);
 
+    // Shallow sections need recursive scanning
+    const shallowSet = new Set(shallow);
+
     for (const [sectionPath, sectionName] of actualSectionDefs) {
         // Legacy support: skip AIDE_FRAME marker
         if (sectionPath === 'AIDE_FRAME') continue;
@@ -584,7 +601,9 @@ function getDocsStructure(options = {}) {
             aideFrameInserted = true;
         }
 
-        const section = buildSectionFromDir(baseDir, sectionPath, sectionName);
+        // Shallow sections need recursive scanning (their .md files are in subdirectories)
+        const isShallow = shallowSet.has(sectionPath);
+        const section = buildSectionFromDir(baseDir, sectionPath, sectionName, { recursive: isShallow });
         if (section) sections.push(section);
     }
 

@@ -363,13 +363,14 @@ def get_structure(dir_key, include_description=False):
     return {"files": files}
 
 
-def build_section_from_dir(base_dir, section_path=None, section_name=None):
+def build_section_from_dir(base_dir, section_path=None, section_name=None, recursive=False):
     """Build a section dict from a directory.
 
     Args:
         base_dir: Base docs directory path
         section_path: Subdirectory path (None for root level)
         section_name: Name for the section
+        recursive: Scan subdirectories recursively (for shallow sections)
 
     Returns:
         dict with "name" and "docs" list, or None if empty
@@ -383,19 +384,24 @@ def build_section_from_dir(base_dir, section_path=None, section_name=None):
         return None
 
     docs = []
-    for f in os.listdir(scan_dir):
-        if f.endswith('.md'):
-            filepath = os.path.join(scan_dir, f)
-            if os.path.isfile(filepath):
+
+    def scan_directory(dir_path, rel_prefix):
+        for f in os.listdir(dir_path):
+            filepath = os.path.join(dir_path, f)
+            if os.path.isfile(filepath) and f.endswith('.md'):
                 title, desc = extract_title_and_description(filepath)
-                if section_path:
-                    rel_path = os.path.join(section_path, f).replace(os.sep, '/')
-                else:
-                    rel_path = f
+                rel_path = f"{rel_prefix}/{f}" if rel_prefix else f
                 doc_entry = {"path": rel_path, "title": title}
                 if desc:
                     doc_entry["description"] = desc
                 docs.append(doc_entry)
+            elif recursive and os.path.isdir(filepath) and not f.startswith('.'):
+                # Recurse into subdirectories
+                sub_prefix = f"{rel_prefix}/{f}" if rel_prefix else f
+                scan_directory(filepath, sub_prefix)
+
+    start_prefix = section_path or ''
+    scan_directory(scan_dir, start_prefix)
 
     if not docs:
         return None
@@ -514,6 +520,9 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
     # Sections that should come after AIDE Frame
     late_sections = {"deployment", "development"}
 
+    # Shallow sections need recursive scanning
+    shallow_set = set(shallow) if shallow else set()
+
     for section_path, section_name in section_defs:
         # Legacy support: skip AIDE_FRAME marker (now handled automatically)
         if section_path == "AIDE_FRAME":
@@ -524,7 +533,9 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
             sections.append(frame_section)
             aide_frame_inserted = True
 
-        section = build_section_from_dir(base_dir, section_path, section_name)
+        # Shallow sections need recursive scanning (their .md files are in subdirectories)
+        is_shallow = section_path in shallow_set
+        section = build_section_from_dir(base_dir, section_path, section_name, recursive=is_shallow)
         if section:
             sections.append(section)
 
