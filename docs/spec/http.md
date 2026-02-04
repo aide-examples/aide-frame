@@ -177,6 +177,7 @@ Save modified Markdown content. Requires editing to be enabled for the root.
 | `enable_mermaid` | true | Enable Mermaid diagrams |
 | `docsEditable` | false | Enable editing for /about |
 | `helpEditable` | false | Enable editing for /help |
+| `docsExclude` | [] | Directories to exclude from auto-discovery (e.g., `["views"]`) |
 | `viewerHooks` | null | URL to a JS file for content post-processing |
 
 ### UpdateConfig

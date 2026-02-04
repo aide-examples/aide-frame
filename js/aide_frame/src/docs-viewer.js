@@ -51,10 +51,12 @@ const STANDARD_SECTION_DEFS = [
  * @param {object} options - Options
  * @param {boolean} options.includeRoot - Whether to include root-level files as "Overview"
  * @param {number} options.maxDepth - Maximum directory depth to scan
+ * @param {string[]} options.exclude - Directory names to exclude (e.g., ["views"])
  * @returns {Array} List of [sectionPath, sectionName] tuples
  */
 function autoDiscoverSections(dirKey, options = {}) {
-    const { includeRoot = true, maxDepth = 2 } = options;
+    const { includeRoot = true, maxDepth = 2, exclude = [] } = options;
+    const excludeSet = new Set(exclude);
 
     paths.ensureInitialized();
     const baseDir = paths.get(dirKey);
@@ -96,6 +98,9 @@ function autoDiscoverSections(dirKey, options = {}) {
 
         for (const item of fs.readdirSync(fullPath)) {
             if (item.startsWith('.')) continue;
+
+            // Skip excluded directories
+            if (excludeSet.has(item)) continue;
 
             const itemRelPath = relPath ? path.join(relPath, item) : item;
             const itemFullPath = path.join(fullPath, item);
@@ -428,6 +433,7 @@ function buildSectionFromDir(baseDir, sectionPath, sectionName) {
  * @param {string} options.frameworkDirKey - Key for framework docs (appended as "AIDE Frame" section)
  * @param {Array} options.sectionDefs - List of [sectionPath, sectionName] tuples defining order
  * @param {boolean} options.autoDiscover - If true and sectionDefs is null, auto-discover sections
+ * @param {string[]} options.exclude - Directory names to exclude from auto-discovery (e.g., ["views"])
  * @returns {object} Object with "sections" array
  */
 function getDocsStructure(options = {}) {
@@ -436,6 +442,7 @@ function getDocsStructure(options = {}) {
         frameworkDirKey = null,
         sectionDefs = null,
         autoDiscover = true,
+        exclude = [],
     } = options;
 
     paths.ensureInitialized();
@@ -446,7 +453,7 @@ function getDocsStructure(options = {}) {
     let actualSectionDefs = sectionDefs;
     if (actualSectionDefs === null) {
         if (autoDiscover) {
-            actualSectionDefs = autoDiscoverSections(docsDirKey);
+            actualSectionDefs = autoDiscoverSections(docsDirKey, { exclude });
         } else {
             actualSectionDefs = [[null, 'Overview']];
         }

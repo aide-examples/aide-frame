@@ -69,6 +69,7 @@ const { logger } = require('./log');
  * @property {string} [helpDirKey="HELP_DIR"] - Key for help directory in paths
  * @property {string} [frameworkDirKey="AIDE_FRAME_DOCS_DIR"] - Key for framework docs
  * @property {Array} [sectionDefs] - Section definitions for docs
+ * @property {string[]} [docsExclude] - Directories to exclude from docs auto-discovery (e.g., ["views"])
  * @property {Object.<string, CustomRoot>} [customRoots] - Custom roots
  * @property {PWAConfig} [pwa] - PWA configuration
  * @property {boolean} [enableMermaid=true] - Enable Mermaid diagrams
@@ -115,6 +116,7 @@ function initConfig(config) {
         helpDirKey: config.helpDirKey || 'HELP_DIR',
         frameworkDirKey: config.frameworkDirKey || 'AIDE_FRAME_DOCS_DIR',
         sectionDefs: config.sectionDefs || null,
+        docsExclude: config.docsExclude || [],
         customRoots: config.customRoots || {},
         pwa: config.pwa || null,
         enableMermaid: config.enableMermaid !== false,
@@ -175,6 +177,7 @@ function _getViewerConfig(config, root) {
             dirKey: config.docsDirKey,
             frameworkDirKey: config.frameworkDirKey,
             sectionDefs: config.sectionDefs,
+            exclude: config.docsExclude,
             titleSuffix: 'Documentation',
             useSections: true,
         };
@@ -183,6 +186,7 @@ function _getViewerConfig(config, root) {
             dirKey: config.helpDirKey,
             frameworkDirKey: null,
             sectionDefs: null,
+            exclude: [],
             titleSuffix: 'Help',
             useSections: false,
         };
@@ -192,6 +196,7 @@ function _getViewerConfig(config, root) {
             dirKey: custom.dirKey,
             frameworkDirKey: null,
             sectionDefs: custom.sectionDefs || null,
+            exclude: custom.exclude || [],
             titleSuffix: custom.title,
             useSections: custom.useSections || false,
         };
@@ -268,6 +273,7 @@ function register(app, config) {
                 docsDirKey: viewerCfg.dirKey,
                 frameworkDirKey: viewerCfg.frameworkDirKey,
                 sectionDefs: viewerCfg.sectionDefs,
+                exclude: viewerCfg.exclude,
             });
         } else {
             // Flat structure - wrap in single section for consistent API format
@@ -446,6 +452,7 @@ function register(app, config) {
                 docsDirKey: cfg.docsDirKey,
                 frameworkDirKey: cfg.frameworkDirKey,
                 sectionDefs: cfg.sectionDefs,
+                exclude: cfg.docsExclude,
             });
             res.json(structure);
         });
