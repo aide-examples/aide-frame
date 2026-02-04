@@ -41,7 +41,7 @@ STANDARD_SECTION_DEFS = [
 ]
 
 
-def auto_discover_sections(dir_key, include_root=True, max_depth=2):
+def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None):
     """Auto-discover section directories and create section_defs.
 
     Scans the docs directory for subdirectories containing .md files
@@ -51,6 +51,7 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2):
         dir_key: Key registered with paths.register(), e.g. "DOCS_DIR"
         include_root: Whether to include root-level files as "Overview"
         max_depth: Maximum directory depth to scan (1=immediate subdirs, 2=also nested)
+        exclude: List of directory names to exclude (e.g., ["views"] for app-specific dirs)
 
     Returns:
         List of (section_path, section_name) tuples suitable for get_docs_structure()
@@ -59,6 +60,8 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2):
     base_dir = paths.get(dir_key)
     if not base_dir or not os.path.isdir(base_dir):
         return [(None, "Overview")] if include_root else []
+
+    exclude_set = set(exclude) if exclude else set()
 
     # Known sections with their display order (supports nested paths)
     known_order = {
@@ -92,6 +95,10 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2):
 
         for item in os.listdir(full_path):
             if item.startswith('.'):
+                continue
+
+            # Skip excluded directories
+            if item in exclude_set:
                 continue
 
             item_rel_path = os.path.join(rel_path, item) if rel_path else item
@@ -377,7 +384,7 @@ def build_section_from_dir(base_dir, section_path=None, section_name=None):
 
 
 def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_defs=None,
-                       auto_discover=True):
+                       auto_discover=True, exclude=None):
     """Get complex documentation structure with sections.
 
     For multi-directory documentation with custom section ordering.
@@ -390,6 +397,8 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
                      If None and auto_discover=True, sections are auto-discovered.
         auto_discover: If True and section_defs is None, auto-discover sections
                       from directory structure. Default: True.
+        exclude: List of directory names to exclude from auto-discovery
+                (e.g., ["views"] for app-specific directories that aren't docs)
 
     Returns:
         dict with "sections" list
@@ -402,7 +411,7 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
     # Auto-discover sections if not provided
     if section_defs is None:
         if auto_discover:
-            section_defs = auto_discover_sections(docs_dir_key)
+            section_defs = auto_discover_sections(docs_dir_key, exclude=exclude)
         else:
             section_defs = [(None, "Overview")]
 

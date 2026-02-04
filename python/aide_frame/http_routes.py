@@ -117,6 +117,7 @@ class DocsConfig:
     docs_dir_key: str = "DOCS_DIR"
     framework_dir_key: str = "AIDE_FRAME_DOCS_DIR"  # Auto-registered by paths.init()
     section_defs: Optional[List[Tuple[Optional[str], Optional[str]]]] = None
+    docs_exclude: Optional[List[str]] = None  # Directories to exclude from auto-discovery (e.g., ["views"])
 
     # Help settings (for /help - simple flat structure)
     help_dir_key: str = "HELP_DIR"
@@ -186,6 +187,7 @@ def _get_viewer_config(config: DocsConfig, root: str) -> dict:
             'dir_key': config.docs_dir_key,
             'framework_dir_key': config.framework_dir_key,
             'section_defs': config.section_defs,
+            'exclude': config.docs_exclude,
             'title_suffix': 'Documentation',
             'use_sections': True,
         }
@@ -194,6 +196,7 @@ def _get_viewer_config(config: DocsConfig, root: str) -> dict:
             'dir_key': config.help_dir_key,
             'framework_dir_key': None,
             'section_defs': None,
+            'exclude': None,
             'title_suffix': 'Help',
             'use_sections': False,
         }
@@ -203,6 +206,7 @@ def _get_viewer_config(config: DocsConfig, root: str) -> dict:
             'dir_key': custom.dir_key,
             'framework_dir_key': None,
             'section_defs': custom.section_defs,
+            'exclude': getattr(custom, 'exclude', None),
             'title_suffix': custom.title,
             'use_sections': custom.use_sections,
         }
@@ -269,6 +273,7 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
                 docs_dir_key=viewer_cfg['dir_key'],
                 framework_dir_key=viewer_cfg['framework_dir_key'],
                 section_defs=viewer_cfg['section_defs'],
+                exclude=viewer_cfg['exclude'],
             )
         else:
             # Flat structure - wrap in single section for consistent format
@@ -355,6 +360,7 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
                 docs_dir_key=config.docs_dir_key,
                 framework_dir_key=config.framework_dir_key,
                 section_defs=config.section_defs,
+                exclude=config.docs_exclude,
             )
             _send_json(handler, structure)
             return True
