@@ -41,7 +41,7 @@ STANDARD_SECTION_DEFS = [
 ]
 
 
-def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None):
+def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None, shallow=None):
     """Auto-discover section directories and create section_defs.
 
     Scans the docs directory for subdirectories containing .md files
@@ -52,6 +52,8 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None
         include_root: Whether to include root-level files as "Overview"
         max_depth: Maximum directory depth to scan (1=immediate subdirs, 2=also nested)
         exclude: List of directory names to exclude (e.g., ["views"] for app-specific dirs)
+        shallow: List of directory names to show as sections but not recurse into
+                 (subdirectories won't become separate sections)
 
     Returns:
         List of (section_path, section_name) tuples suitable for get_docs_structure()
@@ -62,6 +64,7 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None
         return [(None, "Overview")] if include_root else []
 
     exclude_set = set(exclude) if exclude else set()
+    shallow_set = set(shallow) if shallow else set()
 
     # Known sections with their display order (supports nested paths)
     known_order = {
@@ -83,6 +86,18 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None
         )
         if has_root_files:
             discovered.append((None, "Overview"))
+
+    def has_md_recursive(dir_path):
+        """Check if directory or any subdirectory contains .md files."""
+        if not os.path.isdir(dir_path):
+            return False
+        for item in os.listdir(dir_path):
+            item_path = os.path.join(dir_path, item)
+            if os.path.isfile(item_path) and item.endswith('.md'):
+                return True
+            if os.path.isdir(item_path) and has_md_recursive(item_path):
+                return True
+        return False
 
     def scan_dir(rel_path, depth):
         """Recursively scan directory for sections with .md files."""
@@ -107,9 +122,15 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None
             if not os.path.isdir(item_full_path):
                 continue
 
-            # Check if this directory has .md files directly
-            has_md = any(f.endswith('.md') for f in os.listdir(item_full_path)
-                        if os.path.isfile(os.path.join(item_full_path, f)))
+            # Check if this is a shallow directory (don't recurse, but show as section)
+            is_shallow = item in shallow_set
+
+            # Check if this directory has .md files (directly or recursively for shallow)
+            if is_shallow:
+                has_md = has_md_recursive(item_full_path)
+            else:
+                has_md = any(f.endswith('.md') for f in os.listdir(item_full_path)
+                            if os.path.isfile(os.path.join(item_full_path, f)))
 
             if has_md:
                 # Convert path to display name
@@ -118,8 +139,9 @@ def auto_discover_sections(dir_key, include_root=True, max_depth=2, exclude=None
                 display_part = item.replace('-', ' ').replace('_', ' ').title()
                 discovered.append((item_rel_path, display_part))
 
-            # Recurse into subdirectories
-            scan_dir(item_rel_path, depth + 1)
+            # Recurse into subdirectories (unless shallow)
+            if not is_shallow:
+                scan_dir(item_rel_path, depth + 1)
 
     scan_dir("", 1)
 
@@ -384,7 +406,7 @@ def build_section_from_dir(base_dir, section_path=None, section_name=None):
 
 
 def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_defs=None,
-                       auto_discover=True, exclude=None):
+                       auto_discover=True, exclude=None, shallow=None):
     """Get complex documentation structure with sections.
 
     For multi-directory documentation with custom section ordering.
@@ -399,6 +421,7 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
                       from directory structure. Default: True.
         exclude: List of directory names to exclude from auto-discovery
                 (e.g., ["views"] for app-specific directories that aren't docs)
+        shallow: List of directory names to show as sections but not recurse into
 
     Returns:
         dict with "sections" list
@@ -411,7 +434,7 @@ def get_docs_structure(docs_dir_key="DOCS_DIR", framework_dir_key=None, section_
     # Auto-discover sections if not provided
     if section_defs is None:
         if auto_discover:
-            section_defs = auto_discover_sections(docs_dir_key, exclude=exclude)
+            section_defs = auto_discover_sections(docs_dir_key, exclude=exclude, shallow=shallow)
         else:
             section_defs = [(None, "Overview")]
 

@@ -51,12 +51,15 @@ const STANDARD_SECTION_DEFS = [
  * @param {object} options - Options
  * @param {boolean} options.includeRoot - Whether to include root-level files as "Overview"
  * @param {number} options.maxDepth - Maximum directory depth to scan
- * @param {string[]} options.exclude - Directory names to exclude (e.g., ["views"])
+ * @param {string[]} options.exclude - Directory names to exclude completely
+ * @param {string[]} options.shallow - Directory names to show as sections but not recurse into
+ *                                     (subdirectories won't become separate sections)
  * @returns {Array} List of [sectionPath, sectionName] tuples
  */
 function autoDiscoverSections(dirKey, options = {}) {
-    const { includeRoot = true, maxDepth = 2, exclude = [] } = options;
+    const { includeRoot = true, maxDepth = 2, exclude = [], shallow = [] } = options;
     const excludeSet = new Set(exclude);
+    const shallowSet = new Set(shallow);
 
     paths.ensureInitialized();
     const baseDir = paths.get(dirKey);
@@ -88,6 +91,20 @@ function autoDiscoverSections(dirKey, options = {}) {
     }
 
     /**
+     * Check if directory or any subdirectory contains .md files.
+     */
+    function hasMdRecursive(dirPath) {
+        if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) return false;
+        for (const item of fs.readdirSync(dirPath)) {
+            const itemPath = path.join(dirPath, item);
+            const stat = fs.statSync(itemPath);
+            if (stat.isFile() && item.endsWith('.md')) return true;
+            if (stat.isDirectory() && hasMdRecursive(itemPath)) return true;
+        }
+        return false;
+    }
+
+    /**
      * Recursively scan directory for sections with .md files.
      */
     function scanDir(relPath, depth) {
@@ -107,11 +124,16 @@ function autoDiscoverSections(dirKey, options = {}) {
 
             if (!fs.statSync(itemFullPath).isDirectory()) continue;
 
-            // Check if this directory has .md files directly
-            const hasMd = fs.readdirSync(itemFullPath).some(f => {
-                const filePath = path.join(itemFullPath, f);
-                return f.endsWith('.md') && fs.statSync(filePath).isFile();
-            });
+            // Check if this is a shallow directory (don't recurse, but show as section)
+            const isShallow = shallowSet.has(item);
+
+            // Check if this directory has .md files (directly or recursively for shallow)
+            const hasMd = isShallow
+                ? hasMdRecursive(itemFullPath)
+                : fs.readdirSync(itemFullPath).some(f => {
+                    const filePath = path.join(itemFullPath, f);
+                    return f.endsWith('.md') && fs.statSync(filePath).isFile();
+                });
 
             if (hasMd) {
                 // Convert path to display name
@@ -124,8 +146,10 @@ function autoDiscoverSections(dirKey, options = {}) {
                 discovered.push([itemRelPath, displayPart]);
             }
 
-            // Recurse into subdirectories
-            scanDir(itemRelPath, depth + 1);
+            // Recurse into subdirectories (unless shallow)
+            if (!isShallow) {
+                scanDir(itemRelPath, depth + 1);
+            }
         }
     }
 
@@ -434,6 +458,7 @@ function buildSectionFromDir(baseDir, sectionPath, sectionName) {
  * @param {Array} options.sectionDefs - List of [sectionPath, sectionName] tuples defining order
  * @param {boolean} options.autoDiscover - If true and sectionDefs is null, auto-discover sections
  * @param {string[]} options.exclude - Directory names to exclude from auto-discovery (e.g., ["views"])
+ * @param {string[]} options.shallow - Directory names to show as sections but not recurse into
  * @returns {object} Object with "sections" array
  */
 function getDocsStructure(options = {}) {
@@ -443,6 +468,7 @@ function getDocsStructure(options = {}) {
         sectionDefs = null,
         autoDiscover = true,
         exclude = [],
+        shallow = [],
     } = options;
 
     paths.ensureInitialized();
@@ -453,7 +479,7 @@ function getDocsStructure(options = {}) {
     let actualSectionDefs = sectionDefs;
     if (actualSectionDefs === null) {
         if (autoDiscover) {
-            actualSectionDefs = autoDiscoverSections(docsDirKey, { exclude });
+            actualSectionDefs = autoDiscoverSections(docsDirKey, { exclude, shallow });
         } else {
             actualSectionDefs = [[null, 'Overview']];
         }

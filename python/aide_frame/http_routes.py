@@ -117,7 +117,8 @@ class DocsConfig:
     docs_dir_key: str = "DOCS_DIR"
     framework_dir_key: str = "AIDE_FRAME_DOCS_DIR"  # Auto-registered by paths.init()
     section_defs: Optional[List[Tuple[Optional[str], Optional[str]]]] = None
-    docs_exclude: Optional[List[str]] = None  # Directories to exclude from auto-discovery (e.g., ["views"])
+    docs_exclude: Optional[List[str]] = None  # Directories to exclude from auto-discovery
+    docs_shallow: Optional[List[str]] = None  # Directories to show as sections but not recurse into (e.g., ["views"])
 
     # Help settings (for /help - simple flat structure)
     help_dir_key: str = "HELP_DIR"
@@ -188,6 +189,7 @@ def _get_viewer_config(config: DocsConfig, root: str) -> dict:
             'framework_dir_key': config.framework_dir_key,
             'section_defs': config.section_defs,
             'exclude': config.docs_exclude,
+            'shallow': config.docs_shallow,
             'title_suffix': 'Documentation',
             'use_sections': True,
         }
@@ -274,6 +276,7 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
                 framework_dir_key=viewer_cfg['framework_dir_key'],
                 section_defs=viewer_cfg['section_defs'],
                 exclude=viewer_cfg['exclude'],
+                shallow=viewer_cfg.get('shallow'),
             )
         else:
             # Flat structure - wrap in single section for consistent format
@@ -361,6 +364,7 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
                 framework_dir_key=config.framework_dir_key,
                 section_defs=config.section_defs,
                 exclude=config.docs_exclude,
+                shallow=config.docs_shallow,
             )
             _send_json(handler, structure)
             return True
