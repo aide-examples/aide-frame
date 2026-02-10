@@ -148,3 +148,18 @@ Restart the server process (for systemd restart).
 const { restartServer } = require('aide-frame').httpServer;
 res.json(restartServer(0.5)); // Exits after 0.5 seconds
 ```
+
+## CLI Options
+
+The `args` module provides a `--port` option that overrides the port from config:
+
+```bash
+node app.js --port 8080
+node app.js -p 8080        # Short form
+```
+
+This is equivalent to setting `port` in `config.json`. The CLI flag takes precedence over the config file value.
+
+| Flag | Description |
+|------|-------------|
+| `-p, --port <number>` | Override server port from config |

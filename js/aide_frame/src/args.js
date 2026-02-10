@@ -27,6 +27,7 @@ const { ensureIcons } = require('./icon-generator');
  * @param {boolean} options.includeLog - Add --log-level argument (default: true)
  * @param {boolean} options.includeConfig - Add --config argument (default: true)
  * @param {boolean} options.includeIcons - Add --regenerate-icons argument (default: true)
+ * @param {boolean} options.includePort - Add --port argument (default: true)
  * @param {string} options.configDefault - Default config file name (default: 'config.json')
  */
 function addCommonArgs(program, options = {}) {
@@ -34,6 +35,7 @@ function addCommonArgs(program, options = {}) {
         includeLog = true,
         includeConfig = true,
         includeIcons = true,
+        includePort = true,
         configDefault = 'config.json',
     } = options;
 
@@ -57,6 +59,14 @@ function addCommonArgs(program, options = {}) {
         program.option(
             '--regenerate-icons',
             'Force regeneration of PWA icons'
+        );
+    }
+
+    if (includePort) {
+        program.option(
+            '-p, --port <number>',
+            'Override server port from config',
+            parseInt
         );
     }
 }
@@ -100,6 +110,11 @@ function applyCommonArgs(opts, options = {}) {
         }
 
         ensureIcons(appDir, config.pwa, opts.regenerateIcons || false, outputDir);
+    }
+
+    // Override port from CLI if specified
+    if (opts.port && config) {
+        config.port = opts.port;
     }
 
     return config;
