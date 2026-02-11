@@ -5,7 +5,7 @@
 
 const StatusWidget = {
     container: null,
-    options: { showUpdate: true, showInstall: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
+    options: { showUpdate: true, showInstall: true, showReload: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
     status: {},
 
     init(selector, options = {}) {
@@ -37,6 +37,9 @@ const StatusWidget = {
                     ` : ''}
                     ${this.options.showInstall ? `
                     <a href="#" id="sw-install-link" class="status-footer-btn" style="display:none" onclick="StatusWidget.install(); return false;">Install App</a>
+                    ` : ''}
+                    ${this.options.showReload ? `
+                    <button onclick="location.reload()" class="status-footer-btn" title="Reload page">&#x21bb;</button>
                     ` : ''}
                     ${this.options.showUpdate ? `
                     <a href="/update" id="sw-update-link" class="status-footer-btn">Update</a>
