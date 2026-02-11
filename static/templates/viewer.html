@@ -494,6 +494,18 @@
                     img.setAttribute('src', assetPrefix + fullPath);
                 });
 
+                // Rewrite absolute paths when basePath is set (e.g., /layout-editor -> /irma/layout-editor)
+                if (_basePath) {
+                    container.querySelectorAll('a[href^="/"], img[src^="/"]').forEach(el => {
+                        for (const attr of ['href', 'src']) {
+                            const val = el.getAttribute(attr);
+                            if (val && val.startsWith('/') && !val.startsWith('//')) {
+                                el.setAttribute(attr, _basePath + val);
+                            }
+                        }
+                    });
+                }
+
                 // Generate TOC
                 const toc = generateTOC(container);
                 if (toc) container.insertBefore(toc, container.firstChild);
