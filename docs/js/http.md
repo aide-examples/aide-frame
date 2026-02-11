@@ -42,6 +42,7 @@ server.run();
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `port` | number | 8080 | Port to listen on |
+| `basePath` | string | `''` | Base URL path for reverse proxy mounting (e.g., `/irma`) |
 | `appDir` | string | - | Application directory |
 | `staticDir` | string | appDir/static | Static files directory |
 | `docsConfig` | object | - | Docs/help configuration |
@@ -151,15 +152,69 @@ res.json(restartServer(0.5)); // Exits after 0.5 seconds
 
 ## CLI Options
 
-The `args` module provides a `--port` option that overrides the port from config:
+The `args` module provides CLI flags for server configuration:
 
 ```bash
 node app.js --port 8080
-node app.js -p 8080        # Short form
+node app.js -p 8080                # Short form
+node app.js --base-path /irma      # Reverse proxy base path
+node app.js -b /irma -p 8080       # Combined
 ```
-
-This is equivalent to setting `port` in `config.json`. The CLI flag takes precedence over the config file value.
 
 | Flag | Description |
 |------|-------------|
 | `-p, --port <number>` | Override server port from config |
+| `-b, --base-path <path>` | Base URL path for reverse proxy (e.g., `/irma`) |
+
+### Base Path (Reverse Proxy Support)
+
+The `--base-path` option enables running the application behind a reverse proxy at a sub-path. This is useful when multiple instances share a single domain:
+
+```bash
+# Instance 1: https://server/irma/
+./run -s irma -p 18354 --base-path /irma
+
+# Instance 2: https://server/demo/
+./run -s demo -p 18355 --base-path /demo
+```
+
+**How it works:**
+
+1. **Server**: The Express app is mounted as a sub-app under the base path. All existing routes remain unchanged — Express strips the prefix automatically.
+2. **Client**: A `<base href="/irma/">` tag is injected into HTML responses. All asset and API paths are relative (e.g., `api/meta` instead of `/api/meta`), so the browser resolves them correctly via the base tag.
+3. **Cookies**: Session cookies are scoped to the base path, so multiple instances don't interfere with each other.
+
+**Behavior:**
+
+| URL | Response |
+|-----|----------|
+| `/irma` | 301 redirect to `/irma/` |
+| `/irma/` | Application HTML with `<base href="/irma/">` |
+| `/irma/api/...` | API endpoints |
+| `/irma/static/...` | Static assets |
+| `/` | 404 (only base path routes are active) |
+
+Without `--base-path`, the app runs at `/` as before (no `<base>` tag injected).
+
+**nginx example:**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name example.com;
+
+    location /irma/ {
+        proxy_pass http://localhost:18354/irma/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /demo/ {
+        proxy_pass http://localhost:18355/demo/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```

@@ -42,7 +42,7 @@ const StatusWidget = {
                     <button onclick="location.reload()" class="status-footer-btn" title="Reload page">&#x21bb;</button>
                     ` : ''}
                     ${this.options.showUpdate ? `
-                    <a href="/update" id="sw-update-link" class="status-footer-btn">Update</a>
+                    <a href="update" id="sw-update-link" class="status-footer-btn">Update</a>
                     ` : ''}
                     <button onclick="StatusWidget.restart()" class="status-footer-btn sw-restart-btn" style="display:none">Restart</button>
                     ${this.options.extraActions || ''}
@@ -90,7 +90,7 @@ const StatusWidget = {
 
     async loadStatus() {
         try {
-            const res = await fetch('/api/update/status');
+            const res = await fetch('api/update/status');
             this.status = await res.json();
             this.updateUI();
         } catch (e) {
@@ -134,7 +134,7 @@ const StatusWidget = {
 
     async restart() {
         if (!confirm('Restart the server?')) return;
-        try { await fetch('/api/restart', { method: 'POST' }); } catch (e) {}
+        try { await fetch('api/restart', { method: 'POST' }); } catch (e) {}
         alert('Server is restarting...');
         setTimeout(() => location.reload(), 3000);
     },

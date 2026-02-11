@@ -214,11 +214,12 @@ function _getViewerConfig(config, root) {
  */
 function register(app, config) {
     const cfg = initConfig(config);
+    const basePath = config.basePath || '';
 
     // PWA manifest
     if (cfg.pwa && cfg.pwa.enabled) {
         app.get('/manifest.json', (req, res) => {
-            _serveManifest(res, cfg.pwa);
+            _serveManifest(res, cfg.pwa, basePath);
         });
     }
 
@@ -230,6 +231,7 @@ function register(app, config) {
             app_description: cfg.pwa?.description || '',
             back_link: cfg.backLink,
             back_text: cfg.backText,
+            base_path: basePath,
             features: {
                 mermaid: cfg.enableMermaid,
                 docs: cfg.enableDocs,
@@ -411,14 +413,14 @@ function register(app, config) {
     // Docs viewer page (/about)
     if (cfg.enableDocs) {
         app.get('/about', (req, res) => {
-            _serveViewer(res, 'docs');
+            _serveViewer(res, 'docs', basePath);
         });
     }
 
     // Help viewer page (/help)
     if (cfg.enableHelp) {
         app.get('/help', (req, res) => {
-            _serveViewer(res, 'help');
+            _serveViewer(res, 'help', basePath);
         });
     }
 
@@ -426,7 +428,7 @@ function register(app, config) {
     for (const [name, root] of Object.entries(cfg.customRoots)) {
         const route = root.route || `/${name}`;
         app.get(route, (req, res) => {
-            _serveViewer(res, name);
+            _serveViewer(res, name, basePath);
         });
     }
 
@@ -506,7 +508,7 @@ function _validateJsonBlocks(content) {
  * @param {string} root - Root name
  * @private
  */
-function _serveViewer(res, root) {
+function _serveViewer(res, root, basePath = '') {
     paths.ensureInitialized();
     const staticDir = paths.get('AIDE_FRAME_STATIC_DIR');
     if (!staticDir) {
@@ -518,7 +520,13 @@ function _serveViewer(res, root) {
         return res.status(404).send('Viewer template not found');
     }
 
-    res.type('html').sendFile(templatePath);
+    if (basePath) {
+        let html = fs.readFileSync(templatePath, 'utf8');
+        html = html.replace('<head>', `<head>\n    <base href="${basePath}/">`);
+        res.type('html').send(html);
+    } else {
+        res.type('html').sendFile(templatePath);
+    }
 }
 
 /**
@@ -554,7 +562,7 @@ function _serveDocsAsset(res, assetPath, dirKey) {
  * @param {PWAConfig} pwa - PWA configuration
  * @private
  */
-function _serveManifest(res, pwa) {
+function _serveManifest(res, pwa, basePath = '') {
     // Determine icon type from extension
     const icon192 = pwa.icon192 || '/static/frame/icons/icon-192.svg';
     const icon512 = pwa.icon512 || '/static/frame/icons/icon-512.svg';
@@ -565,19 +573,19 @@ function _serveManifest(res, pwa) {
         name: pwa.name || 'AIDE App',
         short_name: pwa.shortName || pwa.short_name || 'AIDE',
         description: pwa.description || '',
-        start_url: pwa.startUrl || pwa.start_url || '/',
+        start_url: basePath + (pwa.startUrl || pwa.start_url || '/'),
         display: pwa.display || 'standalone',
         theme_color: pwa.themeColor || pwa.theme_color || '#2563eb',
         background_color: pwa.backgroundColor || pwa.background_color || '#ffffff',
         icons: [
             {
-                src: icon192,
+                src: basePath + icon192,
                 sizes: '192x192',
                 type: iconType,
                 purpose: 'any maskable'
             },
             {
-                src: icon512,
+                src: basePath + icon512,
                 sizes: '512x512',
                 type: iconType,
                 purpose: 'any maskable'

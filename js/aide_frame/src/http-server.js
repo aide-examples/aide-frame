@@ -42,12 +42,13 @@ const { logger } = require('./log');
  * @param {string|null} platform - Platform string (e.g., 'wsl2', 'raspi', 'linux')
  * @returns {string} URL string like "http://192.168.1.100:8080"
  */
-function getServerUrl(port, platform = null) {
+function getServerUrl(port, platform = null, basePath = '') {
     const hostname = os.hostname();
+    const suffix = basePath ? basePath + '/' : '';
 
     // WSL2: localhost works for Windows host access
     if (platform === 'wsl2') {
-        return `http://localhost:${port}`;
+        return `http://localhost:${port}${suffix}`;
     }
 
     // Try to get local IP from network interfaces
@@ -57,7 +58,7 @@ function getServerUrl(port, platform = null) {
             for (const iface of interfaces[name]) {
                 // Skip internal (loopback) and non-IPv4 addresses
                 if (!iface.internal && iface.family === 'IPv4') {
-                    return `http://${iface.address}:${port}`;
+                    return `http://${iface.address}:${port}${suffix}`;
                 }
             }
         }
@@ -65,7 +66,7 @@ function getServerUrl(port, platform = null) {
         // Ignore errors
     }
 
-    return `http://${hostname}:${port}`;
+    return `http://${hostname}:${port}${suffix}`;
 }
 
 /**
@@ -100,6 +101,7 @@ class HttpServer {
      */
     constructor(options = {}) {
         this.port = options.port || 8080;
+        this.basePath = options.basePath || '';
         this.appDir = options.appDir;
         this.staticDir = options.staticDir || (options.appDir ? path.join(options.appDir, 'static') : null);
         this.docsConfig = options.docsConfig || null;
@@ -139,13 +141,13 @@ class HttpServer {
         // Register docs/help routes if docsConfig provided
         if (this.docsConfig) {
             const httpRoutes = require('./http-routes');
-            httpRoutes.register(this.app, this.docsConfig);
+            httpRoutes.register(this.app, { ...this.docsConfig, basePath: this.basePath });
         }
 
         // Register update routes if updateConfig provided
         if (this.updateConfig) {
             const updateRoutes = require('./update-routes');
-            updateRoutes.register(this.app, this.updateConfig);
+            updateRoutes.register(this.app, { ...this.updateConfig, basePath: this.basePath });
         }
     }
 
@@ -177,9 +179,21 @@ class HttpServer {
                 return;
             }
 
-            this._server = this.app.listen(this.port, '0.0.0.0', () => {
+            let listenApp = this.app;
+
+            if (this.basePath) {
+                // Mount entire app as sub-app under basePath
+                const wrapper = express();
+                wrapper.enable('strict routing');
+                wrapper.get(this.basePath, (req, res) => res.redirect(301, this.basePath + '/'));
+                wrapper.use(this.basePath, this.app);
+                listenApp = wrapper;
+            }
+
+            this._server = listenApp.listen(this.port, '0.0.0.0', () => {
                 this._running = true;
-                logger.info(`Server started on http://localhost:${this.port}`);
+                const url = `http://localhost:${this.port}${this.basePath || ''}`;
+                logger.info(`Server started on ${url}`);
                 resolve();
             });
         });

@@ -69,6 +69,11 @@ function addCommonArgs(program, options = {}) {
             parseInt
         );
     }
+
+    program.option(
+        '-b, --base-path <path>',
+        'Base URL path for reverse proxy (e.g., /irma)'
+    );
 }
 
 /**
@@ -115,6 +120,14 @@ function applyCommonArgs(opts, options = {}) {
     // Override port from CLI if specified
     if (opts.port && config) {
         config.port = opts.port;
+    }
+
+    // Normalize and apply base path from CLI
+    if (opts.basePath && config) {
+        let bp = opts.basePath;
+        if (!bp.startsWith('/')) bp = '/' + bp;
+        if (bp.endsWith('/')) bp = bp.slice(0, -1);
+        config.basePath = bp;
     }
 
     return config;

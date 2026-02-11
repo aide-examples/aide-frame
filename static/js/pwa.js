@@ -25,7 +25,7 @@ const PWA = {
 
         // Register service worker
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/frame/service-worker.js')
+            navigator.serviceWorker.register('static/frame/service-worker.js')
                 .then(reg => console.log('[PWA] Service worker registered'))
                 .catch(err => console.error('[PWA] SW registration failed:', err));
         }

@@ -27,10 +27,10 @@ class I18n {
         this.lang = this.normalizeLanguage(lang || this.detectLanguage());
 
         // Load framework strings (from aide-frame)
-        const frame = await this.loadJson(`/static/frame/locales/${this.lang}.json`);
+        const frame = await this.loadJson(`static/frame/locales/${this.lang}.json`);
 
         // Load app strings (override framework strings)
-        const app = await this.loadJson(`/static/locales/${this.lang}.json`);
+        const app = await this.loadJson(`static/locales/${this.lang}.json`);
 
         // Initialize Polyglot with merged strings
         this.polyglot = new Polyglot({

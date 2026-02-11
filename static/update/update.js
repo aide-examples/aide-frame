@@ -102,7 +102,7 @@ function updateUI() {
 
 async function refreshStatus() {
     try {
-        const res = await fetch('/api/update/status');
+        const res = await fetch('api/update/status');
         status = await res.json();
         updateUI();
     } catch (e) {
@@ -113,7 +113,7 @@ async function refreshStatus() {
 async function checkForUpdates() {
     setLoading('btn-check', true);
     try {
-        const res = await fetch('/api/update/check', { method: 'POST' });
+        const res = await fetch('api/update/check', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
             showAlert(data.message, data.update_available ? 'info' : 'success');
@@ -130,7 +130,7 @@ async function checkForUpdates() {
 async function downloadUpdate() {
     setLoading('btn-download', true);
     try {
-        const res = await fetch('/api/update/download', { method: 'POST' });
+        const res = await fetch('api/update/download', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
             showAlert(data.message, 'success');
@@ -153,7 +153,7 @@ async function applyUpdate() {
     }
     setLoading('btn-apply', true);
     try {
-        const res = await fetch('/api/update/apply', { method: 'POST' });
+        const res = await fetch('api/update/apply', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
             showAlert(i18n.t('update_apply_success'), 'success');
@@ -179,7 +179,7 @@ async function rollback() {
     }
     setLoading('btn-rollback', true);
     try {
-        const res = await fetch('/api/update/rollback', { method: 'POST' });
+        const res = await fetch('api/update/rollback', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
             showAlert(data.message, 'success');
@@ -197,7 +197,7 @@ async function rollback() {
 async function enableUpdates() {
     setLoading('btn-enable', true);
     try {
-        const res = await fetch('/api/update/enable', { method: 'POST' });
+        const res = await fetch('api/update/enable', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
             showAlert(data.message, 'success');

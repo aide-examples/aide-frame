@@ -180,7 +180,13 @@ function register(app, config) {
             return res.status(404).send('Update page not found');
         }
 
-        res.sendFile(updateHtml);
+        if (config.basePath) {
+            let html = fs.readFileSync(updateHtml, 'utf8');
+            html = html.replace('<head>', `<head>\n    <base href="${config.basePath}/">`);
+            res.type('html').send(html);
+        } else {
+            res.sendFile(updateHtml);
+        }
     });
 
     logger.debug(`Update routes registered for ${config.githubRepo}`);
