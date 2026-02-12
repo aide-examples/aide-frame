@@ -5,7 +5,7 @@
 
 const StatusWidget = {
     container: null,
-    options: { showUpdate: true, showInstall: true, showReload: true, showLayoutToggle: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
+    options: { showUpdate: true, showInstall: true, showReload: true, showLayoutToggle: false, compactInfo: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
     status: {},
 
     init(selector, options = {}) {
@@ -21,14 +21,15 @@ const StatusWidget = {
     },
 
     render() {
-        this.container.innerHTML = `
-            <div class="status-footer notranslate">
-                <span class="status-footer-info">
-                    <span id="sw-version">--</span>
+        const infoDetails = this.options.compactInfo ? '' : `
                     <span class="status-footer-sep">·</span>
                     <span id="sw-platform">--</span>
                     <span class="status-footer-sep">·</span>
-                    <span id="sw-memory">--</span>
+                    <span id="sw-memory">--</span>`;
+        this.container.innerHTML = `
+            <div class="status-footer notranslate">
+                <span class="status-footer-info">
+                    <span id="sw-version" ${this.options.compactInfo ? 'class="sw-version-tooltip" style="cursor:default"' : ''}>--</span>${infoDetails}
                     ${this.options.extraInfo || ''}
                 </span>
                 <span class="status-footer-actions">
@@ -104,18 +105,32 @@ const StatusWidget = {
             versionEl.textContent = `v${this.status.current_version}`;
         }
 
-        const platformEl = document.getElementById('sw-platform');
-        if (platformEl && this.status.platform) {
-            platformEl.textContent = this.status.platform;
-        }
+        if (this.options.compactInfo) {
+            // Compact mode: platform + memory as tooltip on version
+            if (versionEl) {
+                const parts = [];
+                if (this.status.platform) parts.push(this.status.platform);
+                if (this.status.memory) {
+                    const m = this.status.memory;
+                    if (m.used_mb && m.total_mb) parts.push(`${m.used_mb}/${m.total_mb} MB`);
+                    else if (m.used_mb) parts.push(`${m.used_mb} MB`);
+                }
+                if (parts.length) versionEl.title = parts.join(' · ');
+            }
+        } else {
+            const platformEl = document.getElementById('sw-platform');
+            if (platformEl && this.status.platform) {
+                platformEl.textContent = this.status.platform;
+            }
 
-        const memoryEl = document.getElementById('sw-memory');
-        if (memoryEl && this.status.memory) {
-            const m = this.status.memory;
-            if (m.used_mb && m.total_mb) {
-                memoryEl.textContent = `${m.used_mb}/${m.total_mb} MB`;
-            } else if (m.used_mb) {
-                memoryEl.textContent = `${m.used_mb} MB`;
+            const memoryEl = document.getElementById('sw-memory');
+            if (memoryEl && this.status.memory) {
+                const m = this.status.memory;
+                if (m.used_mb && m.total_mb) {
+                    memoryEl.textContent = `${m.used_mb}/${m.total_mb} MB`;
+                } else if (m.used_mb) {
+                    memoryEl.textContent = `${m.used_mb} MB`;
+                }
             }
         }
 

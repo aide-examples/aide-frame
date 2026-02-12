@@ -68,6 +68,9 @@ const GoogleTranslate = {
             .gt-inline .goog-te-gadget {
                 font-size: 0 !important;
             }
+            .gt-inline .goog-te-gadget > span {
+                display: none !important;
+            }
             .gt-inline .goog-te-gadget-simple {
                 background: transparent !important;
                 border: none !important;
@@ -76,6 +79,7 @@ const GoogleTranslate = {
             }
             .gt-inline .goog-te-gadget-simple .goog-te-menu-value {
                 color: #666 !important;
+                font-size: 12px !important;
             }
             .gt-inline .goog-te-gadget-simple .goog-te-menu-value span:first-child {
                 display: none;
