@@ -309,11 +309,6 @@ function register(app, config) {
             return res.status(404).json({ error: `Unknown root: ${root}` });
         }
 
-        // Security: block path traversal
-        if (docPath.includes('..') || docPath.startsWith('/')) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
         // Check for framework docs
         let framework = false;
         let actualPath = docPath;
@@ -328,7 +323,11 @@ function register(app, config) {
             return res.status(404).json({ error: 'Directory not configured' });
         }
 
-        const fullPath = path.join(docsDir, actualPath);
+        // Security: resolve and verify path stays within docs directory
+        const fullPath = path.resolve(docsDir, actualPath);
+        if (!fullPath.startsWith(path.resolve(docsDir) + path.sep) && fullPath !== path.resolve(docsDir)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
         if (!fs.existsSync(fullPath)) {
             return res.status(404).json({ error: `File not found: ${docPath}` });
         }
@@ -370,9 +369,8 @@ function register(app, config) {
             return res.status(404).json({ error: `Unknown root: ${root}` });
         }
 
-        // Security: block path traversal
-        if (!docPath || docPath.includes('..') || docPath.startsWith('/')) {
-            return res.status(403).json({ error: 'Forbidden' });
+        if (!docPath) {
+            return res.status(400).json({ error: 'Path required' });
         }
 
         // Framework docs are always read-only
@@ -390,7 +388,11 @@ function register(app, config) {
             return res.status(404).json({ error: 'Directory not configured' });
         }
 
-        const fullPath = path.join(docsDir, docPath);
+        // Security: resolve and verify path stays within docs directory
+        const fullPath = path.resolve(docsDir, docPath);
+        if (!fullPath.startsWith(path.resolve(docsDir) + path.sep) && fullPath !== path.resolve(docsDir)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
 
         // Validate JSON code blocks in markdown
         const jsonError = _validateJsonBlocks(content);
