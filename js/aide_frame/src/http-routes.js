@@ -79,6 +79,7 @@ const { logger } = require('./log');
  * @property {boolean} [docsEditable=false] - Enable editing of docs via right-click
  * @property {boolean} [helpEditable=false] - Enable editing of help via right-click
  * @property {string} [viewerHooks=null] - URL to a JS file loaded by the viewer for content post-processing
+ * @property {Function|Function[]} [viewerAuth=null] - Middleware for viewer pages (/about, /help, custom roots)
  */
 
 /**
@@ -127,6 +128,9 @@ function initConfig(config) {
         docsEditable: config.docsEditable === true,
         helpEditable: config.helpEditable === true,
         viewerHooks: config.viewerHooks || null,
+        viewerAuth: config.viewerAuth
+            ? (Array.isArray(config.viewerAuth) ? config.viewerAuth : [config.viewerAuth])
+            : [],
     };
 
     paths.ensureInitialized();
@@ -258,7 +262,7 @@ function register(app, config) {
     });
 
     // Viewer structure API
-    app.get('/api/viewer/structure', (req, res) => {
+    app.get('/api/viewer/structure', ...cfg.viewerAuth, (req, res) => {
         const root = req.query.root || 'docs';
         const viewerCfg = _getViewerConfig(cfg, root);
 
@@ -296,7 +300,7 @@ function register(app, config) {
     });
 
     // Viewer content API
-    app.get('/api/viewer/content', (req, res) => {
+    app.get('/api/viewer/content', ...cfg.viewerAuth, (req, res) => {
         const root = req.query.root || 'docs';
         const docPath = req.query.path || 'index.md';
 
@@ -344,7 +348,7 @@ function register(app, config) {
     });
 
     // Viewer content save API (POST)
-    app.post('/api/viewer/content', (req, res) => {
+    app.post('/api/viewer/content', ...cfg.viewerAuth, (req, res) => {
         const { root = 'docs', path: docPath, content } = req.body;
 
         // Check if editing is enabled for this root
@@ -412,14 +416,14 @@ function register(app, config) {
 
     // Docs viewer page (/about)
     if (cfg.enableDocs) {
-        app.get('/about', (req, res) => {
+        app.get('/about', ...cfg.viewerAuth, (req, res) => {
             _serveViewer(res, 'docs', basePath);
         });
     }
 
     // Help viewer page (/help)
     if (cfg.enableHelp) {
-        app.get('/help', (req, res) => {
+        app.get('/help', ...cfg.viewerAuth, (req, res) => {
             _serveViewer(res, 'help', basePath);
         });
     }
@@ -427,7 +431,7 @@ function register(app, config) {
     // Custom root pages
     for (const [name, root] of Object.entries(cfg.customRoots)) {
         const route = root.route || `/${name}`;
-        app.get(route, (req, res) => {
+        app.get(route, ...cfg.viewerAuth, (req, res) => {
             _serveViewer(res, name, basePath);
         });
     }
@@ -453,7 +457,7 @@ function register(app, config) {
 
     // Legacy API compatibility
     if (cfg.enableDocs) {
-        app.get('/api/docs/structure', (req, res) => {
+        app.get('/api/docs/structure', ...cfg.viewerAuth, (req, res) => {
             const structure = docsViewer.getDocsStructure({
                 docsDirKey: cfg.docsDirKey,
                 frameworkDirKey: cfg.frameworkDirKey,
@@ -466,7 +470,7 @@ function register(app, config) {
     }
 
     if (cfg.enableHelp) {
-        app.get('/api/help/structure', (req, res) => {
+        app.get('/api/help/structure', ...cfg.viewerAuth, (req, res) => {
             const structure = docsViewer.getStructure(cfg.helpDirKey, { includeDescription: true });
             res.json(structure);
         });

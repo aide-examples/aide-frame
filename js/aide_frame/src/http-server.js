@@ -114,6 +114,13 @@ class HttpServer {
         this.app = express();
         this.app.use(express.json({ limit: '5mb' }));
 
+        // Register early middleware (e.g., cookie parser) before any routes
+        if (options.earlyMiddleware) {
+            for (const mw of options.earlyMiddleware) {
+                this.app.use(mw);
+            }
+        }
+
         // Initialize paths if appDir provided
         if (this.appDir) {
             paths.init(this.appDir);
