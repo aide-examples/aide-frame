@@ -83,9 +83,10 @@ count_loc() {
     for excl in "${excludes[@]}"; do
         find_cmd+=" ! -path \"*/$excl/*\""
     done
+    find_cmd+=" -print0"
 
     local result
-    result=$(eval "$find_cmd" 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+    result=$(eval "$find_cmd" 2>/dev/null | xargs -0 wc -l 2>/dev/null | tail -1 | awk '{print $1}')
     echo "${result:-0}"
 }
 
