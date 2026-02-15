@@ -559,3 +559,51 @@
     padding-left: 8px;
     padding-right: 8px;
 }
+
+/* =============================================================================
+   Heading Drag-to-Reorder
+   ============================================================================= */
+
+/* SHIFT+Hover: heading ready to drag */
+.heading-drag-ready {
+    cursor: grab !important;
+    border-left: 3px solid #2563eb !important;
+    padding-left: 8px;
+}
+
+/* Ghost element following cursor during drag */
+.heading-drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    opacity: 0.8;
+    background: #eff6ff;
+    border: 2px solid #2563eb;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 600;
+    color: #1e40af;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Original heading dimmed during drag */
+.heading-dragging {
+    opacity: 0.3 !important;
+}
+
+/* Drop indicator line between headings */
+.heading-drop-indicator {
+    height: 4px;
+    background: #2563eb;
+    border-radius: 2px;
+    margin: 4px 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.heading-drop-indicator.active {
+    opacity: 1;
+}

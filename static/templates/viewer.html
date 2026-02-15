@@ -49,6 +49,7 @@
         </div>
     </div>
 
+    <script src="static/frame/js/heading-drag.js"></script>
     <script src="static/frame/vendor/marked/marked.min.js"></script>
     <script src="static/frame/vendor/polyglot/polyglot.min.js"></script>
     <script src="static/frame/js/i18n.js"></script>
@@ -95,6 +96,9 @@
 
         // Document names for cross-reference hooks (built from navigation structure)
         let docNamesList = null;  // [{name, path}] sorted by name length desc
+
+        // Heading drag-to-reorder instance
+        let headingDrag = null;
 
         // =============================================================================
         // EDITOR FUNCTIONS
@@ -554,7 +558,8 @@
                     });
                 }
 
-                // Add right-click handler on headings for editing
+                // Add right-click handler on headings for editing + drag-to-reorder
+                if (headingDrag) headingDrag.detach();
                 if (isCurrentRootEditable() && !docPath.startsWith('framework/')) {
                     container.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
                         // Skip TOC headings
@@ -562,6 +567,24 @@
                         heading.style.cursor = 'context-menu';
                         heading.addEventListener('contextmenu', handleHeadingRightClick);
                     });
+
+                    // Drag-to-reorder (SHIFT+Click+Drag)
+                    headingDrag = new HeadingDragReorder({
+                        container,
+                        getMarkdown: () => currentMarkdown,
+                        onReorder: async (newMarkdown, scrollToHeading) => {
+                            const res = await fetch('api/viewer/content', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ root: viewerRoot, path: currentDocPath, content: newMarkdown })
+                            });
+                            const data = await res.json();
+                            if (data.error) throw new Error(data.error);
+                            scrollToHeadingText = scrollToHeading;
+                            loadDoc(currentDocPath);
+                        }
+                    });
+                    headingDrag.attach();
                 }
 
                 updateBreadcrumb(docPath);

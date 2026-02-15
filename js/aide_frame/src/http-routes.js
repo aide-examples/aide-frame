@@ -499,9 +499,14 @@ function _validateJsonBlocks(content) {
         try {
             JSON.parse(jsonText);
         } catch (e) {
-            // Extract a short preview of the block for context
-            const preview = jsonText.substring(0, 40).replace(/\n/g, ' ');
-            return `Invalid JSON in code block ${blockIndex} (${preview}...): ${e.message}`;
+            // Calculate line number where the json block starts
+            const lineNumber = content.substring(0, match.index).split('\n').length;
+            // Find the nearest heading above this block for context
+            const textBefore = content.substring(0, match.index);
+            const headingMatch = textBefore.match(/^(#{1,6})\s+(.+)$/gm);
+            const section = headingMatch ? headingMatch[headingMatch.length - 1].replace(/^#+\s+/, '') : '';
+            const sectionHint = section ? ` in "${section}"` : '';
+            return `Invalid JSON${sectionHint} (line ${lineNumber}): ${e.message}`;
         }
     }
 
