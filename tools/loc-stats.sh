@@ -107,8 +107,8 @@ if [ -n "$SYSTEM_NAME" ]; then
         exit 1
     fi
 
-    # Count system-specific docs by category
-    docs_total=$(count_loc "$SYSTEM_DIR/docs" "*.md")
+    # Count system-specific docs by category (exclude reports/ — those are generated)
+    docs_total=$(count_loc "$SYSTEM_DIR/docs" "*.md" "reports")
     docs_classes=$(count_loc "$SYSTEM_DIR/docs/classes" "*.md")
     docs_views=$(count_loc "$SYSTEM_DIR/docs/views" "*.md")
     docs_imports=$(count_loc "$SYSTEM_DIR/docs/imports" "*.md")
