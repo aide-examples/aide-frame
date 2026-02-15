@@ -138,12 +138,12 @@ Lines of code for the **${SYSTEM_NAME}** system.
 
 | Category | LOC |
 |----------|----:|
+| Top-Level Docs | $(format_num $docs_other) |
 | Entity Classes (classes/) | $(format_num $docs_classes) |
 | Views (views/) | $(format_num $docs_views) |
 | Imports (imports/) | $(format_num $docs_imports) |
 | Processes (processes/) | $(format_num $docs_processes) |
 | Systems (systems/) | $(format_num $docs_systems) |
-| Other Docs | $(format_num $docs_other) |
 | Help | $(format_num $help_loc) |
 | **Subtotal** | **$(format_num $((docs_total + help_loc)))** |
 
@@ -167,12 +167,12 @@ EOF
         echo -e "${BOLD}${SYSTEM_NAME^} System - LOC Statistics${RESET}"
         echo -e "${GRAY}Generated: $(date '+%Y-%m-%d %H:%M')${RESET}"
         echo ""
+        echo "Top-Level Docs:  $(format_num $docs_other)"
         echo "Entity Classes:  $(format_num $docs_classes)"
         echo "Views:           $(format_num $docs_views)"
         echo "Imports:         $(format_num $docs_imports)"
         echo "Processes:       $(format_num $docs_processes)"
         echo "Systems:         $(format_num $docs_systems)"
-        echo "Other Docs:      $(format_num $docs_other)"
         echo "Help:            $(format_num $help_loc)"
         echo "Config:          $(format_num $config_total)"
         echo "─────────────────────"
