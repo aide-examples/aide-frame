@@ -106,10 +106,15 @@ if [ -n "$SYSTEM_NAME" ]; then
         exit 1
     fi
 
-    # Count system-specific docs
-    docs_requirements=$(count_loc "$SYSTEM_DIR/docs" "*.md")
+    # Count system-specific docs by category
+    docs_total=$(count_loc "$SYSTEM_DIR/docs" "*.md")
     docs_classes=$(count_loc "$SYSTEM_DIR/docs/classes" "*.md")
-    docs_other=$((docs_requirements - docs_classes))
+    docs_views=$(count_loc "$SYSTEM_DIR/docs/views" "*.md")
+    docs_imports=$(count_loc "$SYSTEM_DIR/docs/imports" "*.md")
+    docs_processes=$(count_loc "$SYSTEM_DIR/docs/processes" "*.md")
+    docs_systems=$(count_loc "$SYSTEM_DIR/docs/systems" "*.md")
+    docs_known=$((docs_classes + docs_views + docs_imports + docs_processes + docs_systems))
+    docs_other=$((docs_total - docs_known))
     help_loc=$(count_loc "$SYSTEM_DIR/help" "*.md")
 
     # Config files
@@ -118,7 +123,7 @@ if [ -n "$SYSTEM_NAME" ]; then
     config_layout=$(wc -l "$SYSTEM_DIR/docs/DataModel-layout.json" 2>/dev/null | awk '{print $1}' || echo 0)
     config_total=$((config_json + config_yaml + config_layout))
 
-    system_total=$((docs_requirements + help_loc + config_total))
+    system_total=$((docs_total + help_loc + config_total))
 
     if [ "$MARKDOWN_MODE" = true ]; then
         cat << EOF
@@ -132,10 +137,14 @@ Lines of code for the **${SYSTEM_NAME}** system.
 
 | Category | LOC |
 |----------|----:|
-| Entity Classes (classes/*.md) | $(format_num $docs_classes) |
-| Other Docs (requirements/*.md) | $(format_num $docs_other) |
+| Entity Classes (classes/) | $(format_num $docs_classes) |
+| Views (views/) | $(format_num $docs_views) |
+| Imports (imports/) | $(format_num $docs_imports) |
+| Processes (processes/) | $(format_num $docs_processes) |
+| Systems (systems/) | $(format_num $docs_systems) |
+| Other Docs | $(format_num $docs_other) |
 | Help | $(format_num $help_loc) |
-| **Subtotal** | **$(format_num $((docs_requirements + help_loc)))** |
+| **Subtotal** | **$(format_num $((docs_total + help_loc)))** |
 
 ## Configuration
 
@@ -158,6 +167,10 @@ EOF
         echo -e "${GRAY}Generated: $(date '+%Y-%m-%d %H:%M')${RESET}"
         echo ""
         echo "Entity Classes:  $(format_num $docs_classes)"
+        echo "Views:           $(format_num $docs_views)"
+        echo "Imports:         $(format_num $docs_imports)"
+        echo "Processes:       $(format_num $docs_processes)"
+        echo "Systems:         $(format_num $docs_systems)"
         echo "Other Docs:      $(format_num $docs_other)"
         echo "Help:            $(format_num $help_loc)"
         echo "Config:          $(format_num $config_total)"
