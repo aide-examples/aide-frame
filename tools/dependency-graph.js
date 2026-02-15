@@ -55,10 +55,11 @@ function discoverGlobals(dir) {
   const files = collectJsFiles(dir);
   for (const file of files) {
     const src = fs.readFileSync(file, 'utf8');
+    const loc = src.split('\n').length;
     const re = /^(?:  )?const\s+([A-Z][A-Za-z]+)\s*=\s*\{/gm;
     let m;
     while ((m = re.exec(src)) !== null) {
-      globals.push({ name: m[1], file: path.relative(dir, file) });
+      globals.push({ name: m[1], file: path.relative(dir, file), loc });
     }
   }
   return globals;
@@ -113,12 +114,13 @@ function discoverServerModules(dir) {
   const files = collectJsFiles(dir);
   for (const file of files) {
     const rel = path.relative(dir, file);
+    const loc = fs.readFileSync(file, 'utf8').split('\n').length;
     // Use filename without .js as module name; collapse index.js to dir name
     let name = rel.replace(/\.js$/, '');
     if (name.endsWith('/index')) {
       name = name.replace(/\/index$/, '');
     }
-    modules.push({ name, file: rel });
+    modules.push({ name, file: rel, loc });
   }
   return modules;
 }
@@ -191,9 +193,13 @@ function buildServerGraph(dir, modules) {
   }
 
   // Add external modules to the modules list for display
+  const appDir = path.resolve(dir, '..');
   for (const ext of externalModules) {
     const relFile = ext + '.js';
-    modules.push({ name: ext, file: relFile });
+    const absFile = path.join(appDir, relFile);
+    let loc = 0;
+    try { loc = fs.readFileSync(absFile, 'utf8').split('\n').length; } catch (e) { /* ignore */ }
+    modules.push({ name: ext, file: relFile, loc });
   }
 
   return edges;
@@ -228,7 +234,8 @@ function toMermaid(modules, edges) {
     lines.push(`  subgraph ${safeId}["${label}"]`);
     for (const g of members) {
       const shortLabel = path.basename(g.name);
-      lines.push(`    ${nodeId(g.name)}["${shortLabel}"]`);
+      const locSuffix = g.loc ? ` &nbsp; ${g.loc}` : '';
+      lines.push(`    ${nodeId(g.name)}["${shortLabel}${locSuffix}"]`);
     }
     lines.push('  end');
   }
@@ -330,6 +337,10 @@ function toReport(modules, edges, title) {
   lines.push('```');
   lines.push('');
 
+  // Build LOC lookup
+  const locByName = {};
+  for (const g of modules) locByName[g.name] = g.loc || '';
+
   // Top outgoing
   const outgoing = modules
     .map(g => ({ name: g.name, count: (edges[g.name] || new Set()).size }))
@@ -338,10 +349,10 @@ function toReport(modules, edges, title) {
 
   lines.push('## Most Dependencies (outgoing)');
   lines.push('');
-  lines.push('| Module | Count |');
-  lines.push('|--------|------:|');
+  lines.push('| Module | LOC | Count |');
+  lines.push('|--------|----:|------:|');
   for (const { name, count } of outgoing.slice(0, 10)) {
-    lines.push(`| ${name} | ${count} |`);
+    lines.push(`| ${name} | ${locByName[name]} | ${count} |`);
   }
   lines.push('');
 
@@ -359,10 +370,10 @@ function toReport(modules, edges, title) {
 
   lines.push('## Most Used (incoming)');
   lines.push('');
-  lines.push('| Module | Count |');
-  lines.push('|--------|------:|');
+  lines.push('| Module | LOC | Count |');
+  lines.push('|--------|----:|------:|');
   for (const [name, count] of inSorted.slice(0, 10)) {
-    lines.push(`| ${name} | ${count} |`);
+    lines.push(`| ${name} | ${locByName[name]} | ${count} |`);
   }
   lines.push('');
 
