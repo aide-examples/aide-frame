@@ -13,6 +13,7 @@ set -e
 # Parse arguments
 MARKDOWN_MODE=false
 SYSTEM_NAME=""
+NO_SYSTEMS=false
 PROJECT_ROOT=""
 
 while [[ $# -gt 0 ]]; do
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
         --system)
             SYSTEM_NAME="$2"
             shift 2
+            ;;
+        --no-systems)
+            NO_SYSTEMS=true
+            shift
             ;;
         -*)
             echo "Unknown option: $1" >&2
@@ -233,7 +238,7 @@ if [ -d "$FRAME_ROOT" ]; then
     fi
 fi
 
-# Systems - collect stats for each
+# Systems - collect stats for each (skip with --no-systems)
 declare -A system_docs
 declare -A system_help
 declare -A system_config
@@ -243,7 +248,7 @@ systems_total_help=0
 systems_total_config=0
 systems_total=0
 
-if [ -d "$SYSTEMS_ROOT" ]; then
+if [ "$NO_SYSTEMS" = false ] && [ -d "$SYSTEMS_ROOT" ]; then
     for system_dir in "$SYSTEMS_ROOT"/*/; do
         if [ -d "$system_dir" ]; then
             sname=$(basename "$system_dir")
@@ -324,30 +329,38 @@ EOF
 | Config (package.json etc.) | $(format_num $((config_pkg + config_sample))) |
 | **Subtotal** | **$(format_num $platform_own)** |
 
+EOF
+
+    if [ "$NO_SYSTEMS" = false ] && [ $systems_total -gt 0 ]; then
+        cat << EOF
 ## Systems
 
 | System | Docs | Help | Config | Total |
 |--------|-----:|-----:|-------:|------:|
 EOF
 
-    for sname in $(echo "${!system_total[@]}" | tr ' ' '\n' | sort); do
-        echo "| $sname | $(format_num ${system_docs[$sname]}) | $(format_num ${system_help[$sname]}) | $(format_num ${system_config[$sname]}) | $(format_num ${system_total[$sname]}) |"
-    done
+        for sname in $(echo "${!system_total[@]}" | tr ' ' '\n' | sort); do
+            echo "| $sname | $(format_num ${system_docs[$sname]}) | $(format_num ${system_help[$sname]}) | $(format_num ${system_config[$sname]}) | $(format_num ${system_total[$sname]}) |"
+        done
 
-    cat << EOF
+        cat << EOF
 | **Subtotal** | **$(format_num $systems_total_docs)** | **$(format_num $systems_total_help)** | **$(format_num $systems_total_config)** | **$(format_num $systems_total)** |
 
-## Summary
-
-| Component | Own Code |
-|-----------|----------|
-| AIDE-FRAME | $(format_num $frame_own) |
-| AIDE-RAP Platform | $(format_num $platform_own) |
-| Systems (all) | $(format_num $systems_total) |
-| **Total Own Code** | **$(format_num $total_own)** |
-
-*Note: node_modules contains third-party dependencies and is excluded from own code counts.*
 EOF
+    fi
+
+    echo "## Summary"
+    echo ""
+    echo "| Component | Own Code |"
+    echo "|-----------|----------|"
+    echo "| AIDE-FRAME | $(format_num $frame_own) |"
+    echo "| AIDE-RAP Platform | $(format_num $platform_own) |"
+    if [ "$NO_SYSTEMS" = false ] && [ $systems_total -gt 0 ]; then
+        echo "| Systems (all) | $(format_num $systems_total) |"
+    fi
+    echo "| **Total Own Code** | **$(format_num $total_own)** |"
+    echo ""
+    echo "*Note: node_modules contains third-party dependencies and is excluded from own code counts.*"
 
 else
     # Terminal output
@@ -369,13 +382,15 @@ else
     echo "  Subtotal:     $(format_num $platform_own)"
     echo ""
 
-    echo -e "${BOLD}Systems${RESET}"
-    for sname in $(echo "${!system_total[@]}" | tr ' ' '\n' | sort); do
-        echo "  $sname:        $(format_num ${system_total[$sname]})"
-    done
-    echo "  ─────────────────"
-    echo "  Subtotal:     $(format_num $systems_total)"
-    echo ""
+    if [ "$NO_SYSTEMS" = false ] && [ $systems_total -gt 0 ]; then
+        echo -e "${BOLD}Systems${RESET}"
+        for sname in $(echo "${!system_total[@]}" | tr ' ' '\n' | sort); do
+            echo "  $sname:        $(format_num ${system_total[$sname]})"
+        done
+        echo "  ─────────────────"
+        echo "  Subtotal:     $(format_num $systems_total)"
+        echo ""
+    fi
 
     echo -e "${BOLD}Summary${RESET}"
     echo "  Own Code:     $(format_num $total_own)"
