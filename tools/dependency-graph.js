@@ -218,15 +218,17 @@ function toMermaid(modules, edges) {
     byDir[dir].push(g);
   }
 
-  // Mermaid subgraph IDs must be unique and safe
+  // Node IDs get "n_" prefix to avoid collision with subgraph IDs
+  // (e.g. module "middleware" from index.js inside subgraph "middleware")
+  const nodeId = (name) => 'n_' + name.replace(/[^a-zA-Z0-9]/g, '_');
+
   for (const [dir, members] of Object.entries(byDir)) {
     const label = dir === '.' ? 'root' : dir.replace(/\//g, ' / ');
-    const safeId = dir.replace(/[^a-zA-Z0-9]/g, '_');
+    const safeId = 'sg_' + dir.replace(/[^a-zA-Z0-9]/g, '_');
     lines.push(`  subgraph ${safeId}["${label}"]`);
     for (const g of members) {
-      const safeNodeId = g.name.replace(/[^a-zA-Z0-9]/g, '_');
       const shortLabel = path.basename(g.name);
-      lines.push(`    ${safeNodeId}["${shortLabel}"]`);
+      lines.push(`    ${nodeId(g.name)}["${shortLabel}"]`);
     }
     lines.push('  end');
   }
@@ -235,10 +237,8 @@ function toMermaid(modules, edges) {
 
   for (const g of active) {
     const sorted = [...(edges[g.name] || [])].sort();
-    const srcId = g.name.replace(/[^a-zA-Z0-9]/g, '_');
     for (const target of sorted) {
-      const tgtId = target.replace(/[^a-zA-Z0-9]/g, '_');
-      lines.push(`  ${srcId} --> ${tgtId}`);
+      lines.push(`  ${nodeId(g.name)} --> ${nodeId(target)}`);
     }
   }
 
