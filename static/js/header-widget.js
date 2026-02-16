@@ -58,6 +58,18 @@ const HeaderWidget = {
             </div>
         `;
 
+        // Toggle behavior: click brand → about, click again → back
+        if (this.options.showAbout) {
+            const brand = this.container.querySelector('.header-brand');
+            brand.addEventListener('click', (e) => {
+                const aboutPath = new URL(this.options.aboutLink, location.origin).pathname;
+                if (location.pathname === aboutPath) {
+                    e.preventDefault();
+                    history.back();
+                }
+            });
+        }
+
         // Attach event listener for language change
         const langSelect = document.getElementById('header-lang-select');
         if (langSelect) {
