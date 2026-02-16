@@ -50,9 +50,10 @@ const HeaderWidget = {
             items.push(`<a href="${this.options.helpLink}" class="header-link notranslate" title="Help" style="font-weight: bold;">?</a>`);
         }
 
+        const homeLink = this.options.showAbout ? this.options.aboutLink : '#';
         this.container.innerHTML = `
             <div class="header">
-                <h1 class="notranslate">${this.options.titleHtml || this.options.appName}</h1>
+                <a href="${homeLink}" class="header-brand notranslate">${this.options.titleHtml || this.options.appName}</a>
                 <div style="display: flex; align-items: center; gap: 12px;">${items.join('')}</div>
             </div>
         `;
