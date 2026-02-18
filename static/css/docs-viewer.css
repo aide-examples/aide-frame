@@ -71,6 +71,13 @@
     padding: 0;
     color: #e5e7eb;
 }
+.markdown-body pre:has(> code.language-text) {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+.markdown-body pre code.language-text {
+    color: #374151;
+}
 .markdown-body table {
     width: 100%;
     border-collapse: collapse;
