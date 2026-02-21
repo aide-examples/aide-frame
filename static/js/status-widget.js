@@ -102,7 +102,9 @@ const StatusWidget = {
     updateUI() {
         const versionEl = document.getElementById('sw-version');
         if (versionEl && this.status.current_version) {
-            versionEl.textContent = `v${this.status.current_version}`;
+            versionEl.textContent = this.status.system_version
+                ? `v ${this.status.system_version} (RAP ${this.status.current_version})`
+                : `v${this.status.current_version}`;
         }
 
         if (this.options.compactInfo) {

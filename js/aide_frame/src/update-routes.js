@@ -83,6 +83,7 @@ function register(app, config) {
         try {
             const manager = getManager(config);
             const status = manager.getStatus();
+            if (config.extraStatus) Object.assign(status, config.extraStatus());
             res.json(status);
         } catch (e) {
             logger.error(`Error getting update status: ${e.message}`);
