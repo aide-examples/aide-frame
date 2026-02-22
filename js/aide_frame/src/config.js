@@ -59,7 +59,48 @@ function expandUser(pathStr) {
 }
 
 /**
+ * Strip comments and trailing commas from JSON content (JSONC support).
+ * Supports // line comments and /* block comments *​/.
+ * Ignores comments inside quoted strings.
+ * @param {string} content - Raw JSONC content
+ * @returns {string} Clean JSON ready for JSON.parse()
+ */
+function stripJsonComments(content) {
+    let result = '';
+    let i = 0;
+    while (i < content.length) {
+        // String literal — copy verbatim
+        if (content[i] === '"') {
+            result += '"';
+            i++;
+            while (i < content.length && content[i] !== '"') {
+                if (content[i] === '\\') { result += content[i++]; }  // skip escaped char
+                if (i < content.length) { result += content[i++]; }
+            }
+            if (i < content.length) { result += content[i++]; }  // closing quote
+        }
+        // Line comment
+        else if (content[i] === '/' && content[i + 1] === '/') {
+            while (i < content.length && content[i] !== '\n') i++;
+        }
+        // Block comment
+        else if (content[i] === '/' && content[i + 1] === '*') {
+            i += 2;
+            while (i < content.length && !(content[i] === '*' && content[i + 1] === '/')) i++;
+            i += 2;  // skip */
+        }
+        // Normal character
+        else {
+            result += content[i++];
+        }
+    }
+    // Remove trailing commas before } or ]
+    return result.replace(/,(\s*[}\]])/g, '$1');
+}
+
+/**
  * Load configuration from JSON file, merging with defaults.
+ * Supports JSONC (JSON with comments): // line comments, /* block comments *​/, trailing commas.
  * @param {string|null} configPath - Direct path to config file (takes precedence)
  * @param {object|null} defaults - Default configuration object
  * @param {string[]|null} searchPaths - List of paths to search for config file
@@ -90,7 +131,7 @@ function loadConfig(configPath = null, defaults = null, searchPaths = null) {
         if (fs.existsSync(p)) {
             try {
                 const content = fs.readFileSync(p, 'utf8');
-                const userConfig = JSON.parse(content);
+                const userConfig = JSON.parse(stripJsonComments(content));
                 deepMerge(config, userConfig);
                 loadedPath = p;
                 break;
@@ -131,6 +172,7 @@ function saveConfig(config, configPath, indent = 2) {
 
 module.exports = {
     deepMerge,
+    stripJsonComments,
     loadConfig,
     saveConfig,
 };
