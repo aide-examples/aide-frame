@@ -18,6 +18,16 @@
     padding: 2.5rem 6rem;
     display: flex;
     flex-direction: column;
+}
+
+.slideshow-slide-title {
+    flex-shrink: 0;
+}
+
+.slideshow-slide-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
 }
 
@@ -219,6 +229,18 @@
     font-size: 0.9em;
 }
 
+/* ── Logo Watermark ───────────────────────────────────────────────── */
+
+.slideshow-logo {
+    position: absolute;
+    bottom: 3rem;
+    left: 2rem;
+    height: 40px;
+    opacity: 0.3;
+    pointer-events: none;
+    border-radius: 0;
+}
+
 /* ── Cursor hints ──────────────────────────────────────────────────── */
 
 .slideshow-slide {
@@ -291,6 +313,16 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+}
+
+.slideshow-print-page .slideshow-slide-title {
+    flex-shrink: 0;
+}
+
+.slideshow-print-page .slideshow-slide-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     justify-content: center;
 }
 
@@ -342,6 +374,14 @@
     color: #64748b;
     border-top: 1px solid #e2e8f0;
     padding-top: 0.3cm;
+}
+
+.slideshow-print-page .slideshow-logo {
+    position: absolute;
+    bottom: 1.8cm;
+    left: 2cm;
+    height: 24px;
+    opacity: 0.3;
 }
 
 /* ── Print Media Query ─────────────────────────────────────────────── */

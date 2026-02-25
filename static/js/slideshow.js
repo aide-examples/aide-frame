@@ -83,8 +83,16 @@ const Slideshow = (() => {
         const slide = _slides[index];
 
         const slideEl = _overlay.querySelector('.slideshow-slide');
-        // Wrap in inner div so float/text-align work (slideEl is flex)
-        slideEl.innerHTML = `<div class="slideshow-slide-inner">${marked.parse(slide.content)}</div>`;
+        // Split: first heading pinned to top, rest vertically centered
+        const parsed = marked.parse(slide.content);
+        const tmp = document.createElement('div');
+        tmp.innerHTML = parsed;
+        const heading = tmp.querySelector('h1, h2, h3');
+        const titleHtml = heading ? heading.outerHTML : '';
+        if (heading) heading.remove();
+        slideEl.innerHTML =
+            `<div class="slideshow-slide-title">${titleHtml}</div>` +
+            `<div class="slideshow-slide-body"><div class="slideshow-slide-inner">${tmp.innerHTML}</div></div>`;
 
         // Rewrite relative image paths (same logic as viewer)
         slideEl.querySelectorAll('img').forEach(img => {
@@ -260,6 +268,15 @@ const Slideshow = (() => {
 
     // ── Start / Stop ────────────────────────────────────────────────────
 
+    function _parseLogo(markdown, assetPrefix, docDir) {
+        const first = markdown.split('\n')[0];
+        const m = first.match(/logo:(\S+)/);
+        if (!m) return '';
+        const src = m[1];
+        const fullPath = docDir ? docDir + '/' + src : src;
+        return assetPrefix + fullPath;
+    }
+
     function start(markdown, options = {}) {
         if (_active) stop();
 
@@ -275,11 +292,18 @@ const Slideshow = (() => {
         const titleMatch = markdown.match(/^#\s+(.+)$/m);
         const title = titleMatch ? titleMatch[1].replace(/\*\*/g, '') : '';
 
+        // Resolve logo from <!-- slideshow logo:path --> directive
+        const logoSrc = _parseLogo(markdown, window._slideshowAssetPrefix, window._slideshowDocDir);
+        const logoHtml = logoSrc
+            ? `<img class="slideshow-logo" src="${_escHtml(logoSrc)}" alt="">`
+            : '';
+
         // Build overlay
         _overlay = document.createElement('div');
         _overlay.className = 'slideshow-overlay';
         _overlay.innerHTML = `
             <div class="slideshow-slide markdown-body"></div>
+            ${logoHtml}
             <div class="slideshow-notes"></div>
             <div class="slideshow-footer">
                 <span class="slideshow-title">${_escHtml(title)}</span>
@@ -335,6 +359,9 @@ const Slideshow = (() => {
         const titleMatch = (markdown || '').match(/^#\s+(.+)$/m);
         const title = titleMatch ? titleMatch[1].replace(/\*\*/g, '') : '';
 
+        // Resolve logo
+        const logoSrc = _parseLogo(markdown || '', assetPrefix, docDir);
+
         // Build print container with ALL slides
         const container = document.createElement('div');
         container.className = 'slideshow-print';
@@ -342,7 +369,17 @@ const Slideshow = (() => {
         slides.forEach((slide, i) => {
             const page = document.createElement('div');
             page.className = 'slideshow-print-page markdown-body';
-            page.innerHTML = marked.parse(slide.content);
+
+            // Split: heading at top, rest centered
+            const parsed = marked.parse(slide.content);
+            const tmp = document.createElement('div');
+            tmp.innerHTML = parsed;
+            const heading = tmp.querySelector('h1, h2, h3');
+            const headingHtml = heading ? heading.outerHTML : '';
+            if (heading) heading.remove();
+            page.innerHTML =
+                `<div class="slideshow-slide-title">${headingHtml}</div>` +
+                `<div class="slideshow-slide-body"><div class="slideshow-slide-inner">${tmp.innerHTML}</div></div>`;
 
             // Rewrite image paths
             page.querySelectorAll('img').forEach(img => {
@@ -352,6 +389,15 @@ const Slideshow = (() => {
                     img.setAttribute('src', assetPrefix + fullPath);
                 }
             });
+
+            // Logo on each print page
+            if (logoSrc) {
+                const logo = document.createElement('img');
+                logo.className = 'slideshow-logo';
+                logo.src = logoSrc;
+                logo.alt = '';
+                page.appendChild(logo);
+            }
 
             // Page footer with title and slide number
             const footer = document.createElement('div');
