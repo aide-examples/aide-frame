@@ -6,12 +6,17 @@
     <title>Viewer</title>
     <link rel="stylesheet" href="static/frame/css/base.css">
     <link rel="stylesheet" href="static/frame/css/docs-viewer.css">
+    <link rel="stylesheet" href="static/frame/css/slideshow.css">
 </head>
 <body>
     <div class="header sticky">
         <h1 id="page-title">Loading...</h1>
         <div style="display: flex; align-items: center; gap: 12px;">
             <span id="gt-container"></span>
+            <button class="header-btn" id="present-btn" style="display:none"
+                    title="Start slideshow (fullscreen)">&#9654; Present</button>
+            <button class="header-btn" id="print-btn" style="display:none"
+                    title="Print slides as PDF handout">&#128438; Print</button>
             <a href="./" class="header-btn" id="back-link">Back</a>
         </div>
     </div>
@@ -54,6 +59,7 @@
     <script src="static/frame/vendor/polyglot/polyglot.min.js"></script>
     <script src="static/frame/js/i18n.js"></script>
     <script src="static/frame/js/google-translate.js"></script>
+    <script src="static/frame/js/slideshow.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js" onerror="window.MERMAID_FAILED=true"></script>
     <script>
         // Determine root from URL path
@@ -549,6 +555,26 @@
                         loadDoc(normalized.join('/'), anchor);
                     });
                 });
+
+                // Slideshow detection: show Present + Print buttons for slide decks
+                const presentBtn = document.getElementById('present-btn');
+                const printBtn = document.getElementById('print-btn');
+                const isSlides = typeof Slideshow !== 'undefined' && Slideshow.isSlideshow(data.content);
+                const docDir = docPath.includes('/') ? docPath.substring(0, docPath.lastIndexOf('/')) : '';
+                const slideOpts = { assetPrefix: assetPrefix, docDir: docDir };
+
+                if (presentBtn) {
+                    presentBtn.style.display = isSlides ? '' : 'none';
+                    presentBtn.onclick = isSlides
+                        ? () => Slideshow.start(data.content, slideOpts)
+                        : null;
+                }
+                if (printBtn) {
+                    printBtn.style.display = isSlides ? '' : 'none';
+                    printBtn.onclick = isSlides
+                        ? () => Slideshow.printAll(data.content, slideOpts)
+                        : null;
+                }
 
                 // Post-processing hook (app-specific content enhancement, may be async)
                 if (typeof window.viewerContentHook === 'function') {

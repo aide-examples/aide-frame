@@ -449,15 +449,17 @@ button.wide { width: 100%; }
 .hidden { display: none !important; }
 .text-center { text-align: center; }
 
-/* Header Button (outline style) */
+/* Header Button (outline style with tinted background for contrast) */
 .header-btn {
     color: var(--frame-primary);
+    background: var(--frame-primary-light);
     text-decoration: none;
     padding: 8px 16px;
     border: 1px solid var(--frame-primary);
     border-radius: 6px;
     font-size: 0.9rem;
     transition: all 0.2s;
+    cursor: pointer;
 }
 .header-btn:hover {
     background: var(--frame-primary);

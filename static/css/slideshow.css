@@ -1,0 +1,401 @@
+/* ── Slideshow Presenter ────────────────────────────────────────────── */
+
+.slideshow-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    cursor: default;
+}
+
+/* ── Slide Content ─────────────────────────────────────────────────── */
+
+.slideshow-slide {
+    flex: 1;
+    overflow: auto;
+    padding: 2.5rem 6rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.slideshow-slide-inner {
+    /* Normal block flow — float, text-align etc. work here */
+}
+
+/* Typography scaling for presentation */
+.slideshow-slide h1 {
+    font-size: 2.8rem;
+    margin-bottom: 0.6em;
+    color: #1e293b;
+}
+
+.slideshow-slide h2 {
+    font-size: 2.2rem;
+    margin-bottom: 0.5em;
+    color: #1e293b;
+}
+
+.slideshow-slide h3 {
+    font-size: 1.6rem;
+    margin-bottom: 0.4em;
+    color: #334155;
+}
+
+.slideshow-slide p,
+.slideshow-slide li {
+    font-size: 1.25rem;
+    line-height: 1.6;
+    color: #334155;
+}
+
+.slideshow-slide ul,
+.slideshow-slide ol {
+    margin: 0.8em 0;
+    padding-left: 1.5em;
+}
+
+.slideshow-slide li {
+    margin-bottom: 0.4em;
+}
+
+/* Code blocks */
+.slideshow-slide pre {
+    font-size: 1rem;
+    padding: 1.2em;
+    border-radius: 8px;
+    background: #f3f0ff;
+    color: #5b21b6;
+    overflow-x: auto;
+}
+
+.slideshow-slide pre code {
+    font-size: inherit;
+    color: inherit;
+}
+
+/* Inline code */
+.slideshow-slide code {
+    font-size: 0.9em;
+    background: #f3f0ff;
+    color: #5b21b6;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+}
+
+/* Tables */
+.slideshow-slide table {
+    width: auto;
+    min-width: 50%;
+    margin: 1em 0;
+    border-collapse: collapse;
+    font-size: 1.1rem;
+}
+
+.slideshow-slide th {
+    background: #1d4ed8;
+    color: #ffffff;
+    padding: 0.6em 1em;
+    text-align: left;
+    font-weight: 600;
+}
+
+.slideshow-slide td {
+    padding: 0.5em 1em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.slideshow-slide tr:nth-child(even) td {
+    background: #f8fafc;
+}
+
+/* Blockquotes (non-speaker-notes) */
+.slideshow-slide blockquote {
+    border-left: 4px solid #3b82f6;
+    margin: 1em 0;
+    padding: 0.5em 1.2em;
+    color: #475569;
+    font-style: italic;
+    font-size: 1.15rem;
+}
+
+/* Images — only auto-center if no inline style overrides */
+.slideshow-slide img:not([style]) {
+    max-width: 70%;
+    max-height: 50vh;
+    margin: 1em auto;
+    display: block;
+}
+.slideshow-slide img {
+    border-radius: 8px;
+}
+
+/* Strong / emphasis */
+.slideshow-slide strong {
+    color: #1e293b;
+}
+
+.slideshow-slide em {
+    color: #64748b;
+}
+
+/* ── Footer Bar ────────────────────────────────────────────────────── */
+
+.slideshow-footer {
+    flex-shrink: 0;
+    padding: 0.5rem 2rem;
+    background: #1d4ed8;
+    color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+}
+
+.slideshow-title {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.slideshow-counter {
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Speaker Notes Popup ──────────────────────────────────────────── */
+
+.slideshow-notes {
+    position: absolute;
+    bottom: 2.2rem;  /* just above footer */
+    left: 2rem;
+    right: 2rem;
+    max-height: 40vh;
+    overflow-y: auto;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    padding: 1.2rem 1.5rem;
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 5;
+}
+
+.slideshow-footer:hover ~ .slideshow-notes[data-has-notes="true"],
+.slideshow-notes:hover {
+    /* notes element is a sibling before footer, so we use a different approach */
+}
+
+/* Footer hover reveals the notes panel above it */
+.slideshow-overlay:has(.slideshow-footer:hover) .slideshow-notes[data-has-notes="true"],
+.slideshow-notes[data-has-notes="true"]:hover {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.slideshow-notes p {
+    margin: 0.3em 0;
+}
+
+.slideshow-notes strong {
+    color: #1e293b;
+}
+
+.slideshow-notes em {
+    color: #64748b;
+}
+
+.slideshow-notes code {
+    background: #f3f0ff;
+    color: #5b21b6;
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* ── Cursor hints ──────────────────────────────────────────────────── */
+
+.slideshow-slide {
+    cursor: pointer;
+}
+
+/* ── Table of Contents Overlay ──────────────────────────────────────── */
+
+.slideshow-toc {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 600px;
+    width: 90%;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    padding: 0.8rem 0;
+}
+
+.slideshow-toc ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.slideshow-toc li {
+    padding: 0.5rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: #334155;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+}
+
+.slideshow-toc li:hover {
+    background: #f1f5f9;
+    border-left-color: #3b82f6;
+}
+
+.slideshow-toc li.active {
+    background: #eff6ff;
+    border-left-color: #1d4ed8;
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+/* ── Navigation hints (subtle cursor zones) ────────────────────────── */
+
+.slideshow-slide {
+    position: relative;
+}
+
+/* ── Print Container (all slides for PDF export) ───────────────────── */
+
+.slideshow-print {
+    /* Hidden on screen — only visible during print */
+    display: none;
+}
+
+.slideshow-print-page {
+    padding: 1.5cm 2cm;
+    position: relative;
+    min-height: 100vh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.slideshow-print-page h1 { font-size: 2rem; margin-bottom: 0.5em; }
+.slideshow-print-page h2 { font-size: 1.6rem; margin-bottom: 0.4em; }
+.slideshow-print-page h3 { font-size: 1.3rem; margin-bottom: 0.3em; }
+.slideshow-print-page p,
+.slideshow-print-page li { font-size: 1rem; line-height: 1.5; }
+
+.slideshow-print-page pre {
+    font-size: 0.85rem;
+    padding: 0.8em;
+    background: #f3f0ff;
+    color: #5b21b6;
+    border-radius: 4px;
+}
+
+.slideshow-print-page pre code {
+    color: inherit;
+}
+
+.slideshow-print-page code {
+    color: #5b21b6;
+}
+
+.slideshow-print-page table {
+    width: auto;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+.slideshow-print-page th {
+    background: #1d4ed8;
+    color: white;
+    padding: 0.4em 0.8em;
+}
+.slideshow-print-page td {
+    padding: 0.3em 0.8em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.slideshow-print-footer {
+    position: absolute;
+    bottom: 1cm;
+    left: 2cm;
+    right: 2cm;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: #64748b;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 0.3cm;
+}
+
+/* ── Print Media Query ─────────────────────────────────────────────── */
+
+@media print {
+    @page {
+        size: landscape;
+        margin: 0;
+    }
+
+    /* Hide everything except the print container */
+    body > *:not(.slideshow-print) {
+        display: none !important;
+    }
+    .slideshow-overlay {
+        display: none !important;
+    }
+
+    /* Show the print container */
+    .slideshow-print {
+        display: block !important;
+    }
+
+    .slideshow-print-page {
+        page-break-after: always;
+        height: 100vh;
+        overflow: hidden;
+    }
+    .slideshow-print-page:last-child {
+        page-break-after: avoid;
+    }
+
+    /* Ensure code blocks and tables don't overflow */
+    .slideshow-print-page pre {
+        overflow: hidden;
+        white-space: pre-wrap;
+    }
+
+    /* Print table header colors */
+    .slideshow-print-page th {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* ── Small screen fallback ─────────────────────────────────────────── */
+
+@media (max-width: 800px) {
+    .slideshow-slide {
+        padding: 1.5rem 2rem;
+    }
+    .slideshow-slide h1 { font-size: 2rem; }
+    .slideshow-slide h2 { font-size: 1.6rem; }
+    .slideshow-slide h3 { font-size: 1.3rem; }
+    .slideshow-slide p,
+    .slideshow-slide li { font-size: 1rem; }
+}
