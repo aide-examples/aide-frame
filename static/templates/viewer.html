@@ -54,6 +54,20 @@
         </div>
     </div>
 
+    <!-- Master Password Modal -->
+    <div id="master-pw-modal" class="editor-modal" style="display: none;">
+        <div style="background: var(--bg-secondary, #1e1e2e); border: 1px solid var(--border-color, #444); border-radius: 8px; padding: 24px; max-width: 360px; width: 90%;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary, #cdd6f4);">Master Password Required</div>
+            <input id="master-pw-input" type="password" placeholder="Enter master password"
+                style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--border-color, #444); border-radius: 4px; background: var(--bg-primary, #11111b); color: var(--text-primary, #cdd6f4); font-size: 14px; margin-bottom: 8px;">
+            <div id="master-pw-error" style="color: #f38ba8; font-size: 12px; min-height: 18px; margin-bottom: 12px;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                <button id="master-pw-cancel" class="editor-btn editor-btn-cancel">Cancel</button>
+                <button id="master-pw-ok" class="editor-btn editor-btn-save">Verify</button>
+            </div>
+        </div>
+    </div>
+
     <script src="static/frame/js/heading-drag.js"></script>
     <script src="static/frame/vendor/marked/marked.min.js"></script>
     <script src="static/frame/vendor/polyglot/polyglot.min.js"></script>
@@ -111,15 +125,86 @@
         // =============================================================================
 
         /**
-         * Check if current root is editable
+         * Check if current root is editable (respects admin-only restriction)
          */
         function isCurrentRootEditable() {
+            // Admin-only check: if editing requires admin, verify role
+            if (appConfig.editable?.requiresAdmin) {
+                const user = window.currentUser;
+                if (!user || (user.role !== 'admin' && !user.noauth)) return false;
+            }
             if (viewerRoot === 'docs') return appConfig.editable?.docs === true;
             if (viewerRoot === 'help') return appConfig.editable?.help === true;
             if (appConfig.custom_roots && appConfig.custom_roots[viewerRoot]) {
                 return appConfig.custom_roots[viewerRoot].editable === true;
             }
             return false;
+        }
+
+        /**
+         * Check if current root requires master password and prompt if needed.
+         * Returns true if editing can proceed, false if blocked.
+         */
+        let masterPasswordVerified = false;
+
+        function currentRootNeedsMasterPassword() {
+            if (masterPasswordVerified) return false;
+            const root = appConfig.custom_roots && appConfig.custom_roots[viewerRoot];
+            return root?.masterPassword === true;
+        }
+
+        async function verifyMasterPassword() {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('master-pw-modal');
+                const input = document.getElementById('master-pw-input');
+                const error = document.getElementById('master-pw-error');
+                input.value = '';
+                error.textContent = '';
+                modal.style.display = 'flex';
+                input.focus();
+
+                const cleanup = () => {
+                    modal.style.display = 'none';
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    input.removeEventListener('keydown', onKey);
+                };
+
+                const okBtn = document.getElementById('master-pw-ok');
+                const cancelBtn = document.getElementById('master-pw-cancel');
+
+                const onOk = async () => {
+                    const pw = input.value;
+                    if (!pw) { error.textContent = 'Password required'; return; }
+                    okBtn.disabled = true;
+                    try {
+                        const res = await fetch('api/viewer/verify-master', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ password: pw })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            masterPasswordVerified = true;
+                            cleanup();
+                            resolve(true);
+                        } else {
+                            error.textContent = data.error || 'Invalid password';
+                        }
+                    } catch (e) {
+                        error.textContent = 'Verification failed';
+                    } finally {
+                        okBtn.disabled = false;
+                    }
+                };
+
+                const onCancel = () => { cleanup(); resolve(false); };
+                const onKey = (e) => { if (e.key === 'Enter') onOk(); if (e.key === 'Escape') onCancel(); };
+
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+                input.addEventListener('keydown', onKey);
+            });
         }
 
         /**
@@ -213,8 +298,14 @@
         /**
          * Open editor for a section.
          */
-        function openEditor(headingText, headingLevel) {
+        async function openEditor(headingText, headingLevel) {
             if (!currentMarkdown) return;
+
+            // Master password gate
+            if (currentRootNeedsMasterPassword()) {
+                const ok = await verifyMasterPassword();
+                if (!ok) return;
+            }
 
             const section = extractSection(currentMarkdown, headingText, headingLevel);
             if (!section) {
@@ -600,6 +691,11 @@
                         container,
                         getMarkdown: () => currentMarkdown,
                         onReorder: async (newMarkdown, scrollToHeading) => {
+                            // Master password gate for drag-reorder
+                            if (currentRootNeedsMasterPassword()) {
+                                const ok = await verifyMasterPassword();
+                                if (!ok) return;
+                            }
                             const res = await fetch('api/viewer/content', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },

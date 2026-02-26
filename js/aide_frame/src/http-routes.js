@@ -38,6 +38,7 @@ const { logger } = require('./log');
  * @property {boolean} [useSections=false] - True for multi-section docs, False for flat
  * @property {Array} [sectionDefs] - List of [sectionPath, sectionName] tuples
  * @property {boolean} [editable=false] - Enable editing of this root via right-click
+ * @property {boolean} [masterPassword=false] - Require master password before editing
  */
 
 /**
@@ -78,6 +79,8 @@ const { logger } = require('./log');
  * @property {boolean} [enableHelp=true] - Enable /help route
  * @property {boolean} [docsEditable=false] - Enable editing of docs via right-click
  * @property {boolean} [helpEditable=false] - Enable editing of help via right-click
+ * @property {boolean} [editRequiresAdmin=false] - Restrict editing to admin-role users
+ * @property {string} [masterPasswordHash=null] - SHA256 hash of master password for protected roots
  * @property {string} [viewerHooks=null] - URL to a JS file loaded by the viewer for content post-processing
  * @property {Function|Function[]} [viewerAuth=null] - Middleware for viewer pages (/about, /help, custom roots)
  */
@@ -127,6 +130,9 @@ function initConfig(config) {
         enableHelp: config.enableHelp !== false,
         docsEditable: config.docsEditable === true,
         helpEditable: config.helpEditable === true,
+        editRequiresAdmin: config.editRequiresAdmin === true,
+        masterPasswordHash: config.masterPasswordHash || null,
+        sessionTimeout: config.sessionTimeout || 86400,
         viewerHooks: config.viewerHooks || null,
         viewerAuth: config.viewerAuth
             ? (Array.isArray(config.viewerAuth) ? config.viewerAuth : [config.viewerAuth])
@@ -244,6 +250,7 @@ function register(app, config) {
             editable: {
                 docs: cfg.docsEditable,
                 help: cfg.helpEditable,
+                requiresAdmin: cfg.editRequiresAdmin,
             },
             viewer_hooks: cfg.viewerHooks,
         };
@@ -255,6 +262,7 @@ function register(app, config) {
                     title: root.title,
                     route: root.route,
                     editable: root.editable === true,
+                    masterPassword: root.masterPassword === true,
                 };
             }
         }
@@ -364,6 +372,20 @@ function register(app, config) {
             return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
         }
 
+        // Admin role required for editing (skip check when no auth middleware is configured)
+        if (cfg.editRequiresAdmin && req.user && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin role required for editing' });
+        }
+
+        // Master password required for this root
+        const customRoot = cfg.customRoots && cfg.customRoots[root];
+        if (customRoot?.masterPassword && cfg.masterPasswordHash) {
+            const masterCookie = req.signedCookies?.['rap-master-verified'];
+            if (!masterCookie || masterCookie !== 'verified') {
+                return res.status(403).json({ error: 'Master password verification required', code: 'MASTER_PW_REQUIRED' });
+            }
+        }
+
         const viewerCfg = _getViewerConfig(cfg, root);
         if (!viewerCfg) {
             return res.status(404).json({ error: `Unknown root: ${root}` });
@@ -415,6 +437,31 @@ function register(app, config) {
             res.status(500).json({ error: `Error saving file: ${e.message}` });
         }
     });
+
+    // Master password verification endpoint
+    if (cfg.masterPasswordHash) {
+        const crypto = require('crypto');
+        app.post('/api/viewer/verify-master', ...cfg.viewerAuth, (req, res) => {
+            const { password } = req.body;
+            if (!password) {
+                return res.status(400).json({ error: 'Password required' });
+            }
+            const hash = crypto.createHash('sha256').update(password).digest('hex');
+            if (hash !== cfg.masterPasswordHash) {
+                return res.status(403).json({ error: 'Invalid master password' });
+            }
+            // Set signed cookie with same lifetime as session
+            res.cookie('rap-master-verified', 'verified', {
+                httpOnly: true,
+                signed: true,
+                secure: req.secure || req.headers['x-forwarded-proto'] === 'https',
+                maxAge: cfg.sessionTimeout * 1000,
+                sameSite: 'strict',
+                path: config.basePath || '/',
+            });
+            res.json({ success: true });
+        });
+    }
 
     // Docs viewer page (/about)
     if (cfg.enableDocs) {
