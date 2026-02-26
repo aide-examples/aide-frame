@@ -191,20 +191,33 @@ class DocsSearch {
      * @returns {string} FTS5 query string
      */
     static buildFtsQuery(query) {
-        // Split into words, filter empties, escape quotes
-        const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+        // Split on any non-letter/non-digit character — matching FTS5 unicode61 tokenizer behavior.
+        // The tokenizer treats punctuation, hyphens, slashes, dots, underscores etc. as token boundaries.
+        // Without this, "include/exclude" becomes "include/exclude"* which matches nothing,
+        // because the tokenizer stores "include" and "exclude" as separate tokens.
+        const words = query.trim().split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 0);
         if (words.length === 0) return '';
 
-        // Each word gets prefix matching: word → "word"*
-        // Quoting prevents FTS5 syntax errors from special characters
-        return words.map(w => '"' + w.replace(/"/g, '') + '"*').join(' ');
+        // Only the LAST word gets prefix matching (type-ahead: user may still be typing).
+        // Earlier words use normal FTS5 matching which applies Porter stemming.
+        // This matters because "word"* disables stemming — "creation"* won't match "create",
+        // but "creation" (without *) stems to "create" and matches correctly.
+        return words.map((w, i) => {
+            const escaped = w.replace(/"/g, '');
+            return i === words.length - 1 ? `"${escaped}"*` : `"${escaped}"`;
+        }).join(' ');
     }
 
     /**
      * Check if markdown contains <!-- noindex --> directive.
      */
     static hasNoIndex(markdown) {
-        return /<!--\s*noindex\s*-->/.test(markdown);
+        // Strip code fences and inline code before checking —
+        // the directive inside backticks (e.g. in documentation about noindex) must not trigger exclusion
+        const withoutCode = markdown
+            .replace(/```[\s\S]*?```/g, '')
+            .replace(/`[^`]+`/g, '');
+        return /<!--\s*noindex\s*-->/.test(withoutCode);
     }
 
     /**
@@ -220,12 +233,12 @@ class DocsSearch {
      */
     static stripMarkdown(text) {
         return text
-            // Remove code fences (``` blocks)
-            .replace(/```[\s\S]*?```/g, ' ')
-            // Remove inline code
-            .replace(/`[^`]+`/g, ' ')
-            // Remove HTML tags
-            .replace(/<[^>]+>/g, ' ')
+            // Strip code fence markers but keep content (searchable)
+            .replace(/```\w*\n?([\s\S]*?)```/g, '$1')
+            // Strip inline code backticks but keep content (searchable)
+            .replace(/`([^`]+)`/g, '$1')
+            // Remove HTML tags (single-line only — prevents Entity<fk syntax from consuming multi-line content)
+            .replace(/<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s[^>\n]*)?\/?>/g, ' ')
             // Remove images ![alt](url)
             .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
             // Convert links [text](url) to text
