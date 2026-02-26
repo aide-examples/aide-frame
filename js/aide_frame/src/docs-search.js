@@ -69,6 +69,7 @@ class DocsSearch {
                     const fullPath = path.join(dir, relPath);
                     try {
                         const raw = fs.readFileSync(fullPath, 'utf8');
+                        if (DocsSearch.hasNoIndex(raw)) continue;
                         const title = DocsSearch.extractTitle(raw) || path.basename(relPath, '.md');
                         const content = DocsSearch.stripMarkdown(raw);
                         insertStmt.run(rootName, relPath, title, content);
@@ -87,6 +88,7 @@ class DocsSearch {
                             const fullPath = path.join(fwDir, relPath);
                             try {
                                 const raw = fs.readFileSync(fullPath, 'utf8');
+                                if (DocsSearch.hasNoIndex(raw)) continue;
                                 const title = DocsSearch.extractTitle(raw) || path.basename(relPath, '.md');
                                 const content = DocsSearch.stripMarkdown(raw);
                                 insertStmt.run(rootName, 'framework/' + relPath, title, content);
@@ -127,10 +129,11 @@ class DocsSearch {
         this.db.prepare('DELETE FROM _docs_fts WHERE root = ? AND path = ?')
             .run(root, indexPath);
 
-        // Insert updated content
+        // Insert updated content (skip if marked <!-- noindex -->)
         if (fs.existsSync(fullPath)) {
             try {
                 const raw = fs.readFileSync(fullPath, 'utf8');
+                if (DocsSearch.hasNoIndex(raw)) return;
                 const title = DocsSearch.extractTitle(raw) || path.basename(filePath, '.md');
                 const content = DocsSearch.stripMarkdown(raw);
                 this.db.prepare('INSERT INTO _docs_fts (root, path, title, content) VALUES (?, ?, ?, ?)')
@@ -195,6 +198,13 @@ class DocsSearch {
         // Each word gets prefix matching: word → "word"*
         // Quoting prevents FTS5 syntax errors from special characters
         return words.map(w => '"' + w.replace(/"/g, '') + '"*').join(' ');
+    }
+
+    /**
+     * Check if markdown contains <!-- noindex --> directive.
+     */
+    static hasNoIndex(markdown) {
+        return /<!--\s*noindex\s*-->/.test(markdown);
     }
 
     /**

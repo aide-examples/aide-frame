@@ -960,6 +960,18 @@
                 <div id="search-results"></div>
             `;
 
+            // Feature Index link (if rap custom root exists)
+            if (appConfig.custom_roots?.rap) {
+                const scopesEl = document.getElementById('search-scopes');
+                const link = document.createElement('a');
+                link.href = '#';
+                link.textContent = '\u{1F4CB} Feature Index';
+                link.title = 'Browse all platform features';
+                link.style.cssText = 'margin-left:12px; font-size:0.9rem; cursor:pointer; text-decoration:none; color:#2563eb;';
+                link.addEventListener('click', (e) => { e.preventDefault(); openFeatureIndex(); });
+                scopesEl.appendChild(link);
+            }
+
             const input = document.getElementById('search-input');
             const btn = document.getElementById('search-btn');
 
@@ -1033,6 +1045,72 @@
 
         function _escapeHtml(s) {
             return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        /** Open Feature Index as popup overlay in search page */
+        async function openFeatureIndex() {
+            // Remove existing popup if any
+            const existing = document.getElementById('feature-index-popup');
+            if (existing) { existing.remove(); return; }
+
+            const overlay = document.createElement('div');
+            overlay.id = 'feature-index-popup';
+            overlay.className = 'editor-modal';
+            overlay.style.display = 'flex';
+            overlay.innerHTML = `
+                <div class="editor-modal-content" style="max-width:700px; height:auto; max-height:80vh;">
+                    <div class="editor-header">
+                        <span>Feature Index</span>
+                        <button class="editor-close" id="fi-close">&times;</button>
+                    </div>
+                    <div id="fi-content" class="viewer-content" style="padding:16px 24px; overflow-y:auto; flex:1;">
+                        <p style="color:#999;">Loading...</p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Close on backdrop click or X button
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            document.getElementById('fi-close').addEventListener('click', () => overlay.remove());
+
+            try {
+                const res = await fetch('api/viewer/content?root=rap&path=features/index.md');
+                const data = await res.json();
+                if (data.error || !data.content) {
+                    document.getElementById('fi-content').innerHTML = '<p>Feature Index not available.</p>';
+                    return;
+                }
+
+                const contentEl = document.getElementById('fi-content');
+                contentEl.innerHTML = marked.parse(data.content);
+
+                // Run viewerContentHook so <!-- search-items --> directive generates 🔍 buttons
+                if (typeof window.viewerContentHook === 'function') {
+                    await window.viewerContentHook(contentEl, {
+                        docPath: 'features/index.md',
+                        viewerRoot: 'rap',
+                        docNames: []
+                    });
+                }
+
+                // Intercept 🔍 search links: fill search input + trigger search instead of navigating
+                for (const a of contentEl.querySelectorAll('a[href*="search?q="]')) {
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const url = new URL(a.href, window.location.origin);
+                        const q = url.searchParams.get('q');
+                        if (q) {
+                            overlay.remove();
+                            const input = document.getElementById('search-input');
+                            if (input) { input.value = q; doSearch(); }
+                        }
+                    });
+                }
+            } catch (e) {
+                document.getElementById('fi-content').innerHTML = '<p>Error loading Feature Index.</p>';
+                console.error('Feature Index load failed:', e);
+            }
         }
 
         // =============================================================================
