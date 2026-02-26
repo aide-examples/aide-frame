@@ -217,6 +217,11 @@ function _getViewerConfig(config, root) {
     return null;
 }
 
+// Module-level state for search integration (set by register(), used by initSearch())
+let _registeredCfg = null;
+let _registeredBasePath = '';
+let _docsSearch = null;
+
 /**
  * Register docs/help routes on an Express app.
  * @param {express.Application} app - Express app
@@ -225,6 +230,8 @@ function _getViewerConfig(config, root) {
 function register(app, config) {
     const cfg = initConfig(config);
     const basePath = config.basePath || '';
+    _registeredCfg = cfg;
+    _registeredBasePath = basePath;
 
     // PWA manifest
     if (cfg.pwa && cfg.pwa.enabled) {
@@ -246,6 +253,7 @@ function register(app, config) {
                 mermaid: cfg.enableMermaid,
                 docs: cfg.enableDocs,
                 help: cfg.enableHelp,
+                search: !!_docsSearch,
             },
             editable: {
                 docs: cfg.docsEditable,
@@ -431,6 +439,10 @@ function register(app, config) {
         try {
             fs.writeFileSync(fullPath, content, 'utf8');
             logger.info(`Saved document: ${docPath}`);
+            // Re-index for full-text search
+            if (_docsSearch) {
+                try { _docsSearch.reindexFile(root, docPath); } catch (_) { /* non-critical */ }
+            }
             res.json({ success: true, path: docPath });
         } catch (e) {
             logger.error(`Error saving file ${docPath}: ${e.message}`);
@@ -654,8 +666,93 @@ function _serveManifest(res, pwa, basePath = '') {
     res.json(manifest);
 }
 
+/**
+ * Initialize full-text search for the documentation viewer.
+ *
+ * Must be called AFTER register() and AFTER the database is initialized.
+ * Registers search API routes and builds the FTS5 index.
+ *
+ * @param {express.Application} app - Express app (same as passed to register())
+ * @param {object} options
+ * @param {Database} options.db - better-sqlite3 Database instance
+ * @param {Function|Function[]} [options.viewerAuth] - Auth middleware for search routes
+ * @param {string} [options.basePath] - Base path prefix
+ */
+function initSearch(app, { db, viewerAuth = [], basePath = '' }) {
+    if (!_registeredCfg) {
+        logger.warning('initSearch() called before register() — skipping');
+        return;
+    }
+    if (!db) {
+        logger.warning('initSearch() called without db — skipping');
+        return;
+    }
+
+    const cfg = _registeredCfg;
+    const authMiddleware = Array.isArray(viewerAuth) ? viewerAuth : [viewerAuth].filter(Boolean);
+
+    // Build root configuration from registered docs config
+    const roots = {};
+    if (cfg.enableDocs && paths.get(cfg.docsDirKey)) {
+        roots.docs = {
+            dirKey: cfg.docsDirKey,
+            frameworkDirKey: cfg.frameworkDirKey,
+            exclude: cfg.docsExclude || [],
+        };
+    }
+    if (cfg.enableHelp && paths.get(cfg.helpDirKey)) {
+        roots.help = {
+            dirKey: cfg.helpDirKey,
+        };
+    }
+    for (const [name, root] of Object.entries(cfg.customRoots)) {
+        if (paths.get(root.dirKey)) {
+            roots[name] = {
+                dirKey: root.dirKey,
+                exclude: root.exclude || [],
+            };
+        }
+    }
+
+    // Create search instance and build index
+    const { DocsSearch } = require('./docs-search');
+    _docsSearch = new DocsSearch({ db, roots });
+    _docsSearch.initSchema();
+    const count = _docsSearch.rebuildAll();
+
+    // Search API
+    app.get('/api/viewer/search', ...authMiddleware, (req, res) => {
+        const query = req.query.q;
+        if (!query || query.trim().length < 2) {
+            return res.json({ query: '', results: [], totalCount: 0 });
+        }
+        const rootNames = req.query.roots
+            ? req.query.roots.split(',').filter(r => r in roots)
+            : Object.keys(roots);
+        const limit = Math.min(parseInt(req.query.limit) || 30, 100);
+
+        const results = _docsSearch.search(query.trim(), rootNames, limit);
+        res.json({ query: query.trim(), results, totalCount: results.length });
+    });
+
+    // Manual rebuild (admin)
+    app.post('/api/viewer/search/rebuild', ...authMiddleware, (req, res) => {
+        const start = Date.now();
+        const indexed = _docsSearch.rebuildAll();
+        res.json({ success: true, indexedFiles: indexed, duration: Date.now() - start });
+    });
+
+    // Search page (serves viewer.html with 'search' root)
+    app.get('/search', ...authMiddleware, (req, res) => {
+        _serveViewer(res, 'search', basePath || _registeredBasePath);
+    });
+
+    logger.info(`Full-text search initialized: ${count} documents indexed across ${Object.keys(roots).length} roots`);
+}
+
 module.exports = {
     register,
+    initSearch,
     initConfig,
     DocsConfig: null, // For documentation purposes
     CustomRoot: null, // For documentation purposes

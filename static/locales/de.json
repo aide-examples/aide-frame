@@ -11,6 +11,15 @@
     "nav_loading": "Navigation wird geladen...",
     "nav_error": "Fehler beim Laden der Navigation",
 
+    "search": "Suche",
+    "search_placeholder": "Dokumentation durchsuchen...",
+    "search_btn": "Suchen",
+    "search_results_count": "%{smart_count} Ergebnis |||| %{smart_count} Ergebnisse",
+    "search_no_results": "Keine Ergebnisse für \"%{query}\"",
+    "search_scope_docs": "System-Doku",
+    "search_scope_help": "Hilfe",
+    "search_error": "Suche fehlgeschlagen. Bitte erneut versuchen.",
+
     "update_title": "Systemaktualisierung",
     "update_version_info": "Versionsinformationen",
     "update_current_version": "Aktuelle Version",

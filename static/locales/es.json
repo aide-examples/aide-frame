@@ -11,6 +11,15 @@
     "nav_loading": "Cargando navegación...",
     "nav_error": "Error al cargar la navegación",
 
+    "search": "Búsqueda",
+    "search_placeholder": "Buscar en la documentación...",
+    "search_btn": "Buscar",
+    "search_results_count": "%{smart_count} resultado |||| %{smart_count} resultados",
+    "search_no_results": "Sin resultados para \"%{query}\"",
+    "search_scope_docs": "Docs del sistema",
+    "search_scope_help": "Ayuda",
+    "search_error": "Error en la búsqueda. Inténtelo de nuevo.",
+
     "update_title": "Actualización del sistema",
     "update_version_info": "Información de versión",
     "update_current_version": "Versión actual",

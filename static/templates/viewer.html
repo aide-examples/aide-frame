@@ -12,6 +12,8 @@
     <div class="header sticky">
         <h1 id="page-title">Loading...</h1>
         <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="search" class="header-btn" id="search-link" style="display:none"
+               title="Search documentation">&#128269;</a>
             <span id="gt-container"></span>
             <button class="header-btn" id="present-btn" style="display:none"
                     title="Start slideshow (fullscreen)">&#9654; Present</button>
@@ -93,6 +95,10 @@
             viewerRoot = 'help';
             titleSuffix = null;
             assetPrefix = 'help-assets/';
+        } else if (pathname === '/search' || pathname.startsWith('/search/')) {
+            viewerRoot = 'search';
+            titleSuffix = null;
+            assetPrefix = '';
         } else {
             // Custom root - extract name from path (e.g., /samples -> samples)
             viewerRoot = pathname.substring(1).split('/')[0];
@@ -713,7 +719,9 @@
                 updateBreadcrumb(docPath);
                 updateActiveLink(docPath);
 
-                const newUrl = '?doc=' + docPath;
+                const params = new URLSearchParams(window.location.search);
+                params.set('doc', docPath);
+                const newUrl = '?' + params.toString();
                 if (window.location.search !== newUrl) {
                     history.pushState({doc: docPath}, '', newUrl);
                 }
@@ -765,10 +773,60 @@
                     window.scrollTo(0, 0);
                 }
 
+                // Highlight search terms and scroll to first match
+                const searchParam = new URLSearchParams(window.location.search).get('search');
+                if (searchParam) {
+                    const firstHit = highlightSearchTerms(container, searchParam);
+                    if (firstHit) {
+                        const headerHeight = 70;
+                        const top = firstHit.getBoundingClientRect().top + window.pageYOffset;
+                        window.scrollTo({ top: top - headerHeight, behavior: 'smooth' });
+                    }
+                }
+
             } catch (e) {
                 container.className = 'markdown-body';
                 container.innerHTML = '<p style="color: #dc2626;">' + i18n.t('error_loading') + ': ' + e.message + '</p>';
             }
+        }
+
+        /**
+         * Wrap search term matches in <mark> elements. Returns first mark element or null.
+         */
+        function highlightSearchTerms(root, query) {
+            const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+            if (!words.length) return null;
+
+            const escaped = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+            const re = new RegExp('(' + escaped.join('|') + ')', 'gi');
+            let firstMark = null;
+
+            (function walk(node) {
+                if (node.nodeType === 3) {
+                    const text = node.nodeValue;
+                    re.lastIndex = 0;
+                    if (!re.test(text)) return;
+                    re.lastIndex = 0;
+
+                    const frag = document.createDocumentFragment();
+                    let last = 0, m;
+                    while ((m = re.exec(text)) !== null) {
+                        if (m.index > last) frag.appendChild(document.createTextNode(text.substring(last, m.index)));
+                        const mark = document.createElement('mark');
+                        mark.style.cssText = 'background:#fef3c7;color:#92400e;padding:1px 3px;border-radius:3px';
+                        mark.textContent = m[0];
+                        frag.appendChild(mark);
+                        if (!firstMark) firstMark = mark;
+                        last = re.lastIndex;
+                    }
+                    if (last < text.length) frag.appendChild(document.createTextNode(text.substring(last)));
+                    node.parentNode.replaceChild(frag, node);
+                } else if (node.nodeType === 1 && !/^(SCRIPT|STYLE|MARK)$/.test(node.tagName)) {
+                    Array.from(node.childNodes).forEach(walk);
+                }
+            })(root);
+
+            return firstMark;
         }
 
         // Build navbar from API
@@ -860,9 +918,141 @@
         });
 
         // Initialize
+        // =============================================================================
+        // SEARCH PAGE
+        // =============================================================================
+
+        function buildSearchUI() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.style.display = 'none';
+
+            document.getElementById('page-title').textContent =
+                appConfig.app_name + ' - ' + i18n.t('search');
+            document.title = i18n.t('search') + ' - ' + appConfig.app_name;
+
+            // Build scope options from app config
+            const scopes = [];
+            if (appConfig.features?.docs) scopes.push({ key: 'docs', label: i18n.t('search_scope_docs') });
+            if (appConfig.features?.help) scopes.push({ key: 'help', label: i18n.t('search_scope_help') });
+            if (appConfig.custom_roots) {
+                for (const [name, root] of Object.entries(appConfig.custom_roots)) {
+                    scopes.push({ key: name, label: root.title || name });
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialQuery = urlParams.get('q') || sessionStorage.getItem('docs-search-query') || '';
+            const initialRoots = urlParams.get('roots')?.split(',') || scopes.map(s => s.key);
+
+            const container = document.getElementById('content');
+            container.className = 'search-page';
+            container.innerHTML = `
+                <div class="search-form">
+                    <input type="text" class="search-input" id="search-input"
+                           placeholder="${i18n.t('search_placeholder')}" value="${initialQuery.replace(/"/g, '&quot;')}">
+                    <button class="header-btn search-btn" id="search-btn">${i18n.t('search_btn')}</button>
+                </div>
+                <div class="search-scopes" id="search-scopes">
+                    ${scopes.map(s => `<label><input type="checkbox" value="${s.key}"
+                        ${initialRoots.includes(s.key) ? 'checked' : ''}> ${s.label}</label>`).join('')}
+                </div>
+                <div id="search-status"></div>
+                <div id="search-results"></div>
+            `;
+
+            const input = document.getElementById('search-input');
+            const btn = document.getElementById('search-btn');
+
+            btn.addEventListener('click', doSearch);
+            input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+            // Auto-search if query in URL
+            if (initialQuery) doSearch();
+            else input.focus();
+        }
+
+        /** Root name → viewer route mapping */
+        function rootToRoute(root) {
+            if (root === 'docs') return 'about';
+            if (root === 'help') return 'help';
+            if (appConfig.custom_roots?.[root]?.route) {
+                return appConfig.custom_roots[root].route.replace(/^\//, '');
+            }
+            return root;
+        }
+
+        async function doSearch() {
+            const input = document.getElementById('search-input');
+            const query = input.value.trim();
+            if (query.length < 2) return;
+
+            const checkboxes = document.querySelectorAll('#search-scopes input[type="checkbox"]:checked');
+            const roots = Array.from(checkboxes).map(cb => cb.value);
+            if (roots.length === 0) return;
+
+            // Update URL for bookmarkability + remember query
+            const url = new URL(window.location);
+            url.searchParams.set('q', query);
+            url.searchParams.set('roots', roots.join(','));
+            history.replaceState(null, '', url);
+            sessionStorage.setItem('docs-search-query', query);
+
+            const statusEl = document.getElementById('search-status');
+            const resultsEl = document.getElementById('search-results');
+            statusEl.textContent = '...';
+            resultsEl.innerHTML = '';
+
+            try {
+                const res = await fetch(`api/viewer/search?q=${encodeURIComponent(query)}&roots=${roots.join(',')}`);
+                const data = await res.json();
+
+                if (data.results.length === 0) {
+                    statusEl.textContent = i18n.t('search_no_results', { query });
+                    return;
+                }
+
+                statusEl.textContent = i18n.t('search_results_count', { smart_count: data.results.length });
+
+                resultsEl.innerHTML = data.results.map(r => {
+                    const route = rootToRoute(r.root);
+                    const href = `${route}?doc=${encodeURIComponent(r.path)}&search=${encodeURIComponent(query)}`;
+                    return `<a href="${href}" class="search-result">
+                        <div class="search-result-title">${_escapeHtml(r.title)}</div>
+                        <div class="search-result-meta">
+                            <span class="root-badge">${_escapeHtml(r.root)}</span>
+                            ${_escapeHtml(r.path)}
+                        </div>
+                        <div class="search-result-snippet">${r.snippet || ''}</div>
+                    </a>`;
+                }).join('');
+            } catch (e) {
+                statusEl.textContent = i18n.t('search_error');
+                console.error('Search failed:', e);
+            }
+        }
+
+        function _escapeHtml(s) {
+            return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // =============================================================================
+        // INITIALIZATION
+        // =============================================================================
+
         async function init() {
             await i18n.init();  // Load translations first
             await loadAppConfig();
+
+            // Show search link if search is available
+            if (appConfig.features?.search && viewerRoot !== 'search') {
+                document.getElementById('search-link').style.display = '';
+            }
+
+            if (viewerRoot === 'search') {
+                buildSearchUI();
+                return;
+            }
+
             await buildNavbar();
             const urlParams = new URLSearchParams(window.location.search);
             const initialDoc = urlParams.get('doc');

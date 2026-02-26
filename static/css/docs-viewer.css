@@ -614,3 +614,118 @@
 .heading-drop-indicator.active {
     opacity: 1;
 }
+
+/* =============================================================================
+   Full-Text Search Page
+   ============================================================================= */
+
+.search-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.search-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.search-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.search-btn {
+    padding: 10px 20px !important;
+    font-size: 0.95rem !important;
+}
+
+.search-scopes {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.search-scopes label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #666;
+    cursor: pointer;
+}
+
+.search-scopes input[type="checkbox"] {
+    accent-color: #2563eb;
+}
+
+#search-status {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.search-result {
+    display: block;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+}
+
+.search-result:hover {
+    border-color: #2563eb;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+.search-result-title {
+    font-weight: 600;
+    color: #1e40af;
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.search-result-meta {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    margin-bottom: 6px;
+}
+
+.search-result-meta .root-badge {
+    display: inline-block;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    margin-right: 6px;
+}
+
+.search-result-snippet {
+    font-size: 0.9rem;
+    color: #555;
+    line-height: 1.5;
+}
+
+.search-result-snippet mark {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 1px 2px;
+    border-radius: 2px;
+}

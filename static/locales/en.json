@@ -11,6 +11,15 @@
     "nav_loading": "Loading navigation...",
     "nav_error": "Error loading navigation",
 
+    "search": "Search",
+    "search_placeholder": "Search documentation...",
+    "search_btn": "Search",
+    "search_results_count": "%{smart_count} result |||| %{smart_count} results",
+    "search_no_results": "No results for \"%{query}\"",
+    "search_scope_docs": "System Docs",
+    "search_scope_help": "Help",
+    "search_error": "Search failed. Please try again.",
+
     "update_title": "System Update",
     "update_version_info": "Version Information",
     "update_current_version": "Current Version",

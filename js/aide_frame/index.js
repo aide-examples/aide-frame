@@ -20,6 +20,7 @@ const platformDetect = require('./src/platform-detect');
 const httpServer = require('./src/http-server');
 const httpRoutes = require('./src/http-routes');
 const docsViewer = require('./src/docs-viewer');
+const docsSearch = require('./src/docs-search');
 
 // Update system
 const webRequest = require('./src/web-request');
@@ -44,6 +45,7 @@ module.exports = {
     HttpServer: httpServer.HttpServer,
     httpRoutes,
     docsViewer,
+    docsSearch,
 
     // Update
     webRequest,
