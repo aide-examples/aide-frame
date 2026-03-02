@@ -477,6 +477,13 @@
             }
         }
 
+        // Scroll an element into view, offset by the sticky header height
+        function scrollToElement(el) {
+            const headerHeight = 70;
+            const top = el.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({ top: top - headerHeight, behavior: 'smooth' });
+        }
+
         // Generate Table of Contents
         function generateTOC(container) {
             const headings = container.querySelectorAll('h1, h2, h3, h4');
@@ -527,7 +534,7 @@
                     const targetId = link.getAttribute('href').substring(1);
                     const targetElement = document.getElementById(targetId);
                     if (targetElement) {
-                        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        scrollToElement(targetElement);
                         history.pushState(null, '', link.getAttribute('href'));
                     }
                 });
@@ -753,9 +760,7 @@
                     }
 
                     if (targetElement) {
-                        const headerHeight = 70; // Account for sticky header
-                        const elementTop = targetElement.getBoundingClientRect().top + window.pageYOffset;
-                        window.scrollTo({ top: elementTop - headerHeight, behavior: 'smooth' });
+                        scrollToElement(targetElement);
                     } else {
                         window.scrollTo(0, 0);
                     }
@@ -763,10 +768,7 @@
                     const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
                     for (const h of headings) {
                         if (h.textContent.trim() === scrollToHeadingText) {
-                            // Scroll with offset from top
-                            const headerHeight = 70; // Account for sticky header
-                            const elementTop = h.getBoundingClientRect().top + window.pageYOffset;
-                            window.scrollTo({ top: elementTop - headerHeight, behavior: 'smooth' });
+                            scrollToElement(h);
                             scrollToHeadingText = null;
                             break;
                         }
@@ -785,9 +787,7 @@
                 if (searchParam) {
                     const firstHit = highlightSearchTerms(container, searchParam);
                     if (firstHit) {
-                        const headerHeight = 70;
-                        const top = firstHit.getBoundingClientRect().top + window.pageYOffset;
-                        window.scrollTo({ top: top - headerHeight, behavior: 'smooth' });
+                        scrollToElement(firstHit);
                     }
                 }
 
