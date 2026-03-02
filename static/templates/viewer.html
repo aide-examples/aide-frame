@@ -561,11 +561,18 @@
             breadcrumb.innerHTML = html;
         }
 
-        // Update active sidebar link
+        // Update active sidebar link, expand its section, and scroll it into view
         function updateActiveLink(docPath) {
             document.querySelectorAll('.docs-sidebar a').forEach(a => {
                 a.classList.toggle('active', a.dataset.doc === docPath);
             });
+
+            const activeLink = document.querySelector('.docs-sidebar a.active');
+            if (activeLink) {
+                const section = activeLink.closest('.section.collapsed');
+                if (section) section.classList.remove('collapsed');
+                activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            }
         }
 
         // Load documentation
