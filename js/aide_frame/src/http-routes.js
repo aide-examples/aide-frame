@@ -652,13 +652,13 @@ function _serveManifest(res, pwa, basePath = '') {
                 src: basePath + icon192,
                 sizes: '192x192',
                 type: iconType,
-                purpose: 'any maskable'
+                purpose: 'any'
             },
             {
                 src: basePath + icon512,
                 sizes: '512x512',
                 type: iconType,
-                purpose: 'any maskable'
+                purpose: 'any'
             }
         ]
     };

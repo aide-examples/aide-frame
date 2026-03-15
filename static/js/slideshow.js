@@ -79,6 +79,7 @@ const Slideshow = (() => {
         if (!_overlay || index < 0 || index >= _slides.length) return;
 
         _hideTOC();
+        _hideNotes();
         _current = index;
         const slide = _slides[index];
 
@@ -161,6 +162,11 @@ const Slideshow = (() => {
             e.preventDefault();
             stop();
             break;
+        case 'n':
+        case 'N':
+            e.preventDefault();
+            _toggleNotes();
+            break;
         case 'p':
         case 'P':
             e.preventDefault();
@@ -174,7 +180,7 @@ const Slideshow = (() => {
         }
     }
 
-    // ── Click navigation (left 20% = back, top 20% = TOC, rest = forward)
+    // ── Click navigation (left 20% = back, top 15% = TOC, bottom 15% = notes, rest = forward)
 
     function _onClick(e) {
         if (!_active) return;
@@ -188,8 +194,11 @@ const Slideshow = (() => {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        if (y < rect.height * 0.2) {
-            // Top 20%: toggle TOC
+        if (y > rect.height * 0.85) {
+            // Bottom 15%: toggle speaker notes
+            _toggleNotes();
+        } else if (y < rect.height * 0.15) {
+            // Top 15%: toggle TOC
             _toggleTOC();
         } else if (x < rect.width * 0.2) {
             // Left 20%: go back
@@ -198,6 +207,12 @@ const Slideshow = (() => {
             // Rest: go forward
             next();
         }
+    }
+
+    function _toggleNotes() {
+        const notesEl = _overlay?.querySelector('.slideshow-notes');
+        if (!notesEl || notesEl.dataset.hasNotes !== 'true') return;
+        notesEl.classList.toggle('visible');
     }
 
     // ── Table of Contents ─────────────────────────────────────────────
@@ -241,6 +256,11 @@ const Slideshow = (() => {
     function _hideTOC() {
         const toc = _overlay?.querySelector('.slideshow-toc');
         if (toc) toc.remove();
+    }
+
+    function _hideNotes() {
+        const notesEl = _overlay?.querySelector('.slideshow-notes');
+        if (notesEl) notesEl.classList.remove('visible');
     }
 
     // ── Fullscreen ──────────────────────────────────────────────────────

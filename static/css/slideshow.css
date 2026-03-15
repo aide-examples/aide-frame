@@ -197,14 +197,8 @@
     z-index: 5;
 }
 
-.slideshow-footer:hover ~ .slideshow-notes[data-has-notes="true"],
-.slideshow-notes:hover {
-    /* notes element is a sibling before footer, so we use a different approach */
-}
-
-/* Footer hover reveals the notes panel above it */
-.slideshow-overlay:has(.slideshow-footer:hover) .slideshow-notes[data-has-notes="true"],
-.slideshow-notes[data-has-notes="true"]:hover {
+/* Click-toggle: visible class set by _toggleNotes() */
+.slideshow-notes.visible {
     opacity: 1;
     pointer-events: auto;
 }
