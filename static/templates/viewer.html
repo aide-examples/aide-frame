@@ -596,6 +596,9 @@
 
                 const res = await fetch(`api/viewer/content?root=${viewerRoot}&path=${encodeURIComponent(apiPath)}`);
                 data = await res.json();
+                if (data.redirect) {
+                    return loadDoc(data.redirect);
+                }
                 if (data.error) throw new Error(data.error);
                 docPath = apiPath;
 

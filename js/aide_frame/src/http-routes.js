@@ -350,6 +350,17 @@ function register(app, config) {
 
         try {
             const content = fs.readFileSync(fullPath, 'utf8');
+
+            // Check for redirect directive: <!-- redirect: target.md -->
+            const redirectMatch = content.match(/<!--\s*redirect:\s*(\S+)\s*-->/);
+            if (redirectMatch) {
+                const target = redirectMatch[1];
+                // Resolve relative to current document's directory
+                const docDir = path.dirname(actualPath);
+                const resolvedTarget = path.posix.normalize(path.posix.join(docDir, target));
+                return res.json({ redirect: resolvedTarget });
+            }
+
             const { title } = docsViewer.extractTitleAndDescription(fullPath);
             res.json({
                 path: actualPath,
