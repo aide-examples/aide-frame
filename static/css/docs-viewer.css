@@ -735,40 +735,63 @@
    ============================================================================= */
 
 @media print {
+    /* Hide non-printable UI elements */
     .docs-sidebar,
     .sidebar-toggle,
     .header-btn,
     #gt-container,
-    #editor-modal {
+    #editor-modal,
+    .header,
+    .breadcrumb {
         display: none !important;
     }
 
-    .header.sticky {
-        position: static;
-        box-shadow: none;
-        border-bottom: 1px solid #ccc;
+    /* Reset all layout constraints */
+    html, body {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        background: white !important;
     }
 
     .docs-layout {
-        display: block;
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     .docs-content {
-        min-height: auto;
         height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         overflow: visible !important;
-        padding: 0;
+        padding: 20px !important;
     }
 
     #content {
         height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         overflow: visible !important;
     }
 
-    body {
+    .help-layout,
+    .help-sidebar,
+    .help-content {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
         overflow: visible !important;
+        position: static !important;
     }
 
+    .help-sidebar {
+        display: none !important;
+    }
+
+    /* Page break hints */
     h1, h2 {
         page-break-after: avoid;
     }
