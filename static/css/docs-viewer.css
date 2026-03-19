@@ -729,3 +729,51 @@
     padding: 1px 2px;
     border-radius: 2px;
 }
+
+/* =============================================================================
+   Print Styles
+   ============================================================================= */
+
+@media print {
+    .docs-sidebar,
+    .sidebar-toggle,
+    .header-btn,
+    #gt-container,
+    #editor-modal {
+        display: none !important;
+    }
+
+    .header.sticky {
+        position: static;
+        box-shadow: none;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .docs-layout {
+        display: block;
+    }
+
+    .docs-content {
+        min-height: auto;
+        height: auto !important;
+        overflow: visible !important;
+        padding: 0;
+    }
+
+    #content {
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    body {
+        overflow: visible !important;
+    }
+
+    h1, h2 {
+        page-break-after: avoid;
+    }
+
+    table, pre, img {
+        page-break-inside: avoid;
+    }
+}
