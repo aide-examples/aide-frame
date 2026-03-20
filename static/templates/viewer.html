@@ -691,11 +691,9 @@
                             const content = document.getElementById('content');
                             if (!content) return;
                             const pw = window.open('', '_blank');
-                            const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-                                .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
-                            pw.document.write(`<html><head><title>${document.title}</title>${styles}</head><body class="markdown-body" style="max-width:900px;margin:0 auto;padding:30px;">${content.innerHTML}</body></html>`);
+                            pw.document.write(`<html><head><title>${document.title}</title><style>body{font-family:system-ui,sans-serif;max-width:900px;margin:0 auto;padding:30px;line-height:1.6}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px 10px;text-align:left}th{background:#f5f5f5}h1,h2,h3{margin-top:1.5em}pre{background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto}code{font-size:0.9em}</style></head><body>${content.innerHTML}</body></html>`);
                             pw.document.close();
-                            pw.onload = () => { pw.print(); };
+                            setTimeout(() => pw.print(), 300);
                         };
                 }
 
