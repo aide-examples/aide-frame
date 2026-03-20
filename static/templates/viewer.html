@@ -684,10 +684,19 @@
                         : null;
                 }
                 if (printBtn) {
-                    printBtn.style.display = isSlides ? '' : 'none';
+                    printBtn.style.display = '';
                     printBtn.onclick = isSlides
                         ? () => Slideshow.printAll(data.content, slideOpts)
-                        : null;
+                        : () => {
+                            const content = document.getElementById('content');
+                            if (!content) return;
+                            const pw = window.open('', '_blank');
+                            const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+                                .map(l => `<link rel="stylesheet" href="${l.href}">`).join('\n');
+                            pw.document.write(`<html><head><title>${document.title}</title>${styles}</head><body class="markdown-body" style="max-width:900px;margin:0 auto;padding:30px;">${content.innerHTML}</body></html>`);
+                            pw.document.close();
+                            pw.onload = () => { pw.print(); };
+                        };
                 }
 
                 // Post-processing hook (app-specific content enhancement, may be async)
