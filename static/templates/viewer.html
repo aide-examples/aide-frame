@@ -693,7 +693,7 @@
                             const pw = window.open('', '_blank');
                             pw.document.write(`<html><head><title>${document.title}</title><style>body{font-family:system-ui,sans-serif;max-width:900px;margin:0 auto;padding:30px;line-height:1.6}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ddd;padding:6px 10px;text-align:left}th{background:#f5f5f5}h1,h2,h3{margin-top:1.5em}pre{background:#f5f5f5;padding:12px;border-radius:4px;overflow-x:auto}code{font-size:0.9em}</style></head><body>${content.innerHTML}</body></html>`);
                             pw.document.close();
-                            setTimeout(() => pw.print(), 300);
+                            requestAnimationFrame(() => requestAnimationFrame(() => pw.print()));
                         };
                 }
 
