@@ -107,6 +107,12 @@ const Slideshow = (() => {
             }
         });
 
+        // Render mermaid diagrams if any
+        const mermaidEls = slideEl.querySelectorAll('.mermaid');
+        if (mermaidEls.length > 0 && typeof mermaid !== 'undefined') {
+            mermaid.run({ nodes: mermaidEls }).catch(() => {});
+        }
+
         // Update counter
         const counter = _overlay.querySelector('.slideshow-counter');
         if (counter) counter.textContent = `${index + 1} / ${_slides.length}`;
