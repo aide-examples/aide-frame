@@ -78,7 +78,7 @@ const Slideshow = (() => {
     function renderSlide(index) {
         if (!_overlay || index < 0 || index >= _slides.length) return;
 
-        _hideMenu();
+        _hideTOC();
         _hideNotes();
         _current = index;
         const slide = _slides[index];
@@ -180,14 +180,14 @@ const Slideshow = (() => {
         }
     }
 
-    // ── Click navigation (left 20% = back, top 15% = menu, bottom 15% = notes, rest = forward)
+    // ── Click navigation (left 20% = back, top 15% = TOC, bottom 15% = notes, rest = forward)
 
     function _onClick(e) {
         if (!_active) return;
         // Don't intercept clicks on links or interactive elements
         if (e.target.closest('a, button, input, select, textarea')) return;
-        // Don't intercept clicks inside menu
-        if (e.target.closest('.slideshow-menu')) return;
+        // Don't intercept clicks inside TOC
+        if (e.target.closest('.slideshow-toc')) return;
 
         const slideEl = _overlay.querySelector('.slideshow-slide');
         const rect = slideEl.getBoundingClientRect();
@@ -198,8 +198,8 @@ const Slideshow = (() => {
             // Bottom 15%: toggle speaker notes
             _toggleNotes();
         } else if (y < rect.height * 0.15) {
-            // Top 15%: toggle menu (TOC + Google Translate)
-            _toggleMenu();
+            // Top 15%: toggle TOC
+            _toggleTOC();
         } else if (x < rect.width * 0.2) {
             // Left 20%: go back
             prev();
@@ -215,43 +215,47 @@ const Slideshow = (() => {
         notesEl.classList.toggle('visible');
     }
 
-    // ── Menu (TOC + Google Translate) ────────────────────────────────
+    // ── Table of Contents ─────────────────────────────────────────────
 
-    function _toggleMenu() {
-        const existing = _overlay.querySelector('.slideshow-menu');
+    function _toggleTOC() {
+        const existing = _overlay.querySelector('.slideshow-toc');
         if (existing) {
             existing.remove();
             return;
         }
-        _showMenu();
+        _showTOC();
     }
 
-    function _showMenu() {
-        const menu = document.createElement('div');
-        menu.className = 'slideshow-menu';
+    function _showTOC() {
+        const toc = document.createElement('div');
+        toc.className = 'slideshow-toc';
 
-        const tocList = document.createElement('ul');
-        _slides.forEach((slide, i) => {
+        const items = _slides.map((slide, i) => {
+            // Extract first heading as slide title
             const match = slide.content.match(/^#{1,3}\s+(.+)$/m);
             const title = match ? match[1].replace(/\*\*/g, '').replace(/`/g, '') : `Slide ${i + 1}`;
-            const li = document.createElement('li');
-            if (i === _current) li.className = 'active';
-            li.dataset.index = i;
-            li.textContent = `${i + 1}. ${title}`;
-            tocList.appendChild(li);
+            const active = i === _current ? ' class="active"' : '';
+            return `<li${active} data-index="${i}">${i + 1}. ${_escHtml(title)}</li>`;
         });
-        menu.appendChild(tocList);
+
+        toc.innerHTML = `<ul>${items.join('')}</ul>`;
 
         // Click on TOC item → jump to slide
-        menu.addEventListener('click', (e) => {
+        toc.addEventListener('click', (e) => {
             const li = e.target.closest('li[data-index]');
             if (li) {
                 goTo(Number(li.dataset.index));
-                menu.remove();
+                toc.remove();
             }
         });
 
-        _overlay.querySelector('.slideshow-slide').appendChild(menu);
+        // Close on Escape (handled by main handler) or click outside
+        _overlay.querySelector('.slideshow-slide').appendChild(toc);
+    }
+
+    function _hideTOC() {
+        const toc = _overlay?.querySelector('.slideshow-toc');
+        if (toc) toc.remove();
     }
 
     function _hideNotes() {
