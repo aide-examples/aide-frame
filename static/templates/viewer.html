@@ -15,11 +15,11 @@
             <a href="search" class="header-btn" id="search-link" style="display:none"
                title="Search documentation">&#128269;</a>
             <span id="gt-container"></span>
-            <button class="header-btn" id="present-btn" style="display:none"
+            <button class="header-btn notranslate" id="present-btn" style="display:none"
                     title="Start slideshow (fullscreen)">&#9654; <span data-i18n="present">Present</span></button>
-            <button class="header-btn" id="print-btn" style="display:none"
+            <button class="header-btn notranslate" id="print-btn" style="display:none"
                     title="Print slides as PDF handout">&#128438; <span data-i18n="print_slides">Print</span></button>
-            <a href="./" class="header-btn" id="back-link" data-i18n="back">Back</a>
+            <a href="./" class="header-btn notranslate" id="back-link" data-i18n="back">Back</a>
         </div>
     </div>
 
@@ -459,9 +459,6 @@
                     document.getElementById('page-title').textContent = appConfig.app_name + ' - ' + titleSuffix;
                     document.title = titleSuffix + ' - ' + appConfig.app_name;
                     document.getElementById('back-link').href = appConfig.back_link;
-                    document.getElementById('back-link').textContent = i18n.t('back');
-                    document.querySelector('#present-btn span').textContent = i18n.t('present');
-                    document.querySelector('#print-btn span').textContent = i18n.t('print_slides');
 
                     // Load viewer hooks script if configured
                     if (appConfig.viewer_hooks) {
@@ -1149,6 +1146,7 @@
 
         async function init() {
             await i18n.init();  // Load translations first
+            i18n.applyToDOM();  // Translate all [data-i18n] elements (before GT runs)
             await loadAppConfig();
 
             // Show search link if search is available
