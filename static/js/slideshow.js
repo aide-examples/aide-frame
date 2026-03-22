@@ -218,6 +218,7 @@ const Slideshow = (() => {
     // ── Menu (TOC + Google Translate) ────────────────────────────────
 
     let _gtPrevParent = null;  // remember where GT widget was before slideshow
+    let _menuOpen = false;     // true while menu is open (suppress fullscreen-exit → cleanup)
 
     function _toggleMenu() {
         const existing = _overlay.querySelector('.slideshow-menu');
@@ -229,6 +230,10 @@ const Slideshow = (() => {
     }
 
     function _showMenu() {
+        // Exit browser fullscreen so GT dropdown (rendered at body level) is visible
+        _menuOpen = true;
+        _exitFullscreen();
+
         const menu = document.createElement('div');
         menu.className = 'slideshow-menu';
 
@@ -274,6 +279,9 @@ const Slideshow = (() => {
             _gtPrevParent = null;
         }
         menu.remove();
+        // Re-enter fullscreen after menu is closed
+        _menuOpen = false;
+        _enterFullscreen();
     }
 
     function _hideNotes() {
@@ -299,7 +307,8 @@ const Slideshow = (() => {
 
     function _onFullscreenChange() {
         // If user exits fullscreen via browser UI (not Escape key), stop the slideshow
-        if (_active && !document.fullscreenElement && !document.webkitFullscreenElement) {
+        // But not when we intentionally exited for the menu overlay
+        if (_active && !_menuOpen && !document.fullscreenElement && !document.webkitFullscreenElement) {
             _cleanup();
         }
     }
