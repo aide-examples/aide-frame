@@ -55,21 +55,6 @@ const GoogleTranslate = {
         this.addStyles();
     },
 
-    /**
-     * Relocate the GT widget into a different container (e.g., slideshow overlay).
-     * Returns the previous parent so the caller can restore it later.
-     * @param {string|Element} target - New container selector or element
-     * @returns {Element|null} - Previous parent element (for restore)
-     */
-    relocate(target) {
-        const gtEl = document.getElementById('google_translate_element');
-        if (!gtEl) return null;
-        const prevParent = gtEl.parentElement;
-        const targetEl = typeof target === 'string' ? document.querySelector(target) : target;
-        if (targetEl) targetEl.appendChild(gtEl);
-        return prevParent;
-    },
-
     addStyles() {
         if (document.getElementById('gt-styles')) return;
 

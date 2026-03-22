@@ -217,35 +217,19 @@ const Slideshow = (() => {
 
     // ── Menu (TOC + Google Translate) ────────────────────────────────
 
-    let _gtPrevParent = null;  // remember where GT widget was before slideshow
-    let _menuOpen = false;     // true while menu is open (suppress fullscreen-exit → cleanup)
-
     function _toggleMenu() {
         const existing = _overlay.querySelector('.slideshow-menu');
         if (existing) {
-            _hideMenu();
+            existing.remove();
             return;
         }
         _showMenu();
     }
 
     function _showMenu() {
-        // Exit browser fullscreen so GT dropdown (rendered at body level) is visible
-        _menuOpen = true;
-        _exitFullscreen();
-
         const menu = document.createElement('div');
         menu.className = 'slideshow-menu';
 
-        // Google Translate section
-        const gtSection = document.createElement('div');
-        gtSection.className = 'slideshow-menu-gt';
-        if (typeof GoogleTranslate !== 'undefined' && GoogleTranslate.initialized) {
-            _gtPrevParent = GoogleTranslate.relocate(gtSection);
-        }
-        menu.appendChild(gtSection);
-
-        // TOC section
         const tocList = document.createElement('ul');
         _slides.forEach((slide, i) => {
             const match = slide.content.match(/^#{1,3}\s+(.+)$/m);
@@ -263,25 +247,11 @@ const Slideshow = (() => {
             const li = e.target.closest('li[data-index]');
             if (li) {
                 goTo(Number(li.dataset.index));
-                _hideMenu();
+                menu.remove();
             }
         });
 
         _overlay.querySelector('.slideshow-slide').appendChild(menu);
-    }
-
-    function _hideMenu() {
-        const menu = _overlay?.querySelector('.slideshow-menu');
-        if (!menu) return;
-        // Restore GT widget to its original parent
-        if (_gtPrevParent && typeof GoogleTranslate !== 'undefined') {
-            GoogleTranslate.relocate(_gtPrevParent);
-            _gtPrevParent = null;
-        }
-        menu.remove();
-        // Re-enter fullscreen after menu is closed
-        _menuOpen = false;
-        _enterFullscreen();
     }
 
     function _hideNotes() {
@@ -307,8 +277,7 @@ const Slideshow = (() => {
 
     function _onFullscreenChange() {
         // If user exits fullscreen via browser UI (not Escape key), stop the slideshow
-        // But not when we intentionally exited for the menu overlay
-        if (_active && !_menuOpen && !document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (_active && !document.fullscreenElement && !document.webkitFullscreenElement) {
             _cleanup();
         }
     }
@@ -382,11 +351,6 @@ const Slideshow = (() => {
 
     function _cleanup() {
         _active = false;
-        // Restore GT widget to its original parent before removing the overlay
-        if (_gtPrevParent && typeof GoogleTranslate !== 'undefined') {
-            GoogleTranslate.relocate(_gtPrevParent);
-            _gtPrevParent = null;
-        }
         document.removeEventListener('keydown', _onKeyDown);
         document.removeEventListener('fullscreenchange', _onFullscreenChange);
         document.removeEventListener('webkitfullscreenchange', _onFullscreenChange);
