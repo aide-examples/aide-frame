@@ -15,6 +15,7 @@
             <a href="search" class="header-btn" id="search-link" style="display:none"
                title="Search documentation">&#128269;</a>
             <select id="viewer-lang-select" class="header-lang-select notranslate" title="Language" style="font-size:12px; padding:2px 4px;"></select>
+            <span id="gt-container"></span>
             <button class="header-btn notranslate" id="present-btn" style="display:none"
                     title="Start slideshow (fullscreen)">&#9654; <span data-i18n="present">Present</span></button>
             <button class="header-btn notranslate" id="print-btn" style="display:none"
@@ -1172,6 +1173,9 @@
             const urlParams = new URLSearchParams(window.location.search);
             const initialDoc = urlParams.get('doc');
             loadDoc(initialDoc);
+
+            // Initialize Google Translate for document content translation
+            GoogleTranslate.init('#gt-container');
 
             // Setup editor textarea sync for highlighting
             const editorTextarea = document.getElementById('editor-textarea');
