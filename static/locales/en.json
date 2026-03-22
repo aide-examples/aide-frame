@@ -11,6 +11,9 @@
     "nav_loading": "Loading navigation...",
     "nav_error": "Error loading navigation",
 
+    "present": "Present",
+    "print_slides": "Print",
+
     "search": "Search",
     "search_placeholder": "Search documentation...",
     "search_btn": "Search",

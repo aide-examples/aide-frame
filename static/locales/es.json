@@ -11,6 +11,9 @@
     "nav_loading": "Cargando navegación...",
     "nav_error": "Error al cargar la navegación",
 
+    "present": "Presentar",
+    "print_slides": "Imprimir",
+
     "search": "Búsqueda",
     "search_placeholder": "Buscar en la documentación...",
     "search_btn": "Buscar",

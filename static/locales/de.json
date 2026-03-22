@@ -11,6 +11,9 @@
     "nav_loading": "Navigation wird geladen...",
     "nav_error": "Fehler beim Laden der Navigation",
 
+    "present": "Präsentieren",
+    "print_slides": "Drucken",
+
     "search": "Suche",
     "search_placeholder": "Dokumentation durchsuchen...",
     "search_btn": "Suchen",
