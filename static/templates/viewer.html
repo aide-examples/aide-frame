@@ -902,6 +902,12 @@
                     }
                 }
 
+                // Collapse-all button at top of sidebar
+                const hasMultipleSections = (data.sections || []).length > 1;
+                if (hasMultipleSections) {
+                    html = `<button class="sidebar-collapse-all notranslate" onclick="this.parentElement.querySelectorAll('.section:not(.collapsed)').forEach(s => s.classList.add('collapsed'))" title="Collapse all sections" data-i18n-title="collapse_all">▲</button>` + html;
+                }
+
                 sidebar.innerHTML = html;
 
                 // Collect document names for content hook cross-referencing

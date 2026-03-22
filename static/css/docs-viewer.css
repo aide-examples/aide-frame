@@ -233,6 +233,21 @@
     height: calc(100vh - 60px);
     overflow-y: auto;
 }
+.sidebar-collapse-all {
+    float: right;
+    background: none;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    margin-bottom: 8px;
+}
+.sidebar-collapse-all:hover {
+    background: #f1f5f9;
+    color: #1d4ed8;
+}
 .docs-sidebar h3 {
     color: #2563eb;
     font-size: 0.85rem;
