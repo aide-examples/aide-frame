@@ -241,9 +241,9 @@
     cursor: pointer;
 }
 
-/* ── Table of Contents Overlay ──────────────────────────────────────── */
+/* ── Menu Overlay (TOC + Google Translate) ─────────────────────────── */
 
-.slideshow-toc {
+.slideshow-menu {
     position: absolute;
     top: 0;
     left: 50%;
@@ -260,13 +260,28 @@
     padding: 0.8rem 0;
 }
 
-.slideshow-toc ul {
+.slideshow-menu-gt {
+    padding: 0.4rem 1.5rem 0.6rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+}
+
+/* Override GT dropdown styling for slideshow (larger, white text area) */
+.slideshow-menu-gt .goog-te-gadget-simple .goog-te-menu-value {
+    color: #334155 !important;
+    font-size: 14px !important;
+}
+
+.slideshow-menu ul {
     list-style: none;
     margin: 0;
     padding: 0;
 }
 
-.slideshow-toc li {
+.slideshow-menu li {
     padding: 0.5rem 1.5rem;
     cursor: pointer;
     font-size: 0.95rem;
@@ -275,12 +290,12 @@
     transition: all 0.15s;
 }
 
-.slideshow-toc li:hover {
+.slideshow-menu li:hover {
     background: #f1f5f9;
     border-left-color: #3b82f6;
 }
 
-.slideshow-toc li.active {
+.slideshow-menu li.active {
     background: #eff6ff;
     border-left-color: #1d4ed8;
     font-weight: 600;

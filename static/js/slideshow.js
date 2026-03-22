@@ -78,7 +78,7 @@ const Slideshow = (() => {
     function renderSlide(index) {
         if (!_overlay || index < 0 || index >= _slides.length) return;
 
-        _hideTOC();
+        _hideMenu();
         _hideNotes();
         _current = index;
         const slide = _slides[index];
@@ -180,14 +180,14 @@ const Slideshow = (() => {
         }
     }
 
-    // ── Click navigation (left 20% = back, top 15% = TOC, bottom 15% = notes, rest = forward)
+    // ── Click navigation (left 20% = back, top 15% = menu, bottom 15% = notes, rest = forward)
 
     function _onClick(e) {
         if (!_active) return;
         // Don't intercept clicks on links or interactive elements
         if (e.target.closest('a, button, input, select, textarea')) return;
-        // Don't intercept clicks inside TOC
-        if (e.target.closest('.slideshow-toc')) return;
+        // Don't intercept clicks inside menu
+        if (e.target.closest('.slideshow-menu')) return;
 
         const slideEl = _overlay.querySelector('.slideshow-slide');
         const rect = slideEl.getBoundingClientRect();
@@ -198,8 +198,8 @@ const Slideshow = (() => {
             // Bottom 15%: toggle speaker notes
             _toggleNotes();
         } else if (y < rect.height * 0.15) {
-            // Top 15%: toggle TOC
-            _toggleTOC();
+            // Top 15%: toggle menu (TOC + Google Translate)
+            _toggleMenu();
         } else if (x < rect.width * 0.2) {
             // Left 20%: go back
             prev();
@@ -215,47 +215,65 @@ const Slideshow = (() => {
         notesEl.classList.toggle('visible');
     }
 
-    // ── Table of Contents ─────────────────────────────────────────────
+    // ── Menu (TOC + Google Translate) ────────────────────────────────
 
-    function _toggleTOC() {
-        const existing = _overlay.querySelector('.slideshow-toc');
+    let _gtPrevParent = null;  // remember where GT widget was before slideshow
+
+    function _toggleMenu() {
+        const existing = _overlay.querySelector('.slideshow-menu');
         if (existing) {
-            existing.remove();
+            _hideMenu();
             return;
         }
-        _showTOC();
+        _showMenu();
     }
 
-    function _showTOC() {
-        const toc = document.createElement('div');
-        toc.className = 'slideshow-toc';
+    function _showMenu() {
+        const menu = document.createElement('div');
+        menu.className = 'slideshow-menu';
 
-        const items = _slides.map((slide, i) => {
-            // Extract first heading as slide title
+        // Google Translate section
+        const gtSection = document.createElement('div');
+        gtSection.className = 'slideshow-menu-gt';
+        if (typeof GoogleTranslate !== 'undefined' && GoogleTranslate.initialized) {
+            _gtPrevParent = GoogleTranslate.relocate(gtSection);
+        }
+        menu.appendChild(gtSection);
+
+        // TOC section
+        const tocList = document.createElement('ul');
+        _slides.forEach((slide, i) => {
             const match = slide.content.match(/^#{1,3}\s+(.+)$/m);
             const title = match ? match[1].replace(/\*\*/g, '').replace(/`/g, '') : `Slide ${i + 1}`;
-            const active = i === _current ? ' class="active"' : '';
-            return `<li${active} data-index="${i}">${i + 1}. ${_escHtml(title)}</li>`;
+            const li = document.createElement('li');
+            if (i === _current) li.className = 'active';
+            li.dataset.index = i;
+            li.textContent = `${i + 1}. ${title}`;
+            tocList.appendChild(li);
         });
-
-        toc.innerHTML = `<ul>${items.join('')}</ul>`;
+        menu.appendChild(tocList);
 
         // Click on TOC item → jump to slide
-        toc.addEventListener('click', (e) => {
+        menu.addEventListener('click', (e) => {
             const li = e.target.closest('li[data-index]');
             if (li) {
                 goTo(Number(li.dataset.index));
-                toc.remove();
+                _hideMenu();
             }
         });
 
-        // Close on Escape (handled by main handler) or click outside
-        _overlay.querySelector('.slideshow-slide').appendChild(toc);
+        _overlay.querySelector('.slideshow-slide').appendChild(menu);
     }
 
-    function _hideTOC() {
-        const toc = _overlay?.querySelector('.slideshow-toc');
-        if (toc) toc.remove();
+    function _hideMenu() {
+        const menu = _overlay?.querySelector('.slideshow-menu');
+        if (!menu) return;
+        // Restore GT widget to its original parent
+        if (_gtPrevParent && typeof GoogleTranslate !== 'undefined') {
+            GoogleTranslate.relocate(_gtPrevParent);
+            _gtPrevParent = null;
+        }
+        menu.remove();
     }
 
     function _hideNotes() {
@@ -355,6 +373,11 @@ const Slideshow = (() => {
 
     function _cleanup() {
         _active = false;
+        // Restore GT widget to its original parent before removing the overlay
+        if (_gtPrevParent && typeof GoogleTranslate !== 'undefined') {
+            GoogleTranslate.relocate(_gtPrevParent);
+            _gtPrevParent = null;
+        }
         document.removeEventListener('keydown', _onKeyDown);
         document.removeEventListener('fullscreenchange', _onFullscreenChange);
         document.removeEventListener('webkitfullscreenchange', _onFullscreenChange);
