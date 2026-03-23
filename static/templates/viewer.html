@@ -127,6 +127,9 @@
         // Heading drag-to-reorder instance
         let headingDrag = null;
 
+        // Per-document edit permission (resolved via /api/viewer/can-edit)
+        let currentDocCanEdit = false;
+
         // =============================================================================
         // EDITOR FUNCTIONS
         // =============================================================================
@@ -135,6 +138,9 @@
          * Check if current root is editable (respects admin-only restriction)
          */
         function isCurrentRootEditable() {
+            // Per-document .edit permission (resolved server-side) takes precedence
+            if (currentDocCanEdit) return true;
+
             // Admin-only check: if editing requires admin, verify role
             if (appConfig.editable?.requiresAdmin) {
                 const user = window.currentUser;
@@ -146,6 +152,93 @@
                 return appConfig.custom_roots[viewerRoot].editable === true;
             }
             return false;
+        }
+
+        /**
+         * Show/hide the New Document "+" button next to the section header
+         * of the current document's directory.
+         */
+        function updateNewDocButton() {
+            // Remove any existing "+" button
+            document.querySelectorAll('.new-doc-btn').forEach(b => b.remove());
+
+            if (!isCurrentRootEditable() || !currentDocPath) return;
+
+            // Find the section header that contains the active link
+            const activeLink = document.querySelector('.docs-sidebar a.active');
+            if (!activeLink) return;
+
+            const sectionDiv = activeLink.closest('.section');
+            if (!sectionDiv) return;
+
+            const header = sectionDiv.querySelector('h3');
+            if (!header) return;
+
+            const btn = document.createElement('button');
+            btn.className = 'sidebar-collapse-all new-doc-btn notranslate';
+            btn.style.cssText = 'margin-left:4px; font-size:14px; font-weight:bold;';
+            btn.title = 'New document';
+            btn.textContent = '+';
+            btn.onclick = (e) => { e.stopPropagation(); showCreateDocDialog(); };
+            header.appendChild(btn);
+        }
+
+        /**
+         * Show dialog to create a new markdown document in the current directory.
+         */
+        function showCreateDocDialog() {
+            const currentDir = currentDocPath?.includes('/') ? currentDocPath.substring(0, currentDocPath.lastIndexOf('/')) : '';
+            const dirLabel = currentDir || '(root)';
+
+            const dialog = document.createElement('dialog');
+            dialog.style.cssText = 'padding:20px; border-radius:8px; border:1px solid var(--border-color, #ccc); min-width:320px;';
+            dialog.innerHTML = `
+                <h3 style="margin:0 0 12px;">New Document</h3>
+                <p style="font-size:12px; opacity:0.7; margin:0 0 8px;">Directory: ${dirLabel}</p>
+                <input type="text" id="new-doc-name" placeholder="Document title" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border-color, #ccc); border-radius:4px; font-size:14px;">
+                <div style="margin-top:12px; text-align:right;">
+                    <button id="new-doc-cancel" style="margin-right:8px;">Cancel</button>
+                    <button id="new-doc-create" style="font-weight:bold;">Create</button>
+                </div>
+                <p id="new-doc-error" style="color:red; font-size:12px; margin:8px 0 0; display:none;"></p>
+            `;
+            document.body.appendChild(dialog);
+            dialog.showModal();
+
+            const input = dialog.querySelector('#new-doc-name');
+            input.focus();
+
+            dialog.querySelector('#new-doc-cancel').onclick = () => { dialog.close(); dialog.remove(); };
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') createDoc(); });
+            dialog.querySelector('#new-doc-create').onclick = createDoc;
+
+            async function createDoc() {
+                const title = input.value.trim();
+                if (!title) { input.focus(); return; }
+
+                const errEl = dialog.querySelector('#new-doc-error');
+                errEl.style.display = 'none';
+
+                try {
+                    const resp = await fetch('api/viewer/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ root: viewerRoot, directory: currentDir, filename: title })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) throw new Error(data.error || resp.statusText);
+
+                    dialog.close();
+                    dialog.remove();
+
+                    // Reload sidebar tree and navigate to new document
+                    await buildNavbar();
+                    loadDoc(data.path);
+                } catch (e) {
+                    errEl.textContent = e.message;
+                    errEl.style.display = '';
+                }
+            }
         }
 
         /**
@@ -606,6 +699,14 @@
                 currentDocPath = docPath;
                 currentMarkdown = data.content;
 
+                // Resolve per-document edit permission (must complete before right-click handlers)
+                currentDocCanEdit = false;
+                try {
+                    const editRes = await fetch(`api/viewer/can-edit?root=${viewerRoot}&path=${encodeURIComponent(docPath)}`);
+                    const editData = await editRes.json();
+                    currentDocCanEdit = editData.canEdit === true;
+                } catch (_) {}
+
                 container.className = 'markdown-body';
                 container.innerHTML = marked.parse(data.content);
 
@@ -753,6 +854,7 @@
 
                 updateBreadcrumb(docPath);
                 updateActiveLink(docPath);
+                updateNewDocButton();
 
                 const params = new URLSearchParams(window.location.search);
                 params.set('doc', docPath);

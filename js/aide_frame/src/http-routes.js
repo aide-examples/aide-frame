@@ -25,6 +25,54 @@ const docsViewer = require('./docs-viewer');
 const { logger } = require('./log');
 
 /**
+ * Resolve edit permission for a file path by walking up the directory tree
+ * looking for .edit files. Returns true if the user is allowed to edit.
+ *
+ * .edit file format (one entry per line, # comments):
+ *   admin          — all admins may edit
+ *   user:username  — specific user may edit
+ *
+ * Inheritance: .edit applies to its directory and all subdirectories
+ * unless a subdirectory has its own .edit file.
+ *
+ * @param {string} docRoot - Absolute path to the docs root directory
+ * @param {string} relativePath - Relative path of the file being edited
+ * @param {Object|null} user - User object with { role, username }
+ * @returns {{ found: boolean, allowed: boolean }}
+ */
+function resolveEditPermission(docRoot, relativePath, user) {
+    const resolvedRoot = path.resolve(docRoot);
+    let dir = path.dirname(path.resolve(docRoot, relativePath));
+
+    // Walk up from the file's directory to docRoot looking for .edit
+    while (dir.startsWith(resolvedRoot)) {
+        const editFile = path.join(dir, '.edit');
+        if (fs.existsSync(editFile)) {
+            try {
+                const lines = fs.readFileSync(editFile, 'utf8')
+                    .split('\n')
+                    .map(l => l.trim())
+                    .filter(l => l && !l.startsWith('#'));
+
+                if (!user) return { found: true, allowed: false };
+
+                for (const line of lines) {
+                    if (line === 'admin' && user.role === 'admin') return { found: true, allowed: true };
+                    if (line.startsWith('user:') && line.slice(5) === user.username) return { found: true, allowed: true };
+                }
+                return { found: true, allowed: false };
+            } catch (e) {
+                logger.warn(`.edit file error in ${dir}: ${e.message}`);
+            }
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir) break; // filesystem root
+        dir = parent;
+    }
+    return { found: false, allowed: false };
+}
+
+/**
  * Configuration for a custom Markdown viewing root.
  *
  * Apps can define additional roots beyond docs/ and help/ for viewing
@@ -391,9 +439,27 @@ function register(app, config) {
             return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
         }
 
-        // Admin role required for editing (skip check when no auth middleware is configured)
-        if (cfg.editRequiresAdmin && req.user && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Admin role required for editing' });
+        // Check .edit file for per-directory permissions (takes precedence over editRequiresAdmin)
+        const viewerCfgForEdit = _getViewerConfig(cfg, root);
+        const docsDirForEdit = viewerCfgForEdit && paths.get(viewerCfgForEdit.dirKey);
+        if (docsDirForEdit && docPath) {
+            const editPerm = resolveEditPermission(docsDirForEdit, docPath, req.user || null);
+            if (editPerm.found) {
+                if (!editPerm.allowed) {
+                    return res.status(403).json({ error: 'Not authorized to edit in this directory' });
+                }
+                // .edit grants permission — skip editRequiresAdmin check
+            } else {
+                // No .edit file — fall back to editRequiresAdmin
+                if (cfg.editRequiresAdmin && req.user && req.user.role !== 'admin') {
+                    return res.status(403).json({ error: 'Admin role required for editing' });
+                }
+            }
+        } else {
+            // No viewer config or path — fall back to editRequiresAdmin
+            if (cfg.editRequiresAdmin && req.user && req.user.role !== 'admin') {
+                return res.status(403).json({ error: 'Admin role required for editing' });
+            }
         }
 
         // Master password required for this root
@@ -458,6 +524,106 @@ function register(app, config) {
         } catch (e) {
             logger.error(`Error saving file ${docPath}: ${e.message}`);
             res.status(500).json({ error: `Error saving file: ${e.message}` });
+        }
+    });
+
+    // Check if user can edit a specific document path
+    app.get('/api/viewer/can-edit', ...cfg.viewerAuth, (req, res) => {
+        const { root = 'docs', path: docPath } = req.query;
+        if (!docPath) return res.json({ canEdit: false });
+
+        const viewerCfg = _getViewerConfig(cfg, root);
+        const docsDir = viewerCfg && paths.get(viewerCfg.dirKey);
+        if (!docsDir) return res.json({ canEdit: false });
+
+        // Check root-level editability
+        let isEditable = false;
+        if (root === 'docs') isEditable = cfg.docsEditable;
+        else if (root === 'help') isEditable = cfg.helpEditable;
+        else if (cfg.customRoots?.[root]) isEditable = cfg.customRoots[root].editable === true;
+        if (!isEditable) return res.json({ canEdit: false });
+
+        // Framework docs always read-only
+        if (docPath.startsWith('framework/')) return res.json({ canEdit: false });
+
+        // Check .edit file
+        const editPerm = resolveEditPermission(docsDir, docPath, req.user || null);
+        if (editPerm.found) {
+            return res.json({ canEdit: editPerm.allowed });
+        }
+
+        // Fallback: editRequiresAdmin
+        if (cfg.editRequiresAdmin) {
+            return res.json({ canEdit: req.user?.role === 'admin' || !req.user });
+        }
+        // No restrictions — noauth or docsEditable without editRequiresAdmin
+        res.json({ canEdit: true });
+    });
+
+    // Create a new markdown document
+    app.post('/api/viewer/create', ...cfg.viewerAuth, (req, res) => {
+        const { root = 'docs', directory, filename } = req.body;
+
+        if (!filename) return res.status(400).json({ error: 'Filename required' });
+
+        // Sanitize filename: allow alphanumeric, hyphens, underscores, spaces
+        const safeName = filename.replace(/[^a-zA-Z0-9\-_ äöüÄÖÜß]/g, '').trim();
+        if (!safeName) return res.status(400).json({ error: 'Invalid filename' });
+
+        const mdName = safeName.endsWith('.md') ? safeName : safeName + '.md';
+        const relativePath = directory ? path.join(directory, mdName) : mdName;
+
+        // Check root-level editability
+        let isEditable = false;
+        if (root === 'docs') isEditable = cfg.docsEditable;
+        else if (root === 'help') isEditable = cfg.helpEditable;
+        else if (cfg.customRoots?.[root]) isEditable = cfg.customRoots[root].editable === true;
+        if (!isEditable) return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
+
+        const viewerCfg = _getViewerConfig(cfg, root);
+        const docsDir = viewerCfg && paths.get(viewerCfg.dirKey);
+        if (!docsDir) return res.status(404).json({ error: `Unknown root: ${root}` });
+
+        // Permission check via .edit
+        const editPerm = resolveEditPermission(docsDir, relativePath, req.user || null);
+        if (editPerm.found) {
+            if (!editPerm.allowed) return res.status(403).json({ error: 'Not authorized to create documents here' });
+        } else if (cfg.editRequiresAdmin && req.user && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Admin role required' });
+        }
+
+        // Security: path traversal check
+        const fullPath = path.resolve(docsDir, relativePath);
+        if (!fullPath.startsWith(path.resolve(docsDir) + path.sep)) {
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+
+        if (fs.existsSync(fullPath)) {
+            return res.status(409).json({ error: 'Document already exists' });
+        }
+
+        // Derive title from filename (remove .md, replace hyphens/underscores with spaces)
+        const title = safeName.replace(/\.md$/, '').replace(/[-_]/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+
+        const content = `# ${title}\n\nDescribe the purpose of this document here. The first sentence appears as tooltip in the sidebar.\n`;
+
+        // Ensure parent directory exists
+        const parentDir = path.dirname(fullPath);
+        if (!fs.existsSync(parentDir)) {
+            fs.mkdirSync(parentDir, { recursive: true });
+        }
+
+        try {
+            fs.writeFileSync(fullPath, content, 'utf8');
+            logger.info(`Created document: ${relativePath}`);
+            if (_docsSearch) {
+                try { _docsSearch.reindexFile(root, relativePath); } catch (_) { /* non-critical */ }
+            }
+            res.json({ success: true, path: relativePath });
+        } catch (e) {
+            logger.error(`Error creating file ${relativePath}: ${e.message}`);
+            res.status(500).json({ error: `Error creating file: ${e.message}` });
         }
     });
 
