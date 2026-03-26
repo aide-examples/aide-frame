@@ -199,8 +199,7 @@ class HttpServer {
 
             this._server = listenApp.listen(this.port, '0.0.0.0', () => {
                 this._running = true;
-                const url = `http://localhost:${this.port}${this.basePath || ''}`;
-                logger.info(`Server started on ${url}`);
+                this._url = `http://localhost:${this.port}${this.basePath || ''}`;
                 resolve();
             });
         });
@@ -218,11 +217,18 @@ class HttpServer {
     }
 
     /**
+     * Log the server URL. Call this after all startup tasks are complete.
+     */
+    logReady() {
+        console.log('');
+        logger.info(`Press Ctrl+C to stop`);
+        logger.info(`Server started on ${this._url}`);
+    }
+
+    /**
      * Start server and block until Ctrl+C.
      */
     run() {
-        this.start();
-
         // Handle Ctrl+C gracefully
         const shutdown = () => {
             logger.info('Shutting down...');
@@ -233,7 +239,7 @@ class HttpServer {
         process.on('SIGINT', shutdown);
         process.on('SIGTERM', shutdown);
 
-        logger.info('Press Ctrl+C to stop');
+        this.start().then(() => this.logReady());
     }
 }
 
