@@ -399,8 +399,9 @@ function register(app, config) {
         try {
             const content = fs.readFileSync(fullPath, 'utf8');
 
-            // Check for redirect directive: <!-- redirect: target.md -->
-            const redirectMatch = content.match(/<!--\s*redirect:\s*(\S+)\s*-->/);
+            // Check for redirect directive in first 3 lines only: <!-- redirect: target.md -->
+            const firstLines = content.split('\n', 3).join('\n');
+            const redirectMatch = firstLines.match(/<!--\s*redirect:\s*(\S+)\s*-->/);
             if (redirectMatch) {
                 const target = redirectMatch[1];
                 // Resolve relative to current document's directory
