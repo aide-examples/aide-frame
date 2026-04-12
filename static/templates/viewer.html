@@ -518,6 +518,38 @@
             });
         }
 
+        // Lazy-load highlight.js for syntax highlighting of fenced code blocks.
+        // Only loads the library when a page actually contains code with a language tag.
+        let hljsPromise = null;
+        async function highlightCodeBlocks(container) {
+            const codeBlocks = container.querySelectorAll('pre > code[class*="language-"]');
+            if (codeBlocks.length === 0) return;
+
+            if (!hljsPromise) {
+                hljsPromise = new Promise((resolve, reject) => {
+                    const link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github-dark.min.css';
+                    document.head.appendChild(link);
+
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js';
+                    script.onload = resolve;
+                    script.onerror = () => { hljsPromise = null; reject(new Error('highlight.js failed to load')); };
+                    document.head.appendChild(script);
+                });
+            }
+
+            try {
+                await hljsPromise;
+                for (const block of codeBlocks) {
+                    if (!block.dataset.highlighted) {
+                        hljs.highlightElement(block);
+                    }
+                }
+            } catch (_) { /* CDN unreachable — code blocks stay un-highlighted */ }
+        }
+
         // Custom renderer for mermaid code blocks
         const renderer = new marked.Renderer();
         const originalCodeRenderer = renderer.code.bind(renderer);
@@ -739,6 +771,9 @@
                 if (typeof mermaid !== 'undefined' && !window.MERMAID_FAILED && appConfig.features.mermaid) {
                     await mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
                 }
+
+                // Syntax-highlight code blocks (lazy-load highlight.js on first use)
+                await highlightCodeBlocks(container);
 
                 // Intercept .md links (including those with anchors like file.md#section)
                 container.querySelectorAll('a[href*=".md"]').forEach(link => {
@@ -1220,6 +1255,7 @@
 
                 const contentEl = document.getElementById('fi-content');
                 contentEl.innerHTML = marked.parse(data.content);
+                await highlightCodeBlocks(contentEl);
 
                 // Run viewerContentHook so <!-- search-items --> directive generates 🔍 buttons
                 if (typeof window.viewerContentHook === 'function') {

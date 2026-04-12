@@ -69,6 +69,8 @@
 .markdown-body pre code {
     background: none;
     padding: 0;
+}
+.markdown-body pre code:not(.hljs) {
     color: #e5e7eb;
 }
 .markdown-body pre:has(> code.language-text) {
