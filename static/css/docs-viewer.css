@@ -73,6 +73,11 @@
 .markdown-body pre code:not(.hljs) {
     color: #e5e7eb;
 }
+.markdown-body pre:has(> code.hljs) {
+    background: none;
+    border: none;
+    padding: 0;
+}
 .markdown-body pre:has(> code.language-text) {
     background: #f3f4f6;
     border-color: #d1d5db;
