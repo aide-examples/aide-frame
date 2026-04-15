@@ -81,7 +81,8 @@
     overflow-x: auto;
 }
 
-.slideshow-slide pre code {
+.slideshow-slide pre code,
+.slideshow-slide pre code:not(.hljs) {
     font-size: inherit;
     color: inherit;
 }
@@ -334,7 +335,8 @@
     border-radius: 4px;
 }
 
-.slideshow-print-page pre code {
+.slideshow-print-page pre code,
+.slideshow-print-page pre code:not(.hljs) {
     color: inherit;
 }
 
