@@ -56,7 +56,11 @@ function discoverGlobals(dir) {
   for (const file of files) {
     const src = fs.readFileSync(file, 'utf8');
     const loc = src.split('\n').length;
-    const re = /^(?:  )?const\s+([A-Z][A-Za-z]+)\s*=\s*\{/gm;
+    // Singleton globals can be declared as `var Name = {` (the aide-rap convention)
+    // or `const Name = {` (newer files). `let` is allowed for symmetry even though
+    // it's rare for module-level singletons. Names are PascalCase and may include
+    // digits (e.g. UTF8Decoder).
+    const re = /^(?:  )?(?:var|const|let)\s+([A-Z][A-Za-z0-9]+)\s*=\s*\{/gm;
     let m;
     while ((m = re.exec(src)) !== null) {
       globals.push({ name: m[1], file: path.relative(dir, file), loc });
