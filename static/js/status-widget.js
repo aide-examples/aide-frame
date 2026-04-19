@@ -108,16 +108,40 @@ const StatusWidget = {
         }
 
         if (this.options.compactInfo) {
-            // Compact mode: platform + memory as tooltip on version
+            // Compact mode: platform + memory + (optional) deploy info as tooltip on version.
+            // Format (rich, multi-line via \n so hover shows a verbose description):
+            //   "deployed on <env> at <DD.MM.YYYY HH:MM> — memory usage on server: <used>/<total> MB
+            //    platform: <node+os>"
+            // Falls back to the earlier short "platform · memory" form if no deploy tag is set.
             if (versionEl) {
-                const parts = [];
-                if (this.status.platform) parts.push(this.status.platform);
-                if (this.status.memory) {
-                    const m = this.status.memory;
-                    if (m.used_mb && m.total_mb) parts.push(`${m.used_mb}/${m.total_mb} MB`);
-                    else if (m.used_mb) parts.push(`${m.used_mb} MB`);
+                const lines = [];
+                if (this.status.deploy_tag && this.status.deployed_at) {
+                    // deploy_tag is `deploy/<env>/<date>[-HHMM]` — extract env
+                    const tagParts = this.status.deploy_tag.split('/');
+                    const envName = tagParts[1] || this.status.deploy_tag;
+                    const when = new Date(this.status.deployed_at);
+                    const fmt = (n) => String(n).padStart(2, '0');
+                    const whenStr = `${fmt(when.getDate())}.${fmt(when.getMonth() + 1)}.${when.getFullYear()} ${fmt(when.getHours())}:${fmt(when.getMinutes())}`;
+                    let line = `deployed on ${envName} at ${whenStr}`;
+                    if (this.status.memory) {
+                        const m = this.status.memory;
+                        if (m.used_mb && m.total_mb) line += ` — memory on server: ${m.used_mb} / ${m.total_mb} MB`;
+                        else if (m.used_mb) line += ` — memory on server: ${m.used_mb} MB`;
+                    }
+                    lines.push(line);
+                    if (this.status.platform) lines.push(`platform: ${this.status.platform}`);
+                } else {
+                    // No deploy tag (local run) — short form
+                    const parts = [];
+                    if (this.status.platform) parts.push(this.status.platform);
+                    if (this.status.memory) {
+                        const m = this.status.memory;
+                        if (m.used_mb && m.total_mb) parts.push(`${m.used_mb}/${m.total_mb} MB`);
+                        else if (m.used_mb) parts.push(`${m.used_mb} MB`);
+                    }
+                    if (parts.length) lines.push(parts.join(' · '));
                 }
-                if (parts.length) versionEl.title = parts.join(' · ');
+                if (lines.length) versionEl.title = lines.join('\n');
             }
         } else {
             const platformEl = document.getElementById('sw-platform');
