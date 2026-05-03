@@ -1,8 +1,8 @@
 """
 Platform detection and video driver configuration.
 
-Detects the runtime platform (Raspberry Pi, WSL2, Linux desktop, macOS, Windows)
-and configures the appropriate SDL video driver.
+Detects the runtime platform (Raspberry Pi, WSL2, Linux desktop, macOS,
+Windows, QNAP, Synology) and configures the appropriate SDL video driver.
 """
 
 import os
@@ -13,7 +13,8 @@ def detect_platform():
     Detect the runtime platform to configure appropriate drivers.
 
     Returns:
-        str: One of 'raspi', 'wsl2', 'linux_desktop', 'macos', 'windows'
+        str: One of 'raspi', 'wsl2', 'linux_desktop', 'macos', 'windows',
+             'qnap', 'synology', 'unknown'
     """
     import platform
 
@@ -24,6 +25,14 @@ def detect_platform():
     elif system == 'windows':
         return 'windows'
     elif system == 'linux':
+        # NAS platforms: identified by their config file presence. Checked
+        # before WSL/RPi/DRM heuristics — these systems are always headless
+        # and pygame would be inappropriate even if /dev/dri exists.
+        if os.path.exists('/etc/config/uLinux.conf'):
+            return 'qnap'
+        if os.path.exists('/etc/synoinfo.conf'):
+            return 'synology'
+
         # Check for WSL2
         try:
             with open('/proc/version', 'r') as f:
@@ -121,6 +130,14 @@ def configure_video_driver(platform_type):
         config['driver'] = 'windows'
         config['fullscreen'] = False
         print("Platform: Windows - using Windows driver")
+
+    elif platform_type in ('qnap', 'synology'):
+        # NAS platforms are always headless: no SDL driver, no window. The
+        # marker tells callers to skip pygame entirely. Apps that still want
+        # to force pygame here would have to set SDL_VIDEODRIVER themselves.
+        config['fullscreen'] = False
+        config['headless_recommended'] = True
+        print(f"Platform: {platform_type.upper()} - headless (no SDL driver configured)")
 
     else:
         # Unknown: let SDL choose
