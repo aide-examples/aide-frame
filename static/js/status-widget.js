@@ -5,7 +5,7 @@
 
 const StatusWidget = {
     container: null,
-    options: { showUpdate: true, showInstall: true, showReload: true, showLayoutToggle: false, compactInfo: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null },
+    options: { showUpdate: true, showInstall: true, showReload: true, showLayoutToggle: false, compactInfo: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null, versionLinkUrl: null },
     status: {},
 
     init(selector, options = {}) {
@@ -102,9 +102,21 @@ const StatusWidget = {
     updateUI() {
         const versionEl = document.getElementById('sw-version');
         if (versionEl && this.status.current_version) {
-            versionEl.textContent = this.status.system_version
-                ? `v ${this.status.system_version} (RAP ${this.status.current_version})`
-                : `v${this.status.current_version}`;
+            const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; };
+            const sv = esc(this.status.system_version);
+            const cv = esc(this.status.current_version);
+            const url = this.options.versionLinkUrl;
+            if (url) {
+                // attribute-escape minimal set for href
+                const href = String(url).replace(/[&"<>]/g, c => ({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c]));
+                versionEl.innerHTML = this.status.system_version
+                    ? `v ${sv} (<a href="${href}" target="_blank" rel="noopener">RAP ${cv}</a>)`
+                    : `<a href="${href}" target="_blank" rel="noopener">v${cv}</a>`;
+            } else {
+                versionEl.textContent = this.status.system_version
+                    ? `v ${this.status.system_version} (RAP ${this.status.current_version})`
+                    : `v${this.status.current_version}`;
+            }
         }
 
         if (this.options.compactInfo) {
