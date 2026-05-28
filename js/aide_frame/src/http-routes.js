@@ -185,6 +185,9 @@ function initConfig(config) {
         viewerAuth: config.viewerAuth
             ? (Array.isArray(config.viewerAuth) ? config.viewerAuth : [config.viewerAuth])
             : [],
+        // GitHub repo for issue tracking. Surfaced via /api/app/config so
+        // the consuming framework can render a footer link to issues.
+        githubRepo: config.githubRepo || null,
     };
 
     paths.ensureInitialized();
@@ -309,6 +312,9 @@ function register(app, config) {
                 requiresAdmin: cfg.editRequiresAdmin,
             },
             viewer_hooks: cfg.viewerHooks,
+            // GitHub repo for this app — used by the consuming framework to
+            // render a footer link to <repo>/issues. null if not configured.
+            github_repo: cfg.githubRepo || null,
         };
         // Include custom roots info
         if (cfg.customRoots && Object.keys(cfg.customRoots).length > 0) {
