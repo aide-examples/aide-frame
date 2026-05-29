@@ -20,17 +20,32 @@ class I18n {
     }
 
     /**
-     * Initialize i18n - loads strings and creates Polyglot instance
-     * @param {string|null} lang - Force language, or auto-detect if null
+     * Initialize i18n - loads strings and creates Polyglot instance.
+     *
+     * Accepts either a language string (legacy) or an options object:
+     *   i18n.init()                     auto-detect, load from root
+     *   i18n.init('de')                 force German, load from root
+     *   i18n.init({lang: 'de'})         same as above, object form
+     *   i18n.init({basePath: '../../'}) auto-detect, load from <basePath>
+     *
+     * basePath is prepended to the JSON fetch URLs and is needed when
+     * i18n runs from a page that is mounted deeper than RAP root —
+     * e.g. action handlers like `/sys/td/td.html` need '../../' so the
+     * fetch for `static/frame/locales/<lang>.json` resolves correctly.
+     * Defaults to '' (page is at RAP root).
+     *
+     * @param {string|null|{lang?: string|null, basePath?: string}} [opts]
      */
-    async init(lang = null) {
-        this.lang = this.normalizeLanguage(lang || this.detectLanguage());
+    async init(opts = null) {
+        if (typeof opts === 'string' || opts === null) opts = { lang: opts };
+        this.lang = this.normalizeLanguage(opts.lang || this.detectLanguage());
+        const basePath = opts.basePath || '';
 
         // Load framework strings (from aide-frame)
-        const frame = await this.loadJson(`static/frame/locales/${this.lang}.json`);
+        const frame = await this.loadJson(`${basePath}static/frame/locales/${this.lang}.json`);
 
         // Load app strings (override framework strings)
-        const app = await this.loadJson(`static/locales/${this.lang}.json`);
+        const app = await this.loadJson(`${basePath}static/locales/${this.lang}.json`);
 
         // Initialize Polyglot with merged strings
         this.polyglot = new Polyglot({
