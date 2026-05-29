@@ -41,15 +41,24 @@ class I18n {
         this.lang = this.normalizeLanguage(opts.lang || this.detectLanguage());
         const basePath = opts.basePath || '';
 
-        // Load framework strings (from aide-frame)
+        // Three-tier merge — lowest first, last wins on collisions:
+        //   1. Framework strings shipped by aide-frame (docs viewer, header
+        //      widget, PWA chrome): mounted at /static/frame/locales/
+        //   2. App strings shipped by the consuming app (e.g. RAP CRUD UI
+        //      menus + platform-wide labels): mounted at /static/locales/
+        //   3. System strings shipped by the active RAP system / sub-app
+        //      (e.g. per-system action handler vocabulary like bridge's
+        //      td_*, tmon_*, dealer_*): mounted at /static/sys-locales/.
+        // Tier 3 is always attempted and silently empty when not mounted,
+        // so non-multi-tenant apps don't pay any config cost. See also
+        // app/docs/features/login-actions.md ("i18n in action pages").
         const frame = await this.loadJson(`${basePath}static/frame/locales/${this.lang}.json`);
-
-        // Load app strings (override framework strings)
-        const app = await this.loadJson(`${basePath}static/locales/${this.lang}.json`);
+        const app   = await this.loadJson(`${basePath}static/locales/${this.lang}.json`);
+        const sys   = await this.loadJson(`${basePath}static/sys-locales/${this.lang}.json`);
 
         // Initialize Polyglot with merged strings
         this.polyglot = new Polyglot({
-            phrases: {...frame, ...app},
+            phrases: {...frame, ...app, ...sys},
             locale: this.lang,
             allowMissing: true,
             onMissingKey: (key) => key  // Fallback: return key itself
