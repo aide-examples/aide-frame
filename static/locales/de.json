@@ -1,4 +1,10 @@
 {
+    "admin_warning_title": "Administrator-Modus",
+    "admin_warning_body": "Du betrittst gleich die Administrator-Ebene. Schemata, Permissions, Daten und Konfiguration sind dort vollständig editierbar — jede Änderung ist sofort wirksam.",
+    "admin_warning_quote": "Aus großer Macht folgt große Verantwortung.",
+    "admin_warning_source": "— Stan Lee",
+    "admin_warning_ok": "OK — verstanden, weiter",
+
     "loading": "Laden...",
     "error": "Fehler",
     "back": "Zurück",

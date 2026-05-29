@@ -1,4 +1,10 @@
 {
+    "admin_warning_title": "Administrator Mode",
+    "admin_warning_body": "You are about to enter the administrator level. Schemas, permissions, data and configuration are fully editable here — every change takes effect immediately.",
+    "admin_warning_quote": "With great power comes great responsibility.",
+    "admin_warning_source": "— Stan Lee",
+    "admin_warning_ok": "OK — understood, continue",
+
     "loading": "Loading...",
     "error": "Error",
     "back": "Back",

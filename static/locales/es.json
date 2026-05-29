@@ -1,4 +1,10 @@
 {
+    "admin_warning_title": "Modo Administrador",
+    "admin_warning_body": "Estás a punto de entrar al nivel de administrador. Los esquemas, permisos, datos y configuración son totalmente editables — cada cambio surte efecto inmediatamente.",
+    "admin_warning_quote": "Un gran poder conlleva una gran responsabilidad.",
+    "admin_warning_source": "— Stan Lee",
+    "admin_warning_ok": "OK — entendido, continuar",
+
     "loading": "Cargando...",
     "error": "Error",
     "back": "Volver",
