@@ -13,13 +13,13 @@
         <h1 id="page-title">Loading...</h1>
         <div style="display: flex; align-items: center; gap: 12px;">
             <a href="search" class="header-btn" id="search-link" style="display:none"
-               title="Search documentation">&#128269;</a>
-            <select id="viewer-lang-select" class="header-lang-select notranslate" title="Language" style="font-size:12px; padding:2px 4px;"></select>
+               title="Search documentation" data-i18n-title="search_documentation">&#128269;</a>
+            <select id="viewer-lang-select" class="header-lang-select notranslate" title="Language" data-i18n-title="language" style="font-size:12px; padding:2px 4px;"></select>
             <span id="gt-container"></span>
             <button class="header-btn notranslate" id="present-btn" style="display:none"
-                    title="Start slideshow (fullscreen)">&#9654; <span data-i18n="present">Present</span></button>
+                    title="Start slideshow (fullscreen)" data-i18n-title="slideshow_start_title">&#9654; <span data-i18n="present">Present</span></button>
             <button class="header-btn notranslate" id="print-btn" style="display:none"
-                    title="Print slides as PDF handout">&#128438; <span data-i18n="print_slides">Print</span></button>
+                    title="Print slides as PDF handout" data-i18n-title="print_slides_pdf_handout">&#128438; <span data-i18n="print_slides">Print</span></button>
             <a href="./" class="header-btn notranslate" id="back-link" data-i18n="back">Back</a>
         </div>
     </div>
@@ -61,7 +61,7 @@
     <div id="master-pw-modal" class="editor-modal" style="display: none;">
         <div style="background: var(--bg-secondary, #1e1e2e); border: 1px solid var(--border-color, #444); border-radius: 8px; padding: 24px; max-width: 360px; width: 90%;">
             <div style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary, #cdd6f4);">Master Password Required</div>
-            <input id="master-pw-input" type="password" placeholder="Enter master password"
+            <input id="master-pw-input" type="password" placeholder="Enter master password" data-i18n-placeholder="master_password_placeholder"
                 style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid var(--border-color, #444); border-radius: 4px; background: var(--bg-primary, #11111b); color: var(--text-primary, #cdd6f4); font-size: 14px; margin-bottom: 8px;">
             <div id="master-pw-error" style="color: #f38ba8; font-size: 12px; min-height: 18px; margin-bottom: 12px;"></div>
             <div style="display: flex; justify-content: flex-end; gap: 8px;">
@@ -197,7 +197,7 @@
             dialog.innerHTML = `
                 <h3 style="margin:0 0 12px;">New Document</h3>
                 <p style="font-size:12px; opacity:0.7; margin:0 0 8px;">Directory: ${dirLabel}</p>
-                <input type="text" id="new-doc-name" placeholder="Document title" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border-color, #ccc); border-radius:4px; font-size:14px;">
+                <input type="text" id="new-doc-name" placeholder="${i18n.t('document_title_placeholder')}" style="width:100%; box-sizing:border-box; padding:8px; border:1px solid var(--border-color, #ccc); border-radius:4px; font-size:14px;">
                 <div style="margin-top:12px; text-align:right;">
                     <button id="new-doc-cancel" style="margin-right:8px;">Cancel</button>
                     <button id="new-doc-create" style="font-weight:bold;">Create</button>

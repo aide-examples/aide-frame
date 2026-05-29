@@ -35,7 +35,7 @@ const HeaderWidget = {
                 const label = lang.toUpperCase();
                 return `<option value="${lang}" ${selected}>${label}</option>`;
             }).join('');
-            items.push(`<select id="header-lang-select" class="header-lang-select" title="Language">${langOptions}</select>`);
+            items.push(`<select id="header-lang-select" class="header-lang-select" title="${i18n.t('language')}">${langOptions}</select>`);
         }
 
         // Google Translate placeholder (initialized after render)
@@ -47,7 +47,7 @@ const HeaderWidget = {
             items.push(`<a href="${this.options.aboutLink}" class="header-link notranslate">${this.options.aboutText}</a>`);
         }
         if (this.options.showHelp) {
-            items.push(`<a href="${this.options.helpLink}" class="header-link notranslate" title="Help" style="font-weight: bold;">?</a>`);
+            items.push(`<a href="${this.options.helpLink}" class="header-link notranslate" title="${i18n.t('help')}" style="font-weight: bold;">?</a>`);
         }
 
         const homeLink = this.options.showAbout ? this.options.aboutLink : '#';
