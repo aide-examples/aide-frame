@@ -119,22 +119,48 @@ class I18n {
     }
 
     /**
-     * Apply translations to all elements with data-i18n attribute
-     * Also adds 'notranslate' class to prevent Google Translate from re-translating
-     * @param {Element} root - Root element to search (default: document)
+     * Apply translations to all elements with i18n data-* attributes.
+     *
+     * Two flavours:
+     *   - `data-i18n="key"`              → sets textContent (notranslate-marked)
+     *   - `data-i18n-<attr>="key"`       → sets HTML attribute <attr>
+     *
+     * Supported attribute variants: title, placeholder, aria-label, alt,
+     * value. Without this, hardcoded German/English in title/aria-label/
+     * placeholder slips past i18n entirely — see aide-bridge BridgeHeader
+     * `aria-label="Turnier wählen"` for the live example that prompted
+     * this extension.
+     *
+     * @param {Element|Document} root - Root element to search (default: document)
      *
      * Example HTML:
      *   <span data-i18n="status">Status</span>
      *   <button data-i18n="pause">Pause</button>
+     *   <input data-i18n-placeholder="search_placeholder">
+     *   <button data-i18n-title="close" data-i18n-aria-label="close">×</button>
      */
     applyToDOM(root = document) {
         root.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.dataset.i18n;
             const params = el.dataset.i18nParams ? JSON.parse(el.dataset.i18nParams) : {};
             el.textContent = this.t(key, params);
-            // Mark as notranslate for Google Translate
-            el.classList.add('notranslate');
+            el.classList.add('notranslate');   // suppress Google Translate
         });
+        // Attribute targets. Each entry: [html-attr, css-attr-selector, dataset-key]
+        const ATTR_TARGETS = [
+            ['title',       'data-i18n-title',       'i18nTitle'],
+            ['placeholder', 'data-i18n-placeholder', 'i18nPlaceholder'],
+            ['aria-label',  'data-i18n-aria-label',  'i18nAriaLabel'],
+            ['alt',         'data-i18n-alt',         'i18nAlt'],
+            ['value',       'data-i18n-value',       'i18nValue'],
+        ];
+        for (const [htmlAttr, cssAttr, datasetKey] of ATTR_TARGETS) {
+            root.querySelectorAll('[' + cssAttr + ']').forEach(el => {
+                const key = el.dataset[datasetKey];
+                const params = el.dataset.i18nParams ? JSON.parse(el.dataset.i18nParams) : {};
+                el.setAttribute(htmlAttr, this.t(key, params));
+            });
+        }
     }
 }
 
