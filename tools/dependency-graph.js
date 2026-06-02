@@ -122,7 +122,15 @@ function discoverGlobals(dir) {
     const re = /^(?:  )?(?:var|const|let)\s+([A-Z][A-Za-z0-9]+)\s*=\s*\{/gm;
     let m;
     while ((m = re.exec(src)) !== null) {
-      globals.push({ name: m[1], file: path.relative(dir, file), loc });
+      globals.push({ name: m[1], file: path.relative(dir, file), loc, kind: 'singleton' });
+    }
+    // ES6 class declarations — pattern used widely in aide-bridge (IIFE-wrapped
+    // class ViewName { ... }). Indentation up to 2 spaces tolerated (class
+    // typically lives at top level even inside an IIFE). `export class` covered
+    // for systems that adopt ES-modules later.
+    const classRe = /^(?:  )?(?:export\s+)?class\s+([A-Z][A-Za-z0-9_]+)/gm;
+    while ((m = classRe.exec(src)) !== null) {
+      globals.push({ name: m[1], file: path.relative(dir, file), loc, kind: 'class' });
     }
   }
   return globals;
@@ -523,8 +531,9 @@ function toMermaid(modules, edges) {
     lines.push(`  subgraph ${safeId}["${label}"]`);
     for (const g of members) {
       const shortLabel = path.basename(g.name);
+      const kindMarker = g.kind === 'class' ? ' (C)' : '';
       const locSuffix = g.loc ? ` &nbsp; ${g.loc}` : '';
-      lines.push(`    ${nodeId(g.name)}["${shortLabel}${locSuffix}"]`);
+      lines.push(`    ${nodeId(g.name)}["${shortLabel}${kindMarker}${locSuffix}"]`);
     }
     lines.push('  end');
   }
