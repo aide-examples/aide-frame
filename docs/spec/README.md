@@ -36,6 +36,7 @@ Implementations (Python, JavaScript, etc.) follow this specification and provide
 | Module | Description |
 |--------|-------------|
 | [Static Assets](static.md) | CSS framework, JS widgets, i18n, templates |
+| [Viewer Search Deeplinks](viewer-search-deeplinks.md) | `[term](search?q=term)` markdown convention for linking inline technical terms to the FTS5 search dialog with a pre-filled query |
 
 ## Implementations
 
