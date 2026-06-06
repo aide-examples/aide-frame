@@ -22,6 +22,8 @@
  */
 
 const express = require('express');
+const http = require('http');
+const https = require('https');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -98,6 +100,9 @@ class HttpServer {
      * @param {string} options.staticDir - Directory for static files (default: appDir/static)
      * @param {object} options.docsConfig - DocsConfig for docs/help routes
      * @param {object} options.updateConfig - UpdateConfig for remote update functionality
+     * @param {string} [options.httpsCertPath] - Path to TLS certificate (PEM). When set
+     *   together with httpsKeyPath, the server speaks HTTPS instead of HTTP.
+     * @param {string} [options.httpsKeyPath]  - Path to TLS private key (PEM).
      */
     constructor(options = {}) {
         this.port = options.port || 8080;
@@ -106,9 +111,15 @@ class HttpServer {
         this.staticDir = options.staticDir || (options.appDir ? path.join(options.appDir, 'static') : null);
         this.docsConfig = options.docsConfig || null;
         this.updateConfig = options.updateConfig || null;
+        this.httpsCertPath = options.httpsCertPath || null;
+        this.httpsKeyPath  = options.httpsKeyPath  || null;
+        if (!!this.httpsCertPath !== !!this.httpsKeyPath) {
+            throw new Error('HttpServer: httpsCertPath and httpsKeyPath must both be set, or both be omitted.');
+        }
 
         this._server = null;
         this._running = false;
+        this._scheme  = (this.httpsCertPath && this.httpsKeyPath) ? 'https' : 'http';
 
         // Initialize Express app
         this.app = express();
@@ -197,11 +208,21 @@ class HttpServer {
                 listenApp = wrapper;
             }
 
-            this._server = listenApp.listen(this.port, '0.0.0.0', () => {
-                this._running = true;
-                this._url = `http://localhost:${this.port}${this.basePath || ''}`;
-                resolve();
-            });
+            if (this._scheme === 'https') {
+                const cert = fs.readFileSync(this.httpsCertPath);
+                const key  = fs.readFileSync(this.httpsKeyPath);
+                this._server = https.createServer({ cert, key }, listenApp).listen(this.port, '0.0.0.0', () => {
+                    this._running = true;
+                    this._url = `https://localhost:${this.port}${this.basePath || ''}`;
+                    resolve();
+                });
+            } else {
+                this._server = listenApp.listen(this.port, '0.0.0.0', () => {
+                    this._running = true;
+                    this._url = `http://localhost:${this.port}${this.basePath || ''}`;
+                    resolve();
+                });
+            }
         });
     }
 

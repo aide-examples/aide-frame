@@ -1,6 +1,6 @@
 {
   "name": "aide-frame",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "AIDE application framework for Node.js - server-side components",
   "main": "index.js",
   "scripts": {
