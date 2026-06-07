@@ -372,7 +372,20 @@ function register(app, config) {
     // Viewer content API
     app.get('/api/viewer/content', ...cfg.viewerAuth, (req, res) => {
         const root = req.query.root || 'docs';
-        const docPath = req.query.path || 'index.md';
+        // Defensive percent-decoding: the client builds the request URL by
+        // encoding the markdown link's href, but markdown links that already
+        // carry percent-encoded paths (or whose viewer-side router encodes
+        // a second time) arrive here still encoded. Decode iteratively
+        // until stable — the fixed point is the on-disk filename, which
+        // never contains a literal '%' followed by two hex digits in this
+        // codebase. Surrounded by try/catch so a malformed escape can't
+        // crash the route.
+        let docPath = req.query.path || 'index.md';
+        try {
+            let prev;
+            do { prev = docPath; docPath = decodeURIComponent(docPath); }
+            while (docPath !== prev && /%[0-9A-Fa-f]{2}/.test(docPath));
+        } catch (_) { /* malformed — use whatever we have */ }
 
         const viewerCfg = _getViewerConfig(cfg, root);
         if (!viewerCfg) {
@@ -791,7 +804,16 @@ function _serveViewer(res, root, basePath = '') {
  * @private
  */
 function _serveDocsAsset(res, assetPath, dirKey) {
-    // Security: block path traversal
+    // Same defensive percent-decode as the /api/viewer/content route —
+    // express does not decode req.params[0] for wildcard segments, so a
+    // markdown link to <Foo Bar.png> arrives here still %-encoded.
+    try {
+        let prev;
+        do { prev = assetPath; assetPath = decodeURIComponent(assetPath); }
+        while (assetPath !== prev && /%[0-9A-Fa-f]{2}/.test(assetPath));
+    } catch (_) { /* malformed */ }
+
+    // Security: block path traversal (after decode, before resolve)
     if (assetPath.includes('..') || assetPath.startsWith('/')) {
         return res.status(403).send('Forbidden');
     }

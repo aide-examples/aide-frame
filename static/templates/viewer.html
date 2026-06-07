@@ -821,6 +821,14 @@
                         ? () => Slideshow.start(data.content, slideOpts)
                         : null;
                 }
+                // Auto-launch: a markdown file flagged as a slideshow opens
+                // directly in presentation mode. The user can still press
+                // Escape to fall back to the regular reading view (where
+                // the Present button above stays available as a re-entry).
+                // The flag is `<!-- slideshow -->` on the first line.
+                if (isSlides) {
+                    Slideshow.start(data.content, slideOpts);
+                }
                 if (printBtn) {
                     printBtn.style.display = '';
                     printBtn.onclick = isSlides
