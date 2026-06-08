@@ -129,7 +129,43 @@ if [ -n "$SYSTEM_NAME" ]; then
     config_layout=$(wc -l "$SYSTEM_DIR/docs/DataModel-layout.json" 2>/dev/null | awk '{print $1}' || echo 0)
     config_total=$((config_json + config_yaml + config_layout))
 
-    system_total=$((docs_total + help_loc + config_total))
+    # ─── Application Code (custom JS/CSS/HTML beyond the declarative spec) ────
+    # Actions: each subdirectory under static/ containing at least one .html
+    # file counts as one user-facing action. Locales-only or asset-only dirs
+    # are not actions and are excluded by that gate.
+    server_loc=0
+    if [ -d "$SYSTEM_DIR/server" ]; then
+        server_loc=$(count_loc "$SYSTEM_DIR/server" "*.js")
+    fi
+
+    action_count=0
+    actions_html=0
+    actions_js=0
+    actions_css=0
+    if [ -d "$SYSTEM_DIR/static" ]; then
+        for action_dir in "$SYSTEM_DIR/static"/*/; do
+            [ -d "$action_dir" ] || continue
+            # Action gate: must contain at least one .html file
+            if ls "$action_dir"*.html >/dev/null 2>&1; then
+                action_count=$((action_count + 1))
+                a_html=$(find "$action_dir" -maxdepth 1 -name "*.html" -type f 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+                a_js=$(find "$action_dir" -maxdepth 1 -name "*.js" -type f 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+                a_css=$(find "$action_dir" -maxdepth 1 -name "*.css" -type f 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+                actions_html=$((actions_html + ${a_html:-0}))
+                actions_js=$((actions_js + ${a_js:-0}))
+                actions_css=$((actions_css + ${a_css:-0}))
+            fi
+        done
+    fi
+    actions_total=$((actions_html + actions_js + actions_css))
+    app_code_total=$((server_loc + actions_total))
+    if [ "$action_count" -gt 0 ]; then
+        actions_avg=$((actions_total / action_count))
+    else
+        actions_avg=0
+    fi
+
+    system_total=$((docs_total + help_loc + config_total + app_code_total))
 
     if [ "$MARKDOWN_MODE" = true ]; then
         cat << EOF
@@ -139,7 +175,7 @@ Lines of code for the **${SYSTEM_NAME}** system.
 
 *Generated: $(date '+%Y-%m-%d %H:%M')*
 
-## Documentation
+## Documentation (declarative spec)
 
 | Category | LOC |
 |----------|----:|
@@ -161,10 +197,28 @@ Lines of code for the **${SYSTEM_NAME}** system.
 | DataModel-layout.json | $(format_num $config_layout) |
 | **Subtotal** | **$(format_num $config_total)** |
 
+## Application Code (custom JS/CSS/HTML beyond the spec)
+
+System-specific code that does not derive from the declarative spec — these are the imperative parts the framework cannot generate from Markdown alone. Counted because honest cost accounting matters when comparing RAP applications.
+
+| Category | LOC |
+|----------|----:|
+| System Server ($SYSTEM_NAME/server/, custom routes) | $(format_num $server_loc) |
+| Action UIs ($SYSTEM_NAME/static/<action>/, $action_count action$([ "$action_count" = "1" ] || echo "s")) | $(format_num $actions_total) |
+| ↳ HTML scaffold | $(format_num $actions_html) |
+| ↳ JavaScript | $(format_num $actions_js) |
+| ↳ CSS | $(format_num $actions_css) |
+| **Subtotal** | **$(format_num $app_code_total)** |
+
+$([ "$action_count" -gt 0 ] && echo "*Average per action: $(format_num $actions_avg) LOC across HTML + JS + CSS.*" || echo "*No actions yet — system is purely declarative.*")
+
 ## Total
 
 | Category | LOC |
 |----------|----:|
+| Documentation | $(format_num $((docs_total + help_loc))) |
+| Configuration | $(format_num $config_total) |
+| Application Code | $(format_num $app_code_total) |
 | **System Total** | **$(format_num $system_total)** |
 EOF
     else
@@ -180,6 +234,14 @@ EOF
         echo "Systems:         $(format_num $docs_systems)"
         echo "Help:            $(format_num $help_loc)"
         echo "Config:          $(format_num $config_total)"
+        echo "System Server:   $(format_num $server_loc)"
+        echo "Actions ($action_count):    $(format_num $actions_total) total"
+        if [ "$action_count" -gt 0 ]; then
+            echo "  HTML:          $(format_num $actions_html)"
+            echo "  JS:            $(format_num $actions_js)"
+            echo "  CSS:           $(format_num $actions_css)"
+            echo "  Avg/action:    $(format_num $actions_avg)"
+        fi
         echo "─────────────────────"
         echo -e "${BOLD}Total:           $(format_num $system_total)${RESET}"
         echo ""
