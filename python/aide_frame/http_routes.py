@@ -498,7 +498,16 @@ def _send_file(handler: Any, filepath: str, mime_type: str, binary: bool = False
 
 
 def _serve_template(handler: Any, template_name: str):
-    """Serve an HTML template from aide-frame's static/templates directory."""
+    """Serve an HTML template from aide-frame's static/templates directory.
+
+    Appends a `?v=<aide-frame-version>` cache-buster to the frame bundle
+    references on the fly. Without this, the browser keeps executing the
+    cached old `frame.min.js` after a deploy and the new bundle never
+    runs on a returning user's session — a hard-reload was needed.
+
+    The version source is `<aide-frame-repo>/VERSION` next to the
+    `python/aide_frame/` package directory.
+    """
     paths.ensure_initialized()
     static_dir = paths.get("AIDE_FRAME_STATIC_DIR")
     template_path = os.path.join(static_dir, 'templates', template_name)
@@ -510,9 +519,43 @@ def _serve_template(handler: Any, template_name: str):
     try:
         with open(template_path, 'r', encoding='utf-8') as f:
             content = f.read()
+        content = _bust_bundle_cache(content)
         _send_html(handler, content)
     except Exception as e:
         handler.send_error(500, f"Error reading template: {e}")
+
+
+_FRAME_VERSION_CACHE: dict = {}
+
+
+def _bust_bundle_cache(html: str) -> str:
+    """Rewrite `frame.min.js` references to `frame.min.js?v=<version>`."""
+    version = _read_frame_version()
+    if not version:
+        return html
+    # Naive but precise enough — only the bundle reference matches this.
+    return html.replace(
+        'static/frame/js/dist/frame.min.js"',
+        f'static/frame/js/dist/frame.min.js?v={version}"',
+    )
+
+
+def _read_frame_version() -> str:
+    """Read the aide-frame VERSION file (cached after first read)."""
+    if 'value' in _FRAME_VERSION_CACHE:
+        return _FRAME_VERSION_CACHE['value']
+    # AIDE_FRAME_STATIC_DIR is .../aide-frame/static, so VERSION sits two
+    # levels up at .../aide-frame/VERSION.
+    static_dir = paths.get("AIDE_FRAME_STATIC_DIR")
+    version_path = os.path.join(static_dir, '..', 'VERSION')
+    version_path = os.path.normpath(version_path)
+    try:
+        with open(version_path, 'r', encoding='utf-8') as f:
+            value = f.read().strip()
+    except OSError:
+        value = ''
+    _FRAME_VERSION_CACHE['value'] = value
+    return value
 
 
 def _serve_frame_static(handler: Any, file_path: str):
