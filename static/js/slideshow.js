@@ -97,17 +97,7 @@ const Slideshow = (() => {
 
         _interceptMdLinks(slideEl);
 
-        // Rewrite relative image paths (same logic as viewer)
-        slideEl.querySelectorAll('img').forEach(img => {
-            const src = img.getAttribute('src');
-            if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
-                // Use docs-assets prefix if available
-                const prefix = window._slideshowAssetPrefix || 'docs-assets/';
-                const dir = window._slideshowDocDir || '';
-                const fullPath = dir ? dir + '/' + src : src;
-                img.setAttribute('src', prefix + fullPath);
-            }
-        });
+        _rewriteAssetsAndSubpath(slideEl);
 
         // Render mermaid diagrams if any
         const mermaidEls = slideEl.querySelectorAll('.mermaid');
@@ -284,46 +274,82 @@ const Slideshow = (() => {
     function _interceptMdLinks(container) {
         container.querySelectorAll('a[href*=".md"]').forEach(link => {
             link.addEventListener('click', (e) => {
-                let href = link.getAttribute('href');
-                if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('/')) return;
+                const href = link.getAttribute('href');
+                if (typeof DocLinkResolver === 'undefined') return;
+                const r = DocLinkResolver.resolve(href, {
+                    currentRoot: window._slideshowCurrentRoot || 'docs',
+                    currentDocPath: window._slideshowDocPath || '',
+                    accessibleRoots: window._slideshowAccessibleRoots,
+                });
+                if (r.isExternal) return;
                 e.preventDefault();
-
-                // Split off any #anchor
-                let anchor = '';
-                if (href.includes('#')) {
-                    const hashIdx = href.indexOf('#');
-                    anchor = href.substring(hashIdx);
-                    href = href.substring(0, hashIdx);
+                if (!r.isAccessible) {
+                    const msg = (typeof i18n !== 'undefined' && i18n.t)
+                        ? (i18n.t('access_denied_root') || `No access to root '${r.root}'.`)
+                        : `No access to root '${r.root}'.`;
+                    alert(msg);
+                    return;
                 }
-
-                // Resolve the relative href against the deck's docDir
-                const docDir = window._slideshowDocDir || '';
-                let targetDoc = href;
-                if (!href.startsWith('/') && docDir) {
-                    targetDoc = docDir + '/' + href;
+                const basePath = window._slideshowBasePath || '';
+                if (r.isCrossRoot) {
+                    const route = _rootToRoute(r.root);
+                    window.location.href = basePath + '/' + route
+                        + '?doc=' + encodeURIComponent(r.path) + r.anchor;
+                    return;
                 }
-                const parts = targetDoc.split('/');
-                const normalized = [];
-                for (const part of parts) {
-                    if (part === '..') normalized.pop();
-                    else if (part !== '.') normalized.push(part);
-                }
-                // link.getAttribute('href') returns the percent-encoded form
-                // that marked.js produced from the MD source ("Was%20ist...%5B...").
-                // URLSearchParams.set() re-encodes the % itself → %2520 / %255B
-                // on the wire, which the server then mis-parses as a filename
-                // with literal "%20" in it. Decode once before handing to set().
-                let docParam = normalized.join('/');
-                try { docParam = decodeURIComponent(docParam); } catch (_) {}
-
-                // Navigate via window.location — the page reload also
-                // tears down the slideshow overlay automatically.
+                // Same-root navigation reloads the page (the slideshow
+                // overlay is torn down by the navigation). URLSearchParams
+                // re-encodes the path once — the resolver hands us the
+                // canonical decoded form, so this is clean single encoding.
                 const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('doc', docParam);
-                newUrl.hash = anchor;
+                newUrl.searchParams.set('doc', r.path);
+                newUrl.hash = r.anchor;
                 window.location.href = newUrl.toString();
             });
         });
+    }
+
+    // Mirror of viewer.html's "rootToRoute" — slideshow lives in the
+    // same bundle so this small duplicate is acceptable until either
+    // module exports it. Custom roots without an explicit route fall
+    // back to using the root name as the route.
+    function _rootToRoute(root) {
+        if (root === 'docs') return 'about';
+        if (root === 'help') return 'help';
+        const customRoutes = window._slideshowCustomRoots || {};
+        if (customRoutes[root]?.route) {
+            return customRoutes[root].route.replace(/^\//, '');
+        }
+        return root;
+    }
+
+    // Rewrite asset (img) src + transport-level absolute paths in one
+    // sweep — identical behaviour to viewer.html so a deck behaves the
+    // same in normal view and presentation/print modes, including
+    // behind an nginx subpath.
+    function _rewriteAssetsAndSubpath(container) {
+        const ctx = { currentDocPath: window._slideshowDocPath || '' };
+        const assetPrefix = window._slideshowAssetPrefix || 'docs-assets/';
+        const basePath = window._slideshowBasePath || '';
+        container.querySelectorAll('img').forEach(img => {
+            if (typeof DocLinkResolver === 'undefined') return;
+            const src = img.getAttribute('src');
+            const r = DocLinkResolver.resolveAsset(src, ctx);
+            if (r.isExternal) return;
+            if (r.isAbsolute) {
+                if (basePath) img.setAttribute('src', basePath + r.src);
+                return;
+            }
+            img.setAttribute('src', assetPrefix + r.src);
+        });
+        if (basePath) {
+            container.querySelectorAll('a[href^="/"]').forEach(el => {
+                const val = el.getAttribute('href');
+                if (val && val.startsWith('/') && !val.startsWith('//')) {
+                    el.setAttribute('href', basePath + val);
+                }
+            });
+        }
     }
 
     // ── Fullscreen ──────────────────────────────────────────────────────
@@ -366,10 +392,19 @@ const Slideshow = (() => {
         _slides = parseSlides(markdown);
         if (_slides.length === 0) return;
 
-        // Store context for image resolution and print access
+        // Store context for image resolution, link resolution, and
+        // print access. Keep _slideshowDocDir for the legacy logo
+        // helper; primary path-resolution context is _slideshowDocPath
+        // (full path, not just dir) so DocLinkResolver can compute
+        // dirname for relative links itself.
         window._slideshowMarkdown = markdown;
         window._slideshowAssetPrefix = options.assetPrefix || 'docs-assets/';
         window._slideshowDocDir = options.docDir || '';
+        window._slideshowDocPath = options.docPath || options.docDir || '';
+        window._slideshowCurrentRoot = options.currentRoot || 'docs';
+        window._slideshowBasePath = options.basePath || '';
+        window._slideshowAccessibleRoots = options.accessibleRoots;
+        window._slideshowCustomRoots = options.customRoots || {};
 
         // Extract title from first slide for footer
         const titleMatch = markdown.match(/^#\s+(.+)$/m);
@@ -466,14 +501,7 @@ const Slideshow = (() => {
 
             _interceptMdLinks(page);
 
-            // Rewrite image paths
-            page.querySelectorAll('img').forEach(img => {
-                const src = img.getAttribute('src');
-                if (src && !src.startsWith('http') && !src.startsWith('/') && !src.startsWith('data:')) {
-                    const fullPath = docDir ? docDir + '/' + src : src;
-                    img.setAttribute('src', assetPrefix + fullPath);
-                }
-            });
+            _rewriteAssetsAndSubpath(page);
 
             // Logo on each print page
             if (logoSrc) {

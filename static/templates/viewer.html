@@ -744,23 +744,28 @@
                 container.className = 'markdown-body';
                 container.innerHTML = marked.parse(data.content);
 
-                // Rewrite image URLs
-                const currentDir = docPath.includes('/') ? docPath.substring(0, docPath.lastIndexOf('/')) : '';
+                // Rewrite image URLs via the canonical resolver.
                 container.querySelectorAll('img').forEach(img => {
                     const src = img.getAttribute('src');
-                    if (src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/')) return;
-                    const fullPath = currentDir ? currentDir + '/' + src : src;
-                    img.setAttribute('src', assetPrefix + fullPath);
+                    const r = DocLinkResolver.resolveAsset(src, { currentDocPath: docPath });
+                    if (r.isExternal) return;
+                    if (r.isAbsolute) {
+                        // Transport-level basePath only — assets in current root.
+                        if (_basePath) img.setAttribute('src', _basePath + r.src);
+                        return;
+                    }
+                    img.setAttribute('src', assetPrefix + r.src);
                 });
 
-                // Rewrite absolute paths when basePath is set (e.g., /layout-editor -> /irma/layout-editor)
+                // Rewrite remaining absolute paths when basePath is set
+                // (e.g. <a href="/layout-editor"> → /irma/layout-editor).
+                // Same DOM sweep mirrored into slideshow.js so subpath
+                // deployments behave identically in presentation mode.
                 if (_basePath) {
-                    container.querySelectorAll('a[href^="/"], img[src^="/"]').forEach(el => {
-                        for (const attr of ['href', 'src']) {
-                            const val = el.getAttribute(attr);
-                            if (val && val.startsWith('/') && !val.startsWith('//')) {
-                                el.setAttribute(attr, _basePath + val);
-                            }
+                    container.querySelectorAll('a[href^="/"]').forEach(el => {
+                        const val = el.getAttribute('href');
+                        if (val && val.startsWith('/') && !val.startsWith('//')) {
+                            el.setAttribute('href', _basePath + val);
                         }
                     });
                 }
@@ -777,34 +782,35 @@
                 // Syntax-highlight code blocks (lazy-load highlight.js on first use)
                 await highlightCodeBlocks(container);
 
-                // Intercept .md links (including those with anchors like file.md#section)
+                // Intercept .md links via the canonical resolver.
                 container.querySelectorAll('a[href*=".md"]').forEach(link => {
                     link.addEventListener('click', (e) => {
-                        let href = link.getAttribute('href');
-                        // Skip external links and cross-root links (e.g., /rap?doc=statistics.md)
-                        if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('/')) return;
+                        const href = link.getAttribute('href');
+                        const r = DocLinkResolver.resolve(href, {
+                            currentRoot: viewerRoot,
+                            currentDocPath: docPath,
+                            accessibleRoots: appConfig.accessibleRoots,
+                        });
+                        if (r.isExternal) return;
                         e.preventDefault();
-
-                        // Extract anchor if present
-                        let anchor = '';
-                        if (href.includes('#')) {
-                            const hashIdx = href.indexOf('#');
-                            anchor = href.substring(hashIdx);
-                            href = href.substring(0, hashIdx);
+                        if (!r.isAccessible) {
+                            alert(i18n.t('access_denied_root') || `No access to root '${r.root}'.`);
+                            return;
                         }
-
-                        let targetDoc = href;
-                        if (!href.startsWith('/') && docPath && docPath.includes('/')) {
-                            const currentDir = docPath.substring(0, docPath.lastIndexOf('/'));
-                            targetDoc = currentDir + '/' + href;
+                        if (r.isCrossRoot) {
+                            const route = rootToRoute(r.root);
+                            const url = (_basePath || '') + '/' + route
+                                + '?doc=' + encodeURIComponent(r.path) + r.anchor;
+                            window.location.href = url;
+                            return;
                         }
-                        const parts = targetDoc.split('/');
-                        const normalized = [];
-                        for (const part of parts) {
-                            if (part === '..') normalized.pop();
-                            else if (part !== '.') normalized.push(part);
+                        if (r.isAnchorOnly) {
+                            // In-page scroll handled by the existing
+                            // anchor logic at the end of loadDoc().
+                            window.location.hash = r.anchor;
+                            return;
                         }
-                        loadDoc(normalized.join('/'), anchor);
+                        loadDoc(r.path, r.anchor);
                     });
                 });
 
@@ -813,7 +819,15 @@
                 const printBtn = document.getElementById('print-btn');
                 const isSlides = typeof Slideshow !== 'undefined' && Slideshow.isSlideshow(data.content);
                 const docDir = docPath.includes('/') ? docPath.substring(0, docPath.lastIndexOf('/')) : '';
-                const slideOpts = { assetPrefix: assetPrefix, docDir: docDir };
+                const slideOpts = {
+                    assetPrefix: assetPrefix,
+                    docDir: docDir,
+                    docPath: docPath,
+                    currentRoot: viewerRoot,
+                    basePath: _basePath,
+                    accessibleRoots: appConfig.accessibleRoots,
+                    customRoots: appConfig.custom_roots,
+                };
 
                 if (presentBtn) {
                     presentBtn.style.display = isSlides ? '' : 'none';

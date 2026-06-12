@@ -259,6 +259,19 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
                 }
                 for name, root in config.custom_roots.items()
             }
+        # Roots the client may navigate to. aide-frame standalone returns
+        # all registered roots (no permission layer here); embedders like
+        # aide-rap override this endpoint with a permission-filtered list
+        # so DocLinkResolver can show a friendly "no access" hint before
+        # the user hits a 403. Absence of this field = "any root allowed".
+        roots = []
+        if config.enable_docs:
+            roots.append('docs')
+        if config.enable_help:
+            roots.append('help')
+        if config.custom_roots:
+            roots.extend(config.custom_roots.keys())
+        response["accessibleRoots"] = roots
         _send_json(handler, response)
         return True
 
