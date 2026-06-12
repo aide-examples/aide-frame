@@ -95,6 +95,8 @@ const Slideshow = (() => {
             `<div class="slideshow-slide-title">${titleHtml}</div>` +
             `<div class="slideshow-slide-body"><div class="slideshow-slide-inner">${tmp.innerHTML}</div></div>`;
 
+        _interceptMdLinks(slideEl);
+
         // Rewrite relative image paths (same logic as viewer)
         slideEl.querySelectorAll('img').forEach(img => {
             const src = img.getAttribute('src');
@@ -269,6 +271,55 @@ const Slideshow = (() => {
         if (notesEl) notesEl.classList.remove('visible');
     }
 
+    // ── In-slide markdown link interception ────────────────────────────
+    //
+    // Mirrors viewer.html's `a[href*=".md"]` interceptor. Without this,
+    // a click on a relative `.md`-link in a slide triggers the browser's
+    // default navigation. That navigation resolves the relative path
+    // against the current URL (e.g. `/rap?doc=teaching/foo.md`), drops
+    // the `?doc=` query, and asks the server for the bare path —
+    // producing `Cannot GET /developer/artifacts-bom.md` errors instead
+    // of loading the target document.
+
+    function _interceptMdLinks(container) {
+        container.querySelectorAll('a[href*=".md"]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                let href = link.getAttribute('href');
+                if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('/')) return;
+                e.preventDefault();
+
+                // Split off any #anchor
+                let anchor = '';
+                if (href.includes('#')) {
+                    const hashIdx = href.indexOf('#');
+                    anchor = href.substring(hashIdx);
+                    href = href.substring(0, hashIdx);
+                }
+
+                // Resolve the relative href against the deck's docDir
+                const docDir = window._slideshowDocDir || '';
+                let targetDoc = href;
+                if (!href.startsWith('/') && docDir) {
+                    targetDoc = docDir + '/' + href;
+                }
+                const parts = targetDoc.split('/');
+                const normalized = [];
+                for (const part of parts) {
+                    if (part === '..') normalized.pop();
+                    else if (part !== '.') normalized.push(part);
+                }
+                const finalDoc = normalized.join('/');
+
+                // Navigate via window.location — the page reload also
+                // tears down the slideshow overlay automatically.
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('doc', finalDoc);
+                newUrl.hash = anchor;
+                window.location.href = newUrl.toString();
+            });
+        });
+    }
+
     // ── Fullscreen ──────────────────────────────────────────────────────
 
     function _enterFullscreen() {
@@ -406,6 +457,8 @@ const Slideshow = (() => {
             page.innerHTML =
                 `<div class="slideshow-slide-title">${headingHtml}</div>` +
                 `<div class="slideshow-slide-body"><div class="slideshow-slide-inner">${tmp.innerHTML}</div></div>`;
+
+            _interceptMdLinks(page);
 
             // Rewrite image paths
             page.querySelectorAll('img').forEach(img => {
