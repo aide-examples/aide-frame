@@ -308,12 +308,18 @@ const Slideshow = (() => {
                     if (part === '..') normalized.pop();
                     else if (part !== '.') normalized.push(part);
                 }
-                const finalDoc = normalized.join('/');
+                // link.getAttribute('href') returns the percent-encoded form
+                // that marked.js produced from the MD source ("Was%20ist...%5B...").
+                // URLSearchParams.set() re-encodes the % itself → %2520 / %255B
+                // on the wire, which the server then mis-parses as a filename
+                // with literal "%20" in it. Decode once before handing to set().
+                let docParam = normalized.join('/');
+                try { docParam = decodeURIComponent(docParam); } catch (_) {}
 
                 // Navigate via window.location — the page reload also
                 // tears down the slideshow overlay automatically.
                 const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('doc', finalDoc);
+                newUrl.searchParams.set('doc', docParam);
                 newUrl.hash = anchor;
                 window.location.href = newUrl.toString();
             });
