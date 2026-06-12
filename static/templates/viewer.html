@@ -1023,15 +1023,48 @@
                     html += '</ul>';
                 } else if (data.sections) {
                     // Sectioned structure
+                    //
+                    // Initial collapse/expand state of sidebar sections is
+                    // driven by the URL-query parameter `?sidebar=…`:
+                    //   absent          → default behaviour (all sections
+                    //                     expanded except the framework one)
+                    //   ?sidebar=0      → all sections collapsed; only the
+                    //                     section headers are visible
+                    //   ?sidebar=1      → all sections expanded (overrides
+                    //                     the framework-collapse default)
+                    //   ?sidebar=<name> → only the named section is
+                    //                     expanded (case-insensitive match
+                    //                     against section.name); others
+                    //                     collapsed
+                    // When ?doc=… points at a document, the existing
+                    // updateActiveLink() logic still auto-expands the
+                    // section that contains it.
+                    const sidebarParam = new URLSearchParams(window.location.search).get('sidebar');
+                    let sidebarDepth = null;     // null = use default behaviour
+                    let sidebarOpenName = null;  // null = no specific section
+                    if (sidebarParam !== null && sidebarParam !== '') {
+                        if (/^\d+$/.test(sidebarParam)) {
+                            sidebarDepth = parseInt(sidebarParam, 10);
+                        } else {
+                            sidebarOpenName = sidebarParam.toLowerCase();
+                        }
+                    }
+
                     for (const section of data.sections) {
                         // Only show section header if there are multiple sections or name differs from titleSuffix
                         const showHeader = data.sections.length > 1 || section.name !== titleSuffix;
-                        // Framework section is collapsed by default
                         // Section may have 'docs' (Python) or 'files' (Node.js) array
                         const sectionDocs = section.docs || section.files || [];
                         const isFramework = sectionDocs.some(d => d.framework);
+                        // Decide collapsed state — URL param wins over default.
+                        let initiallyCollapsed = isFramework; // default: framework collapsed, others expanded
+                        if (sidebarDepth !== null) {
+                            initiallyCollapsed = (sidebarDepth === 0);
+                        } else if (sidebarOpenName !== null) {
+                            initiallyCollapsed = (section.name.toLowerCase() !== sidebarOpenName);
+                        }
                         if (showHeader) {
-                            html += `<div class="section${isFramework ? ' collapsed' : ''}">`;
+                            html += `<div class="section${initiallyCollapsed ? ' collapsed' : ''}">`;
                             html += `<h3 onclick="this.parentElement.classList.toggle('collapsed')"><span class="section-toggle">▼</span>${section.name}</h3>`;
                         }
                         html += '<ul>';
