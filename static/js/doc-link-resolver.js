@@ -117,25 +117,26 @@ const DocLinkResolver = (() => {
 
         // Optional <rootName>: prefix.
         const rootMatch = work.match(ROOT_PREFIX);
+        let hadRootPrefix = false;
         if (rootMatch) {
             result.root = rootMatch[1];
             work = work.substring(rootMatch[0].length);
+            hadRootPrefix = true;
         }
         result.isCrossRoot = result.root !== ctx.currentRoot;
 
         // Resolve the path.
+        // - Leading '/' OR an explicit rootName: prefix → absolute within
+        //   the target root. The prefix is the author's signal that this
+        //   is a root-anchored path; current-document dir is irrelevant
+        //   even when the prefix happens to match the current root.
+        // - Otherwise → relative to the current document's directory.
         let targetPath;
         if (work.startsWith('/')) {
-            // Absolute within the target root.
             targetPath = work.substring(1);
-        } else if (result.isCrossRoot) {
-            // Cross-root without a leading '/': interpret as relative to
-            // the *target root's* root, not the source document's directory.
-            // That is the only sensible reading — the source doc's dirname
-            // would not exist in the target root.
+        } else if (hadRootPrefix) {
             targetPath = work;
         } else {
-            // Same-root relative — resolve against current doc's directory.
             const dir = ctx.currentDocPath && ctx.currentDocPath.includes('/')
                 ? ctx.currentDocPath.substring(0, ctx.currentDocPath.lastIndexOf('/'))
                 : '';
