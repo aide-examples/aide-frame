@@ -290,21 +290,29 @@ const Slideshow = (() => {
                     alert(msg);
                     return;
                 }
+                // Build the target URL explicitly from the target root's
+                // route, NOT by inheriting window.location.pathname. The
+                // pathname can be silently rewritten by other components
+                // via history.replaceState; a slide-mode click then does
+                // a full reload, viewer.html re-init re-derives viewerRoot
+                // from that mutated pathname, and the next API call asks
+                // for the wrong root → 404. Constructing
+                // `<basePath>/<route>?...` explicitly is the invariant
+                // the next init can safely rely on.
+                //
+                // Native MD-mode (viewer.html click handler) is immune
+                // because it keeps viewerRoot in memory across loadDoc
+                // calls — only the slideshow's full reload re-derives.
+                //
+                // Same code path for cross-root and same-root — only
+                // r.root differs. Other query params (sidebar=0, etc.)
+                // are preserved through both navigations.
+                const route = _rootToRoute(r.root);
+                const params = new URLSearchParams(window.location.search);
+                params.set('doc', r.path);
                 const basePath = window._slideshowBasePath || '';
-                if (r.isCrossRoot) {
-                    const route = _rootToRoute(r.root);
-                    window.location.href = basePath + '/' + route
-                        + '?doc=' + encodeURIComponent(r.path) + r.anchor;
-                    return;
-                }
-                // Same-root navigation reloads the page (the slideshow
-                // overlay is torn down by the navigation). URLSearchParams
-                // re-encodes the path once — the resolver hands us the
-                // canonical decoded form, so this is clean single encoding.
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('doc', r.path);
-                newUrl.hash = r.anchor;
-                window.location.href = newUrl.toString();
+                window.location.href = basePath + '/' + route
+                    + '?' + params.toString() + r.anchor;
             });
         });
     }
