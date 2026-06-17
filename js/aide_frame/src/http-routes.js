@@ -412,6 +412,15 @@ function register(app, config) {
             return res.status(403).json({ error: 'Forbidden' });
         }
         if (!fs.existsSync(fullPath)) {
+            // Graceful fallback: a missing ROOT index.md is the viewer's default
+            // entry point (e.g. a system that has no authored help page yet).
+            // Render a friendly placeholder instead of a hard "File not found",
+            // which otherwise greets the user the moment they click the "?".
+            if (actualPath === 'index.md') {
+                return res.type('text/markdown').send(
+                    '# No documentation yet\n\n' +
+                    'No `index.md` has been authored for this section yet.\n');
+            }
             return res.status(404).json({ error: `File not found: ${docPath}` });
         }
 
