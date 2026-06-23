@@ -1127,6 +1127,10 @@
                 docNamesList.sort((a, b) => b.name.length - a.name.length);
 
                 sidebar.querySelectorAll('a').forEach(a => {
+                    // Only SPA-intercept markdown doc links (they carry data-doc).
+                    // Direct links — e.g. PDF entries (target=_blank to the raw file) —
+                    // have no data-doc and must open via the browser, not loadDoc().
+                    if (!a.dataset.doc) return;
                     a.addEventListener('click', (e) => {
                         e.preventDefault();
                         loadDoc(a.dataset.doc);
