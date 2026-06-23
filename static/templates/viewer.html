@@ -1032,7 +1032,9 @@
                     // Flat structure - just list files
                     html += '<ul>';
                     for (const doc of data.files) {
-                        html += `<li><a href="?doc=${doc.path}" data-doc="${doc.path}">${doc.title}</a></li>`;
+                        html += doc.pdf
+                            ? `<li><a href="${assetPrefix}${doc.path}" target="_blank" rel="noopener" title="open PDF">📄 ${doc.title}</a></li>`
+                            : `<li><a href="?doc=${doc.path}" data-doc="${doc.path}">${doc.title}</a></li>`;
                     }
                     html += '</ul>';
                 } else if (data.sections) {
@@ -1087,7 +1089,9 @@
                                 ? ` title="${doc.description.replace(/"/g, '&quot;')}"`
                                 : '';
                             const docPath = doc.framework ? 'framework/' + doc.path : doc.path;
-                            html += `<li><a href="?doc=${docPath}" data-doc="${docPath}"${titleAttr}>${doc.title}</a></li>`;
+                            html += doc.pdf
+                                ? `<li><a href="${assetPrefix}${doc.path}" target="_blank" rel="noopener" title="open PDF">📄 ${doc.title}</a></li>`
+                                : `<li><a href="?doc=${docPath}" data-doc="${docPath}"${titleAttr}>${doc.title}</a></li>`;
                         }
                         html += '</ul>';
                         if (showHeader) {

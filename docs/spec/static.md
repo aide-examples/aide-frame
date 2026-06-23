@@ -76,6 +76,8 @@ Styles for the documentation and help viewer.
 | Breadcrumb | `.breadcrumb` | Navigation breadcrumb |
 | Mermaid | `.mermaid` | Mermaid diagram container |
 
+**Listed file types.** The doc browser surfaces **`.md`** (rendered as Markdown) and **`.pdf`** (shown with a 📄 prefix as a *direct-open* link — opened raw in a new tab via the `*-assets/` route, e.g. pre-printed slide decks). Other binaries (`.svg`, `.png`, …) are intentionally **not** listed. A subdirectory becomes a navigable section when it contains at least one `.md` **or** `.pdf`.
+
 ---
 
 ## JavaScript Widgets

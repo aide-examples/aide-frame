@@ -83,7 +83,7 @@ function autoDiscoverSections(dirKey, options = {}) {
     if (includeRoot) {
         const hasRootFiles = fs.readdirSync(baseDir).some(f => {
             const filePath = path.join(baseDir, f);
-            return f.endsWith('.md') && fs.statSync(filePath).isFile();
+            return (f.endsWith('.md') || f.toLowerCase().endsWith('.pdf')) && fs.statSync(filePath).isFile();
         });
         if (hasRootFiles) {
             discovered.push([null, 'Overview']);
@@ -98,7 +98,7 @@ function autoDiscoverSections(dirKey, options = {}) {
         for (const item of fs.readdirSync(dirPath)) {
             const itemPath = path.join(dirPath, item);
             const stat = fs.statSync(itemPath);
-            if (stat.isFile() && item.endsWith('.md')) return true;
+            if (stat.isFile() && (item.endsWith('.md') || item.toLowerCase().endsWith('.pdf'))) return true;
             if (stat.isDirectory() && hasMdRecursive(itemPath)) return true;
         }
         return false;
@@ -132,7 +132,7 @@ function autoDiscoverSections(dirKey, options = {}) {
                 ? hasMdRecursive(itemFullPath)
                 : fs.readdirSync(itemFullPath).some(f => {
                     const filePath = path.join(itemFullPath, f);
-                    return f.endsWith('.md') && fs.statSync(filePath).isFile();
+                    return (f.endsWith('.md') || f.toLowerCase().endsWith('.pdf')) && fs.statSync(filePath).isFile();
                 });
 
             if (hasMd) {
@@ -203,7 +203,7 @@ function listFiles(dirKey) {
     const files = [];
     for (const f of fs.readdirSync(baseDir)) {
         const filePath = path.join(baseDir, f);
-        if (f.endsWith('.md') && fs.statSync(filePath).isFile()) {
+        if ((f.endsWith('.md') || f.toLowerCase().endsWith('.pdf')) && fs.statSync(filePath).isFile()) {
             files.push(f);
         }
     }
@@ -231,7 +231,7 @@ function listFilesRecursive(dirKey) {
 
             if (fs.statSync(fullPath).isDirectory()) {
                 walkDir(fullPath, itemRelPath);
-            } else if (item.endsWith('.md')) {
+            } else if (item.endsWith('.md') || item.toLowerCase().endsWith('.pdf')) {
                 files.push(itemRelPath);
             }
         }
@@ -438,6 +438,12 @@ function buildSectionFromDir(baseDir, sectionPath, sectionName, options = {}) {
                 const docEntry = { path: relPath, title };
                 if (description) docEntry.description = description;
                 docs.push(docEntry);
+            } else if (stat.isFile() && f.toLowerCase().endsWith('.pdf')) {
+                // PDFs ride along as direct-open links (no markdown render) — a reader
+                // convenience (e.g. pre-printed slide decks). Other binaries (svg/png)
+                // are deliberately NOT listed; only .md and .pdf surface in the browser.
+                const relPath = relPrefix ? `${relPrefix}/${f}` : f;
+                docs.push({ path: relPath, title: f.replace(/\.pdf$/i, ''), pdf: true });
             } else if (recursive && stat.isDirectory() && !f.startsWith('.')) {
                 // Recurse into subdirectories
                 const subPrefix = relPrefix ? `${relPrefix}/${f}` : f;
