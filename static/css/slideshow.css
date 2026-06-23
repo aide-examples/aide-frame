@@ -344,6 +344,17 @@
     color: #5b21b6;
 }
 
+/* On printed slides the per-diagram box chrome (20px padding + 20px margin +
+   border) stacks up fast — three diagrams on one slide added ~240px and clipped
+   the bottom. Tighten it for print only; the live slideshow and normal docs keep
+   the roomy .mermaid box (docs-viewer.css). */
+.slideshow-print-page .mermaid {
+    padding: 4px;
+    margin: 4px 0;
+    border: none;
+    background: transparent;
+}
+
 .slideshow-print-page table {
     width: auto;
     border-collapse: collapse;
