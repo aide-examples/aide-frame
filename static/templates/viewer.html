@@ -516,7 +516,12 @@
                 startOnLoad: false,
                 theme: 'default',
                 securityLevel: 'loose',
-                flowchart: { useMaxWidth: true, htmlLabels: true }
+                // htmlLabels:false → node labels are SVG <text>, not <foreignObject>.
+                // Chromium's page.pdf (print) does not render foreignObject, so HTML
+                // labels came out as empty boxes in exported PDFs. <text> renders in
+                // both the live slideshow and the PDF. (<br/> line-breaks still work.)
+                htmlLabels: false,
+                flowchart: { useMaxWidth: true, htmlLabels: false }
             });
         }
 

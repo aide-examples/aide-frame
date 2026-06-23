@@ -536,10 +536,26 @@ const Slideshow = (() => {
         // path would otherwise emit raw ```mermaid source. mermaid.run is async →
         // print only once the SVGs are in place. The promise is exposed on the
         // container so a headless PDF exporter can await it instead of window.print.
-        const _mNodes = container.querySelectorAll('.mermaid');
+        const _mNodes = [...container.querySelectorAll('.mermaid')];
         const _doPrint = () => window.print();
         if (_mNodes.length > 0 && typeof mermaid !== 'undefined') {
-            container._mermaidDone = mermaid.run({ nodes: _mNodes }).then(_doPrint).catch(_doPrint);
+            // Use mermaid.render (NOT mermaid.run): the print container is
+            // display:none on screen, and mermaid.run cannot measure text inside a
+            // hidden element → it emits empty 0×0 diagrams. mermaid.render builds
+            // each SVG in its own (measurable) context; we inject the result. Pair
+            // with htmlLabels:false (viewer config) so labels are <text>, since
+            // Chromium's page.pdf does not render <foreignObject> HTML labels.
+            container._mermaidDone = (async () => {
+                for (let i = 0; i < _mNodes.length; i++) {
+                    const el = _mNodes[i];
+                    const src = el.textContent;
+                    try {
+                        const { svg } = await mermaid.render('print-mmd-' + Date.now() + '-' + i, src);
+                        el.innerHTML = svg;
+                        el.removeAttribute('data-processed');
+                    } catch (_e) { /* leave the source text if one diagram fails */ }
+                }
+            })().then(_doPrint).catch(_doPrint);
         } else {
             container._mermaidDone = Promise.resolve();
             _doPrint();
