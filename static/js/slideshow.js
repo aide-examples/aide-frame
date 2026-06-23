@@ -531,8 +531,19 @@ const Slideshow = (() => {
 
         document.body.appendChild(container);
 
-        // Print and clean up
-        window.print();
+        // Render mermaid in the print pages BEFORE printing. The per-slide
+        // renderer (renderSlide) only runs on the live overlay, so the print/PDF
+        // path would otherwise emit raw ```mermaid source. mermaid.run is async →
+        // print only once the SVGs are in place. The promise is exposed on the
+        // container so a headless PDF exporter can await it instead of window.print.
+        const _mNodes = container.querySelectorAll('.mermaid');
+        const _doPrint = () => window.print();
+        if (_mNodes.length > 0 && typeof mermaid !== 'undefined') {
+            container._mermaidDone = mermaid.run({ nodes: _mNodes }).then(_doPrint).catch(_doPrint);
+        } else {
+            container._mermaidDone = Promise.resolve();
+            _doPrint();
+        }
 
         // Remove after print dialog closes
         const cleanup = () => {
