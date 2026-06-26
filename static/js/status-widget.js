@@ -153,6 +153,11 @@ const StatusWidget = {
                     }
                     if (parts.length) lines.push(parts.join(' · '));
                 }
+                // DB engine + product version (references registry, aide-rap#140):
+                // e.g. "database: PostgreSQL 16.14" / "database: SQLite 3.45.0".
+                if (this.status.db_version || this.status.db_engine) {
+                    lines.push(`database: ${this.status.db_version || this.status.db_engine}`);
+                }
                 if (lines.length) versionEl.title = lines.join('\n');
             }
         } else {
