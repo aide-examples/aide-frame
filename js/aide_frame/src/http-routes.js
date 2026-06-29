@@ -417,9 +417,18 @@ function register(app, config) {
             // Render a friendly placeholder instead of a hard "File not found",
             // which otherwise greets the user the moment they click the "?".
             if (actualPath === 'index.md') {
-                return res.type('text/markdown').send(
-                    '# No documentation yet\n\n' +
-                    'No `index.md` has been authored for this section yet.\n');
+                // Return the placeholder in the SAME JSON envelope as a real
+                // document — the client always parses this response as JSON, so
+                // sending raw markdown here makes it choke with
+                // "Unexpected token '#' … is not valid JSON". (Surfaced by the
+                // `hello` system, which has no docs/index.md.)
+                return res.json({
+                    path: actualPath,
+                    content: '# No documentation yet\n\n' +
+                        'No `index.md` has been authored for this section yet.\n',
+                    title: 'No documentation yet',
+                    framework: framework,
+                });
             }
             return res.status(404).json({ error: `File not found: ${docPath}` });
         }
