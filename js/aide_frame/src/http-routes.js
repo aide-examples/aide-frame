@@ -310,12 +310,12 @@ function register(app, config) {
             back_link: cfg.backLink,
             back_text: cfg.backText,
             base_path: basePath,
-            // Branding: the header logo, made mount-aware like manifest icons
-            // (a leading-/ path under nginx becomes /<mount>/icons/...). null
-            // when the system ships no branding.logo.
-            brand_logo: cfg.branding && cfg.branding.logo
-                ? (cfg.branding.logo.startsWith('/') ? basePath + cfg.branding.logo : cfg.branding.logo)
-                : null,
+            // Branding: the header logo, sent as the RAW leading-/ path. The
+            // client's base-path URL rewriter (static/rap/rap.js) prefixes
+            // basePath to every dynamically-injected img[src^="/"], so prefixing
+            // here too would double it (/irma/irma/icons/...). At root mount
+            // basePath='' hides the bug — a dev-vs-prod trap. null if no logo.
+            brand_logo: (cfg.branding && cfg.branding.logo) || null,
             features: {
                 mermaid: cfg.enableMermaid,
                 docs: cfg.enableDocs,
