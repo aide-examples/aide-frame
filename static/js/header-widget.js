@@ -8,6 +8,7 @@ const HeaderWidget = {
     options: {
         appName: 'AIDE App',
         titleHtml: null,
+        logo: null,
         showAbout: true,
         showHelp: true,
         showLanguage: true,
@@ -51,9 +52,16 @@ const HeaderWidget = {
         }
 
         const homeLink = this.options.showAbout ? this.options.aboutLink : '#';
+        // Optional brand logo, left of the title. Decorative (the brand title
+        // text sits right beside it and carries the meaning) → empty alt is the
+        // correct a11y choice, not an untranslated string. pointer-events:none
+        // so the touch/click always lands on the anchor, never the <img> (§32).
+        const logoImg = this.options.logo
+            ? `<img class="header-brand-logo" src="${this.options.logo}" alt="" style="height:26px;width:auto;vertical-align:middle;margin-right:8px;pointer-events:none">`
+            : '';
         this.container.innerHTML = `
             <div class="header">
-                <a href="${homeLink}" class="header-brand notranslate">${this.options.titleHtml || this.options.appName}</a>
+                <a href="${homeLink}" class="header-brand notranslate">${logoImg}${this.options.titleHtml || this.options.appName}</a>
                 <div style="display: flex; align-items: center; gap: 12px;">${items.join('')}</div>
             </div>
         `;

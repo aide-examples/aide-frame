@@ -18,6 +18,7 @@
 
 const update = require('./update');
 const { logger } = require('./log');
+const { injectHead } = require('./head-inject');
 
 /**
  * Configuration for update routes.
@@ -181,9 +182,8 @@ function register(app, config) {
             return res.status(404).send('Update page not found');
         }
 
-        if (config.basePath) {
-            let html = fs.readFileSync(updateHtml, 'utf8');
-            html = html.replace('<head>', `<head>\n    <base href="${config.basePath}/">`);
+        if (config.basePath || config.branding) {
+            const html = injectHead(fs.readFileSync(updateHtml, 'utf8'), { basePath: config.basePath || '', branding: config.branding });
             res.type('html').send(html);
         } else {
             res.sendFile(updateHtml);

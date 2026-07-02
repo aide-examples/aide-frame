@@ -31,6 +31,7 @@ const updateRoutes = require('./src/update-routes');
 const args = require('./src/args');
 const qrcodeUtils = require('./src/qrcode-utils');
 const iconGenerator = require('./src/icon-generator');
+const headInject = require('./src/head-inject');
 
 module.exports = {
     // Core
@@ -56,4 +57,7 @@ module.exports = {
     args,
     qrcodeUtils,
     iconGenerator,
+    injectHead: headInject.injectHead,
+    deriveBrandTokens: headInject.deriveBrandTokens,
+    isValidBrandColor: headInject.isValidHex,
 };

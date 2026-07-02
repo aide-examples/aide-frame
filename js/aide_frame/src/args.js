@@ -14,10 +14,12 @@
  */
 
 const path = require('path');
+const fs = require('fs');
 const { Command } = require('commander');
-const { setLevel } = require('./log');
+const { setLevel, logger } = require('./log');
 const { loadConfig } = require('./config');
 const { ensureIcons } = require('./icon-generator');
+const { isValidHex } = require('./head-inject');
 
 /**
  * Add common aide-frame arguments to a commander program.
@@ -115,6 +117,28 @@ function applyCommonArgs(opts, options = {}) {
         }
 
         ensureIcons(appDir, config.pwa, opts.regenerateIcons || false, outputDir);
+    }
+
+    // Validate branding config — fail LOUD at startup, so a bad colour or a
+    // logo/favicon pointing at a non-existent file is caught here and not as a
+    // silent runtime fallback (§3 detector-before-fix).
+    if (config && config.branding) {
+        const b = config.branding;
+        for (const key of ['primaryColor', 'primaryHover', 'primaryDarkMode', 'pageBackground']) {
+            if (b[key] != null && !isValidHex(b[key])) {
+                logger.error(`[branding] ${key} = "${b[key]}" is not a valid #rgb/#rrggbb colour — ignored`);
+            }
+        }
+        if (systemDir) {
+            for (const key of ['logo', 'favicon']) {
+                if (typeof b[key] === 'string' && b[key]) {
+                    const abs = path.join(systemDir, b[key].replace(/^\//, ''));
+                    if (!fs.existsSync(abs)) {
+                        logger.error(`[branding] ${key} points to "${b[key]}" but ${abs} does not exist`);
+                    }
+                }
+            }
+        }
     }
 
     // Override port from CLI if specified

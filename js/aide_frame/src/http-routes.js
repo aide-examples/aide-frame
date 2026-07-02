@@ -23,6 +23,7 @@ const fs = require('fs');
 const paths = require('./paths');
 const docsViewer = require('./docs-viewer');
 const { logger } = require('./log');
+const { injectHead } = require('./head-inject');
 
 /**
  * Resolve edit permission for a file path by walking up the directory tree
@@ -173,6 +174,7 @@ function initConfig(config) {
         docsShallow: config.docsShallow || [],
         customRoots: config.customRoots || {},
         pwa: config.pwa || null,
+        branding: config.branding || null,
         enableMermaid: config.enableMermaid !== false,
         enableDocs: config.enableDocs !== false,
         enableHelp: config.enableHelp !== false,
@@ -308,6 +310,12 @@ function register(app, config) {
             back_link: cfg.backLink,
             back_text: cfg.backText,
             base_path: basePath,
+            // Branding: the header logo, made mount-aware like manifest icons
+            // (a leading-/ path under nginx becomes /<mount>/icons/...). null
+            // when the system ships no branding.logo.
+            brand_logo: cfg.branding && cfg.branding.logo
+                ? (cfg.branding.logo.startsWith('/') ? basePath + cfg.branding.logo : cfg.branding.logo)
+                : null,
             features: {
                 mermaid: cfg.enableMermaid,
                 docs: cfg.enableDocs,
@@ -813,9 +821,9 @@ function _serveViewer(res, root, basePath = '') {
         return res.status(404).send('Viewer template not found');
     }
 
-    if (basePath) {
-        let html = fs.readFileSync(templatePath, 'utf8');
-        html = html.replace('<head>', `<head>\n    <base href="${basePath}/">`);
+    const branding = _registeredCfg && _registeredCfg.branding;
+    if (basePath || branding) {
+        const html = injectHead(fs.readFileSync(templatePath, 'utf8'), { basePath, branding });
         res.type('html').send(html);
     } else {
         res.type('html').sendFile(templatePath);
@@ -878,7 +886,11 @@ function _serveManifest(res, pwa, basePath = '') {
         start_url: basePath + (pwa.startUrl || pwa.start_url || '/'),
         scope: basePath + '/',
         display: pwa.display || 'standalone',
-        theme_color: pwa.themeColor || pwa.theme_color || '#2563eb',
+        // "Brand once": if the system set branding.primaryColor but no explicit
+        // PWA theme_color, the brand colour tints the PWA chrome too.
+        theme_color: pwa.themeColor || pwa.theme_color
+            || (_registeredCfg && _registeredCfg.branding && _registeredCfg.branding.primaryColor)
+            || '#2563eb',
         background_color: pwa.backgroundColor || pwa.background_color || '#ffffff',
         icons: [
             {
