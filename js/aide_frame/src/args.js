@@ -139,6 +139,12 @@ function applyCommonArgs(opts, options = {}) {
                 }
             }
         }
+        // branding.logo AND an <img> in titleHtml render TWO icons side by side
+        // (Lehrgeld 2026-07-02: IRMA). They are mutually exclusive — the header
+        // logo is for systems whose titleHtml is text/emoji only.
+        if (b.logo && typeof config.titleHtml === 'string' && /<img[\s>]/i.test(config.titleHtml)) {
+            logger.warning('[branding] logo is set AND titleHtml already contains an <img> — two icons will render side by side. Drop one.');
+        }
     }
 
     // Override port from CLI if specified
