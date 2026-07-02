@@ -284,10 +284,18 @@ function register(app, config) {
     _registeredCfg = cfg;
     _registeredBasePath = basePath;
 
-    // PWA manifest
+    // PWA manifest + service worker
     if (cfg.pwa && cfg.pwa.enabled) {
         app.get('/manifest.json', (req, res) => {
             _serveManifest(res, cfg.pwa, basePath);
+        });
+        // Serve the SW at the app ROOT (basePath + '/service-worker.js') so its
+        // default registration scope is basePath + '/' — i.e. it controls the
+        // manifest's start_url. Served from static/frame/ instead, the SW's
+        // scope would be that subdir and Chrome would never fire
+        // beforeinstallprompt (no install symbol). See features/pwa.md.
+        app.get('/service-worker.js', (req, res) => {
+            _serveServiceWorker(res);
         });
     }
 
@@ -868,6 +876,7 @@ function _serveManifest(res, pwa, basePath = '') {
         short_name: pwa.shortName || pwa.short_name || 'AIDE',
         description: pwa.description || '',
         start_url: basePath + (pwa.startUrl || pwa.start_url || '/'),
+        scope: basePath + '/',
         display: pwa.display || 'standalone',
         theme_color: pwa.themeColor || pwa.theme_color || '#2563eb',
         background_color: pwa.backgroundColor || pwa.background_color || '#ffffff',
@@ -888,6 +897,26 @@ function _serveManifest(res, pwa, basePath = '') {
     };
 
     res.json(manifest);
+}
+
+/**
+ * Serve the PWA service worker at the app root.
+ * The file physically lives under aide-frame/static/ but is exposed at
+ * `<basePath>/service-worker.js` so that its default registration scope is the
+ * app root (= start_url). `Service-Worker-Allowed: /` is set defensively.
+ * @param {express.Response} res - Express response
+ * @private
+ */
+function _serveServiceWorker(res) {
+    paths.ensureInitialized();
+    const staticDir = paths.get('AIDE_FRAME_STATIC_DIR');
+    const swPath = staticDir && path.join(staticDir, 'service-worker.js');
+    if (!swPath || !fs.existsSync(swPath)) {
+        return res.status(404).send('service worker not found');
+    }
+    res.set('Service-Worker-Allowed', '/');
+    res.type('application/javascript');
+    res.sendFile(swPath);
 }
 
 /**

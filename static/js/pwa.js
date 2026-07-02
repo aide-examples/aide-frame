@@ -23,10 +23,14 @@ const PWA = {
             console.log('[PWA] App is running in standalone mode (installed)');
         }
 
-        // Register service worker
+        // Register service worker at the app root (resolves against <base href>
+        // to `<basePath>/service-worker.js`, served by http-routes). Its default
+        // scope is then `<basePath>/` = start_url, which is what makes Chrome
+        // offer the install prompt. Registering `static/frame/service-worker.js`
+        // would scope the SW to that subdir and suppress installability.
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('static/frame/service-worker.js')
-                .then(reg => console.log('[PWA] Service worker registered'))
+            navigator.serviceWorker.register('service-worker.js')
+                .then(reg => console.log('[PWA] Service worker registered, scope:', reg.scope))
                 .catch(err => console.error('[PWA] SW registration failed:', err));
         }
 
@@ -84,3 +88,11 @@ const PWA = {
         }
     }
 };
+
+// Self-initialize: register the SW + capture beforeinstallprompt as soon as
+// this module loads. Nothing else calls PWA.init() (the StatusWidget only calls
+// PWA.canInstall()/PWA.install()), and on prod the individual pwa.js source is
+// excluded — only the bundled copy in frame.min.js runs. Without this line the
+// service worker never registered on any deployed system, so the browser never
+// offered a PWA install. Safe at parse time: init() touches no DOM.
+PWA.init();
