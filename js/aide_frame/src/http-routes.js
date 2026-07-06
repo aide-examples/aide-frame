@@ -289,7 +289,7 @@ function register(app, config) {
     // PWA manifest + service worker
     if (cfg.pwa && cfg.pwa.enabled) {
         app.get('/manifest.json', (req, res) => {
-            _serveManifest(res, cfg.pwa, basePath);
+            _serveManifest(res, cfg.pwa, basePath, req.headers.host);
         });
         // Serve the SW at the app ROOT (basePath + '/service-worker.js') so its
         // default registration scope is basePath + '/' — i.e. it controls the
@@ -872,15 +872,25 @@ function _serveDocsAsset(res, assetPath, dirKey) {
  * @param {PWAConfig} pwa - PWA configuration
  * @private
  */
-function _serveManifest(res, pwa, basePath = '') {
+function _serveManifest(res, pwa, basePath = '', host = '') {
     // Determine icon type from extension
     const icon192 = pwa.icon192 || '/static/frame/icons/icon-192.svg';
     const icon512 = pwa.icon512 || '/static/frame/icons/icon-512.svg';
     const iconExt = icon192.split('.').pop().toLowerCase();
     const iconType = iconExt === 'svg' ? 'image/svg+xml' : `image/${iconExt}`;
 
+    // Installed-PWA name mirrors the "AIDE RAP -- <system> -- <host>" form so that
+    // installs from different hosts (dev localhost, a Pi's mDNS name, a prod
+    // domain) get distinguishable app identities on the home screen / task
+    // switcher. `[system]` → `-- system`; the request host is appended (baked at
+    // install time — the manifest is fetched once per install). A custom pwa.name
+    // without the `[…]` shape passes through unchanged, then still gains the host.
+    const SEP = ' -- ';
+    let pwaName = (pwa.name || 'AIDE App').replace(/^(.*?)\s*\[([^\]]+)\]\s*$/, '$1' + SEP + '$2');
+    if (host) pwaName += SEP + host;
+
     const manifest = {
-        name: pwa.name || 'AIDE App',
+        name: pwaName,
         short_name: pwa.shortName || pwa.short_name || 'AIDE',
         description: pwa.description || '',
         start_url: basePath + (pwa.startUrl || pwa.start_url || '/'),

@@ -449,8 +449,17 @@ def _serve_manifest(handler: Any, pwa: 'PWAConfig'):
     icon_ext = pwa.icon_192.rsplit('.', 1)[-1].lower()
     icon_type = "image/svg+xml" if icon_ext == "svg" else f"image/{icon_ext}"
 
+    # Installed-PWA name mirrors "AIDE RAP -- <system> -- <host>" so installs from
+    # different hosts get distinguishable identities: "[system]" -> "-- system",
+    # request host appended. Kept in parallel with js/aide_frame/src/http-routes.js.
+    import re
+    host = handler.headers.get('Host', '') if getattr(handler, 'headers', None) else ''
+    pwa_name = re.sub(r'^(.*?)\s*\[([^\]]+)\]\s*$', r'\1 -- \2', pwa.name or 'AIDE App')
+    if host:
+        pwa_name = f"{pwa_name} -- {host}"
+
     manifest = {
-        "name": pwa.name,
+        "name": pwa_name,
         "short_name": pwa.short_name,
         "description": pwa.description,
         "start_url": pwa.start_url,
