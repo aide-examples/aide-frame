@@ -1085,7 +1085,12 @@
                             initiallyCollapsed = (section.name.toLowerCase() !== sidebarOpenName);
                         }
                         if (showHeader) {
-                            html += `<div class="section${initiallyCollapsed ? ' collapsed' : ''}">`;
+                            // Indented rendering: a nested section dir (e.g. product/pdf,
+                            // depth 1) sits visually under its parent (product, depth 0).
+                            // The server already orders a child section right after its
+                            // parent; --rap-section-depth drives the left inset (see CSS).
+                            const nestDepth = Math.max(0, section.depth || 0);
+                            html += `<div class="section${initiallyCollapsed ? ' collapsed' : ''}"${nestDepth ? ` style="--rap-section-depth:${nestDepth}"` : ''}>`;
                             html += `<h3 onclick="this.parentElement.classList.toggle('collapsed')"><span class="section-toggle">▼</span>${section.name}</h3>`;
                         }
                         html += '<ul>';

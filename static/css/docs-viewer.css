@@ -279,6 +279,18 @@
 .docs-sidebar .section.collapsed ul {
     display: none;
 }
+/* Nested section dirs (e.g. product/pdf, product/mousepad) indent under their
+   parent so the sidebar mirrors the real on-disk tree instead of listing every
+   subdirectory flat. --rap-section-depth is set inline per section by the
+   sidebar builder (0 = top-level → no inset). */
+.docs-sidebar .section {
+    padding-left: calc(var(--rap-section-depth, 0) * 14px);
+}
+.docs-sidebar .section[style*="--rap-section-depth"] > h3 {
+    border-left: 2px solid #e0e7ff;
+    padding-left: 6px;
+    margin-left: -6px;
+}
 .docs-sidebar ul {
     list-style: none;
     margin: 0;

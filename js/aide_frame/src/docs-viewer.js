@@ -610,7 +610,16 @@ function getDocsStructure(options = {}) {
         // Shallow sections need recursive scanning (their .md files are in subdirectories)
         const isShallow = shallowSet.has(sectionPath);
         const section = buildSectionFromDir(baseDir, sectionPath, sectionName, { recursive: isShallow });
-        if (section) sections.push(section);
+        if (section) {
+            // Nesting depth for the sidebar's indented rendering (0 = top-level).
+            // A nested section dir like "product/pdf" renders indented under
+            // "product" (the sort above already places a child right after its
+            // parent). Overview (null path) and shallow sections — whose own
+            // children never become separate sections — stay at depth 0.
+            section.path = sectionPath || null;
+            section.depth = (sectionPath && !isShallow) ? sectionPath.split(/[\\/]/).length - 1 : 0;
+            sections.push(section);
+        }
     }
 
     // Add AIDE Frame docs at end if not inserted before late sections
