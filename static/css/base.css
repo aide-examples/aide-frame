@@ -152,26 +152,6 @@ body {
     cursor: pointer;
 }
 .header-brand:hover { opacity: 0.8; }
-/* Host subtitle beside the brand (e.g. "-- localhost:18360"): muted, smaller,
-   not bold. margin-right:auto keeps it next to the brand and pushes the
-   right-hand items to the edge; min-width:0 + ellipsis lets it shrink and
-   truncate on a narrow PWA instead of overflowing the header (§6). */
-.header-host {
-    margin-left: 4px;
-    margin-right: auto;
-    min-width: 0;
-    flex: 0 1 auto;
-    align-self: center;
-    color: var(--frame-text-muted);
-    font-size: 0.9rem;
-    font-weight: normal;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-@media (max-width: 560px) {
-    .header-host { font-size: 0.8rem; }
-}
 .header.sticky {
     background: var(--frame-bg-surface);
     padding: 15px 20px;
