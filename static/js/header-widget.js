@@ -8,6 +8,7 @@ const HeaderWidget = {
     options: {
         appName: 'AIDE App',
         titleHtml: null,
+        subtitleHtml: null,
         logo: null,
         showAbout: true,
         showHelp: true,
@@ -59,9 +60,15 @@ const HeaderWidget = {
         const logoImg = this.options.logo
             ? `<img class="header-brand-logo" src="${this.options.logo}" alt="" style="height:26px;width:auto;vertical-align:middle;margin-right:8px;pointer-events:none">`
             : '';
+        // Optional host subtitle (e.g. "-- localhost:18360"), rendered as a
+        // muted span OUTSIDE the brand anchor — it is context, not a navigation
+        // target, so a click on it must not trigger the home link.
+        const hostSpan = this.options.subtitleHtml
+            ? `<span class="header-host notranslate">${this.options.subtitleHtml}</span>`
+            : '';
         this.container.innerHTML = `
             <div class="header">
-                <a href="${homeLink}" class="header-brand notranslate">${logoImg}${this.options.titleHtml || this.options.appName}</a>
+                <a href="${homeLink}" class="header-brand notranslate">${logoImg}${this.options.titleHtml || this.options.appName}</a>${hostSpan}
                 <div style="display: flex; align-items: center; gap: 12px;">${items.join('')}</div>
             </div>
         `;
