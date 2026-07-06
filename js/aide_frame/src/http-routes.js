@@ -888,10 +888,15 @@ function _serveManifest(res, pwa, basePath = '', host = '') {
     const SEP = ' -- ';
     let pwaName = (pwa.name || 'AIDE App').replace(/^(.*?)\s*\[([^\]]+)\]\s*$/, '$1' + SEP + '$2');
     if (host) pwaName += SEP + host;
+    // short_name is the home-screen / launcher icon label — also host-suffixed so
+    // installs from different hosts stay distinguishable there too, but without the
+    // "AIDE RAP" prefix so it stays short: "<system> -- <host>".
+    let pwaShortName = pwa.shortName || pwa.short_name || 'AIDE';
+    if (host) pwaShortName += SEP + host;
 
     const manifest = {
         name: pwaName,
-        short_name: pwa.shortName || pwa.short_name || 'AIDE',
+        short_name: pwaShortName,
         description: pwa.description || '',
         start_url: basePath + (pwa.startUrl || pwa.start_url || '/'),
         scope: basePath + '/',

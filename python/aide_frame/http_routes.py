@@ -457,10 +457,15 @@ def _serve_manifest(handler: Any, pwa: 'PWAConfig'):
     pwa_name = re.sub(r'^(.*?)\s*\[([^\]]+)\]\s*$', r'\1 -- \2', pwa.name or 'AIDE App')
     if host:
         pwa_name = f"{pwa_name} -- {host}"
+    # short_name (home-screen / launcher icon label): host-suffixed too, without the
+    # "AIDE RAP" prefix so it stays short: "<system> -- <host>".
+    pwa_short_name = pwa.short_name or 'AIDE'
+    if host:
+        pwa_short_name = f"{pwa_short_name} -- {host}"
 
     manifest = {
         "name": pwa_name,
-        "short_name": pwa.short_name,
+        "short_name": pwa_short_name,
         "description": pwa.description,
         "start_url": pwa.start_url,
         "display": pwa.display,
