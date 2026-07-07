@@ -12,6 +12,8 @@
     <div class="header sticky">
         <h1 id="page-title">Loading...</h1>
         <div style="display: flex; align-items: center; gap: 12px;">
+            <select id="root-select" class="header-root-select notranslate" title="Documentation root"
+                    style="display:none; font-size:12px; padding:2px 6px;"></select>
             <a href="search" class="header-btn" id="search-link" style="display:none"
                title="Search documentation" data-i18n-title="search_documentation">&#128269;</a>
             <select id="viewer-lang-select" class="header-lang-select notranslate" title="Language" data-i18n-title="language" style="font-size:12px; padding:2px 4px;"></select>
@@ -1239,6 +1241,31 @@
             return root;
         }
 
+        /**
+         * Populate the top doc-root selector from the available roots
+         * (system docs + help + every custom root). Hidden when there is
+         * nothing to switch between. Selecting a root navigates to its
+         * landing via the base-path-safe relative route.
+         */
+        function populateRootSelector() {
+            const sel = document.getElementById('root-select');
+            if (!sel || viewerRoot === 'search') return;
+            const roots = [];
+            if (appConfig.features?.docs) roots.push({ key: 'docs', label: i18n.t('documentation') || 'Documentation' });
+            if (appConfig.features?.help) roots.push({ key: 'help', label: i18n.t('help') || 'Help' });
+            if (appConfig.custom_roots) {
+                for (const [key, root] of Object.entries(appConfig.custom_roots)) {
+                    roots.push({ key, label: root.title || key });
+                }
+            }
+            if (roots.length < 2) return;   // nothing to switch → stay hidden
+            sel.innerHTML = roots.map(r =>
+                `<option value="${r.key}"${r.key === viewerRoot ? ' selected' : ''}>${r.label}</option>`
+            ).join('');
+            sel.style.display = '';
+            sel.addEventListener('change', () => { window.location.href = rootToRoute(sel.value); });
+        }
+
         async function doSearch() {
             const input = document.getElementById('search-input');
             const query = input.value.trim();
@@ -1377,6 +1404,7 @@
                 langSelect.addEventListener('change', (e) => i18n.setLanguage(e.target.value));
             }
             await loadAppConfig();
+            populateRootSelector();
 
             // Show search link if search is available
             if (appConfig.features?.search && viewerRoot !== 'search') {
