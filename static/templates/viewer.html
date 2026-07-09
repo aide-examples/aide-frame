@@ -1030,6 +1030,18 @@
             const sidebar = document.getElementById('sidebar');
             try {
                 const res = await fetch(`api/viewer/structure?root=${viewerRoot}`);
+                if (!res.ok) {
+                    // The docs tree can be permission-gated even when a single doc in
+                    // it is public — e.g. a guest viewing the license under the otherwise
+                    // locked /rap root: the structure endpoint returns 403 (and, on an
+                    // Accept: */* fetch, the HTML locked-page, which would blow up res.json
+                    // below). Degrade quietly to a muted note — the requested doc still
+                    // renders in the main pane — instead of a red "load error".
+                    sidebar.innerHTML = res.status === 403
+                        ? `<p style="color:#888;font-style:italic;padding:.5rem;">${i18n.t('nav_restricted')}</p>`
+                        : `<p style="color:#dc2626;">${i18n.t('nav_error')}</p>`;
+                    return;
+                }
                 const data = await res.json();
 
                 let html = '';

@@ -25,6 +25,7 @@
     "doc_not_found": "Document not found: %{path}",
     "nav_loading": "Loading navigation...",
     "nav_error": "Error loading navigation",
+    "nav_restricted": "Navigation restricted for this role",
 
     "collapse_all": "Collapse all sections",
     "present": "Present",

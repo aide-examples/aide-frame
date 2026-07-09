@@ -25,6 +25,7 @@
     "doc_not_found": "Documento no encontrado: %{path}",
     "nav_loading": "Cargando navegación...",
     "nav_error": "Error al cargar la navegación",
+    "nav_restricted": "Navegación restringida para este rol",
 
     "collapse_all": "Colapsar todas las secciones",
     "present": "Presentar",
