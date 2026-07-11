@@ -40,7 +40,7 @@ const StatusWidget = {
                     <a href="#" id="sw-install-link" class="status-footer-btn" style="display:none" onclick="StatusWidget.install(); return false;">${i18n.t('install_app')}</a>
                     ` : ''}
                     ${this.options.showReload ? `
-                    <button onclick="location.reload()" class="status-footer-btn sw-reload-btn" title="${i18n.t('reload_page')}">&#x21bb;</button>
+                    <button onclick="(window.rapReloadCurrent||function(){location.reload();})()" class="status-footer-btn sw-reload-btn" title="${i18n.t('reload_page')}">&#x21bb;</button>
                     ` : ''}
                     ${this.options.showUpdate ? `
                     <a href="update" id="sw-update-link" class="status-footer-btn">Update</a>
