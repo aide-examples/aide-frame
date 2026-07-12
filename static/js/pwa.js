@@ -17,6 +17,14 @@ const PWA = {
      * Initialize PWA - register service worker
      */
     init() {
+        // PWA is a TOP-LEVEL-app concern. This module is bundled into frame.min.js,
+        // which ACTION pages also load (for the global `i18n`) inside an iframe. In
+        // that embedded context, skip everything: registering a service worker there
+        // resolves the relative 'service-worker.js' against the iframe's own path
+        // (e.g. /sys/<sys>/service-worker.js) → 404; and install-prompt capture /
+        // standalone detection belong to the outer app, not the embedded page.
+        if (typeof window !== 'undefined' && window.self !== window.top) return;
+
         // Check if already installed
         if (window.matchMedia('(display-mode: standalone)').matches) {
             this.isInstalled = true;
