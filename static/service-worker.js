@@ -4,7 +4,7 @@
  * It does not provide offline caching - just the minimum for installation.
  */
 
-const SW_VERSION = '1.0.0';
+const SW_VERSION = '1.1.0';
 
 self.addEventListener('install', (event) => {
     console.log('[SW] Installing service worker v' + SW_VERSION);
@@ -16,8 +16,7 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim());
 });
 
-// Fetch handler is required for PWA installability
-// Pass through all requests to the network (no caching)
-self.addEventListener('fetch', (event) => {
-    // Don't call respondWith() - let the browser handle normally
-});
+// NO fetch handler. A fetch handler is NOT required for PWA installability
+// anymore (Chrome dropped that requirement); an EMPTY one that never calls
+// respondWith() is a "no-op fetch handler" the browser flags as adding
+// per-navigation overhead. This SW does no caching, so it registers none.
