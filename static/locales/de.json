@@ -38,6 +38,7 @@
     "search_no_results": "Keine Ergebnisse für \"%{query}\"",
     "search_scope_docs": "System-Doku",
     "search_scope_help": "Hilfe",
+    "search_scope_locked": "Kein Zugriff auf diese Doku mit deiner Rolle",
     "search_error": "Suche fehlgeschlagen. Bitte erneut versuchen.",
 
     "update_title": "Systemaktualisierung",

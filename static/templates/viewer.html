@@ -1196,13 +1196,15 @@
             if (appConfig.features?.help) scopes.push({ key: 'help', label: i18n.t('search_scope_help') });
             if (appConfig.custom_roots) {
                 for (const [name, root] of Object.entries(appConfig.custom_roots)) {
-                    scopes.push({ key: name, label: root.title || name });
+                    scopes.push({ key: name, label: root.title || name, locked: root.locked === true });
                 }
             }
 
             const urlParams = new URLSearchParams(window.location.search);
             const initialQuery = urlParams.get('q') || sessionStorage.getItem('docs-search-query') || '';
-            const initialRoots = urlParams.get('roots')?.split(',') || scopes.map(s => s.key);
+            // Locked scopes (e.g. RAP Platform for a caller without rapDocs) are
+            // never checked by default — the server won't search them anyway.
+            const initialRoots = urlParams.get('roots')?.split(',') || scopes.filter(s => !s.locked).map(s => s.key);
 
             const container = document.getElementById('content');
             container.className = 'search-page';
@@ -1213,15 +1215,18 @@
                     <button class="header-btn search-btn" id="search-btn">${i18n.t('search_btn')}</button>
                 </div>
                 <div class="search-scopes" id="search-scopes">
-                    ${scopes.map(s => `<label><input type="checkbox" value="${s.key}"
+                    ${scopes.map(s => s.locked
+                        ? `<label class="scope-locked" title="${i18n.t('search_scope_locked')}"><input type="checkbox" value="${s.key}" disabled> ${s.label} 🔒</label>`
+                        : `<label><input type="checkbox" value="${s.key}"
                         ${initialRoots.includes(s.key) ? 'checked' : ''}> ${s.label}</label>`).join('')}
                 </div>
                 <div id="search-status"></div>
                 <div id="search-results"></div>
             `;
 
-            // Feature Index link (if rap custom root exists)
-            if (appConfig.custom_roots?.rap) {
+            // Feature Index link (if rap custom root exists AND is accessible —
+            // it browses the RAP docs, which 403 for a locked role).
+            if (appConfig.custom_roots?.rap && !appConfig.custom_roots.rap.locked) {
                 const scopesEl = document.getElementById('search-scopes');
                 const link = document.createElement('a');
                 link.href = '#';
@@ -1267,6 +1272,7 @@
             if (appConfig.features?.help) roots.push({ key: 'help', label: i18n.t('help') || 'Help' });
             if (appConfig.custom_roots) {
                 for (const [key, root] of Object.entries(appConfig.custom_roots)) {
+                    if (root.locked) continue;   // don't offer a root the user can't open (would 403)
                     roots.push({ key, label: root.title || key });
                 }
             }

@@ -704,6 +704,16 @@
     accent-color: #2563eb;
 }
 
+/* A scope the current role may not access (e.g. RAP Platform without rapDocs):
+   shown but disabled + greyed, with a 🔒 and an explanatory title tooltip. */
+.search-scopes label.scope-locked {
+    color: #aaa;
+    cursor: not-allowed;
+}
+.search-scopes label.scope-locked input[type="checkbox"] {
+    cursor: not-allowed;
+}
+
 #search-status {
     font-size: 0.9rem;
     color: #666;

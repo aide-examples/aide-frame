@@ -341,6 +341,13 @@ function register(app, config) {
                     route: root.route,
                     editable: root.editable === true,
                     masterPassword: root.masterPassword === true,
+                    // `locked` reflects the per-request authorize(req) seam: a
+                    // consuming framework (aide-rap) can gate a custom root (e.g.
+                    // the RAP-platform docs) behind a permission. The client greys
+                    // out and disables the search-scope checkbox + root selector
+                    // for locked roots. Generic here — aide-frame knows no
+                    // permission model, it only calls the injected predicate.
+                    locked: typeof root.authorize === 'function' ? !root.authorize(req) : false,
                 };
             }
         }
@@ -958,7 +965,7 @@ function _serveServiceWorker(res) {
  * @param {Function|Function[]} [options.viewerAuth] - Auth middleware for search routes
  * @param {string} [options.basePath] - Base path prefix
  */
-function initSearch(app, { db, viewerAuth = [], basePath = '' }) {
+function initSearch(app, { db, viewerAuth = [], basePath = '', searchResultFilter = null }) {
     if (!_registeredCfg) {
         logger.warning('initSearch() called before register() — skipping');
         return;
@@ -1006,12 +1013,26 @@ function initSearch(app, { db, viewerAuth = [], basePath = '' }) {
         if (!query || query.trim().length < 2) {
             return res.json({ query: '', results: [], totalCount: 0 });
         }
-        const rootNames = req.query.roots
+        let rootNames = req.query.roots
             ? req.query.roots.split(',').filter(r => r in roots)
             : Object.keys(roots);
+        // Drop custom roots the caller isn't authorized for (authorize(req) seam):
+        // a gated root (e.g. the RAP-platform docs) is never even searched, so no
+        // titles/snippets leak to an unauthorized role. Filtering at root level
+        // (rather than post-filtering results) also keeps the LIMIT honest for the
+        // roots that ARE allowed. aide-frame stays generic — it only calls the
+        // injected predicate; the permission model lives in the consumer.
+        rootNames = rootNames.filter(r => {
+            const cr = cfg.customRoots && cfg.customRoots[r];
+            return !cr || typeof cr.authorize !== 'function' || cr.authorize(req);
+        });
         const limit = Math.min(parseInt(req.query.limit) || 30, 100);
 
-        const results = _docsSearch.search(query.trim(), rootNames, limit);
+        let results = _docsSearch.search(query.trim(), rootNames, limit);
+        // Path-level permission filter (injected by the consumer) — e.g. aide-rap
+        // drops framework/ paths for a caller without frameDocs rights, since those
+        // are indexed UNDER the docs root and root-filtering can't exclude them.
+        if (typeof searchResultFilter === 'function') results = searchResultFilter(req, results);
         res.json({ query: query.trim(), results, totalCount: results.length });
     });
 

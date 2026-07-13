@@ -38,6 +38,7 @@
     "search_no_results": "Sin resultados para \"%{query}\"",
     "search_scope_docs": "Docs del sistema",
     "search_scope_help": "Ayuda",
+    "search_scope_locked": "Tu rol no tiene acceso a esta documentación",
     "search_error": "Error en la búsqueda. Inténtelo de nuevo.",
 
     "update_title": "Actualización del sistema",
