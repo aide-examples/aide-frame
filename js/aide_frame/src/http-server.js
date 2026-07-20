@@ -191,7 +191,7 @@ class HttpServer {
      * @returns {Promise} Resolves when server is listening
      */
     start() {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             if (this._running) {
                 resolve();
                 return;
@@ -208,6 +208,31 @@ class HttpServer {
                 listenApp = wrapper;
             }
 
+            // A failing listen() must REJECT this promise. Without an 'error' handler the
+            // `listening` callback simply never fires, so the promise neither resolves nor
+            // rejects — it dangles, the caller's .then() never runs, and the emitted 'error'
+            // escapes as an uncaughtException. A logger that catches uncaughtException (as
+            // aide-rap's winston does) then keeps the process ALIVE: fully booted, holding
+            // the system's server.lock, reported "online" by its supervisor — and serving
+            // nothing. It also blocks the next start, which is then refused with the
+            // singleton-lock message, so the symptom presents as an entirely different bug.
+            // Lehrgeld 2026-07-20 (study@corno): five failed starts in a row, each leaving
+            // the zombie that broke the next.
+            //
+            // A dead listener is unrecoverable, so the caller must be able to fail fast and
+            // exit non-zero. The message names port and cause: an operator who reads
+            // "EADDRINUSE :18349" is done in seconds.
+            const onListenError = (err) => {
+                const why = err && err.code === 'EADDRINUSE'
+                    ? `port ${this.port} is already in use (EADDRINUSE) — another instance is probably running`
+                    : `${err && err.code ? err.code + ': ' : ''}${err && err.message ? err.message : String(err)}`;
+                const e = new Error(`HttpServer: cannot listen on ${this._scheme}://0.0.0.0:${this.port} — ${why}`);
+                e.code = err && err.code;
+                e.cause = err;
+                this._running = false;
+                reject(e);
+            };
+
             if (this._scheme === 'https') {
                 const cert = fs.readFileSync(this.httpsCertPath);
                 const key  = fs.readFileSync(this.httpsKeyPath);
@@ -223,6 +248,9 @@ class HttpServer {
                     resolve();
                 });
             }
+            // Bound AFTER listen() so it is attached to the actual server object; 'error' is
+            // emitted asynchronously, so this still lands before any bind failure surfaces.
+            this._server.on('error', onListenError);
         });
     }
 
