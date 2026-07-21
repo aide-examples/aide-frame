@@ -190,6 +190,9 @@ function initConfig(config) {
         // GitHub repo for issue tracking. Surfaced via /api/app/config so
         // the consuming framework can render a footer link to issues.
         githubRepo: config.githubRepo || null,
+        // Named static (placeholder-free) URLs for UI chrome, surfaced via
+        // /api/app/config `ui_urls` (sibling to githubRepo). null if none.
+        uiUrls: config.uiUrls || null,
     };
 
     paths.ensureInitialized();
@@ -331,6 +334,10 @@ function register(app, config) {
             // GitHub repo for this app — used by the consuming framework to
             // render a footer link to <repo>/issues. null if not configured.
             github_repo: cfg.githubRepo || null,
+            // Named static (placeholder-free) URLs — the consuming framework's
+            // "named URLs" registry for UI chrome (e.g. footer 🐛 → issues),
+            // read via getStaticUrl(name). Sibling to github_repo. null if none.
+            ui_urls: cfg.uiUrls || null,
         };
         // Include custom roots info
         if (cfg.customRoots && Object.keys(cfg.customRoots).length > 0) {
