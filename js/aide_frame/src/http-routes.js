@@ -181,6 +181,9 @@ function initConfig(config) {
         docsEditable: config.docsEditable === true,
         helpEditable: config.helpEditable === true,
         editRequiresAdmin: config.editRequiresAdmin === true,
+        // Machine stage (development | test | production) — surfaced to the
+        // client via /api/app/config for the dev/test host indicator.
+        stage: config.stage || 'development',
         masterPasswordHash: config.masterPasswordHash || null,
         sessionTimeout: config.sessionTimeout || 86400,
         viewerHooks: config.viewerHooks || null,
@@ -330,6 +333,10 @@ function register(app, config) {
                 help: cfg.helpEditable,
                 requiresAdmin: cfg.editRequiresAdmin,
             },
+            // Machine stage (development | test | production). Consumed by the
+            // client for the dev/test host indicator; default development so a
+            // framework without the field behaves like an un-stamped checkout.
+            stage: cfg.stage || 'development',
             viewer_hooks: cfg.viewerHooks,
             // GitHub repo for this app — used by the consuming framework to
             // render a footer link to <repo>/issues. null if not configured.
