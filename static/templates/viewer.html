@@ -513,7 +513,9 @@
             // Don't edit framework docs
             if (currentDocPath && currentDocPath.startsWith('framework/')) return;
 
-            const headingText = heading.textContent;
+            // Chips-transformed headings (rap fmt-markers) carry the
+            // markdown-faithful text in data-md-heading.
+            const headingText = heading.dataset.mdHeading || heading.textContent;
             const headingLevel = parseInt(heading.tagName.substring(1));
 
             openEditor(headingText, headingLevel);

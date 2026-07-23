@@ -12,6 +12,15 @@
  *
  * Interaction: SHIFT+Click+Drag on a heading to reorder within same-level siblings.
  */
+/**
+ * Markdown-faithful text of a heading. Chips-transformed headings (the rap
+ * MD++ formatters style entity-header markers) carry the original text in
+ * data-md-heading — textContent would no longer match the markdown source.
+ */
+function mdHeadingText(heading) {
+    return heading.dataset.mdHeading || heading.textContent;
+}
+
 class HeadingDragReorder {
     constructor({ container, getMarkdown, onReorder }) {
         this.container = container;
@@ -115,7 +124,7 @@ class HeadingDragReorder {
         // Create ghost
         const ghost = document.createElement('div');
         ghost.className = 'heading-drag-ghost';
-        ghost.textContent = heading.textContent;
+        ghost.textContent = mdHeadingText(heading);
         ghost.style.left = (e.clientX + 12) + 'px';
         ghost.style.top = (e.clientY - 12) + 'px';
         document.body.appendChild(ghost);
@@ -129,7 +138,7 @@ class HeadingDragReorder {
         this._drag = {
             heading,
             level,
-            headingText: heading.textContent,
+            headingText: mdHeadingText(heading),
             siblingIndex,
             siblings,
             ghost,
@@ -438,7 +447,7 @@ class HeadingDragReorder {
         const { heading, level, siblingIndex, siblings } = this._drag;
 
         const markdown = this.getMarkdown();
-        const headingText = heading.textContent;
+        const headingText = mdHeadingText(heading);
 
         // Find parent bounds by matching the first sibling
         // Use the DOM siblings to get heading texts and find bounds
