@@ -431,6 +431,13 @@
 
             document.getElementById('editor-modal').style.display = 'flex';
             textarea.focus();
+            // Show the section from the top: setting .value put the cursor at
+            // the end, and focus() scrolled the textarea to the bottom.
+            textarea.setSelectionRange(0, 0);
+            textarea.scrollTop = 0;
+            textarea.scrollLeft = 0;
+            const highlightEl = document.getElementById('editor-highlight');
+            if (highlightEl) { highlightEl.scrollTop = 0; highlightEl.scrollLeft = 0; }
         }
 
         /**
