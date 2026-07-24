@@ -260,7 +260,12 @@ function _getViewerConfig(config, root) {
             sectionDefs: null,
             exclude: [],
             titleSuffix: 'Help',
-            useSections: false,
+            // Sections on: help/ is a system's ONE user-doc root — index.md
+            // (the top-bar "?" guide) plus the per-item help scopes actions/
+            // classes/ views/ processes/ (aide-rap help consolidation,
+            // 2026-07-23). Auto-discovery turns each populated subdir into a
+            // section; a system with only index.md still yields exactly one.
+            useSections: true,
         };
     } else if (config.customRoots && root in config.customRoots) {
         const custom = config.customRoots[root];
@@ -274,6 +279,34 @@ function _getViewerConfig(config, root) {
         };
     }
     return null;
+}
+
+/**
+ * Build a viewer root's structure payload — the ONE producer of that shape.
+ * Sectioned roots go through auto-discovery (each populated subdir becomes a
+ * section); flat roots are wrapped in a single section so the API shape is
+ * identical either way.
+ *
+ * Both structure endpoints (/api/viewer/structure and the legacy
+ * /api/help/structure) call this. They used to build the payload
+ * independently, and drifted: the legacy one stayed flat after the help root
+ * gained sections, so it reported a different tree than the viewer page saw.
+ *
+ * @param {object} viewerCfg - from _getViewerConfig()
+ * @returns {{sections: Array<{name: string, docs: Array<object>}>}}
+ */
+function _buildViewerStructure(viewerCfg) {
+    if (viewerCfg.useSections) {
+        return docsViewer.getDocsStructure({
+            docsDirKey: viewerCfg.dirKey,
+            frameworkDirKey: viewerCfg.frameworkDirKey,
+            sectionDefs: viewerCfg.sectionDefs,
+            exclude: viewerCfg.exclude,
+            shallow: viewerCfg.shallow,
+        });
+    }
+    const flat = docsViewer.getStructure(viewerCfg.dirKey, { includeDescription: true });
+    return { sections: [{ name: viewerCfg.titleSuffix, docs: flat.files || [] }] };
 }
 
 // Module-level state for search integration (set by register(), used by initSearch())
@@ -382,28 +415,7 @@ function register(app, config) {
             return res.status(404).json({ error: 'Directory not configured' });
         }
 
-        let structure;
-        if (viewerCfg.useSections) {
-            // Multi-section structure
-            structure = docsViewer.getDocsStructure({
-                docsDirKey: viewerCfg.dirKey,
-                frameworkDirKey: viewerCfg.frameworkDirKey,
-                sectionDefs: viewerCfg.sectionDefs,
-                exclude: viewerCfg.exclude,
-                shallow: viewerCfg.shallow,
-            });
-        } else {
-            // Flat structure - wrap in single section for consistent API format
-            const flat = docsViewer.getStructure(viewerCfg.dirKey, { includeDescription: true });
-            structure = {
-                sections: [{
-                    name: viewerCfg.titleSuffix,
-                    docs: flat.files || [],
-                }]
-            };
-        }
-
-        res.json(structure);
+        res.json(_buildViewerStructure(viewerCfg));
     });
 
     // Viewer content API
@@ -783,9 +795,10 @@ function register(app, config) {
     }
 
     if (cfg.enableHelp) {
+        // Legacy alias of /api/viewer/structure?root=help — same producer
+        // (_buildViewerStructure), so the two can no longer drift apart.
         app.get('/api/help/structure', ...cfg.viewerAuth, (req, res) => {
-            const structure = docsViewer.getStructure(cfg.helpDirKey, { includeDescription: true });
-            res.json(structure);
+            res.json(_buildViewerStructure(_getViewerConfig(cfg, 'help')));
         });
     }
 }
