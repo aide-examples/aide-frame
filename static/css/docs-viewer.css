@@ -223,9 +223,10 @@
 
 .docs-layout {
     display: flex;
-    max-width: 1200px;
-    margin: 0 auto;
     min-height: calc(100vh - 60px);
+    /* Fill the full window width: the sidebar keeps its fixed 250px, the content
+       (.docs-content flex:1) grows to fill the rest. No max-width/centering — a
+       centered layout left a white margin beside the sidebar on wide windows. */
 }
 
 /* Docs Sidebar */
