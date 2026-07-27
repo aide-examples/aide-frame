@@ -16,13 +16,13 @@
                     style="display:none; font-size:12px; padding:2px 6px;"></select>
             <a href="search" class="header-btn" id="search-link" style="display:none"
                title="Search documentation" data-i18n-title="search_documentation">&#128269;</a>
-            <select id="viewer-lang-select" class="header-lang-select notranslate" title="Language" data-i18n-title="language" style="font-size:12px; padding:2px 4px;"></select>
+            <select id="viewer-lang-select" class="header-lang-select notranslate" title="Language" data-i18n-title="frame_language" style="font-size:12px; padding:2px 4px;"></select>
             <span id="gt-container"></span>
             <button class="header-btn notranslate" id="present-btn" style="display:none"
-                    title="Start slideshow (fullscreen)" data-i18n-title="slideshow_start_title">&#9654; <span data-i18n="present">Present</span></button>
+                    title="Start slideshow (fullscreen)" data-i18n-title="slideshow_start_title">&#9654; <span data-i18n="frame_present">Present</span></button>
             <button class="header-btn notranslate" id="print-btn" style="display:none"
                     title="Print slides as PDF handout" data-i18n-title="print_slides_pdf_handout">&#128438; <span data-i18n="print_slides">Print</span></button>
-            <a href="./" class="header-btn notranslate" id="back-link" data-i18n="back">Back</a>
+            <a href="./" class="header-btn notranslate" id="back-link" data-i18n="frame_back">Back</a>
         </div>
     </div>
 
@@ -593,9 +593,9 @@
                     if (appConfig.custom_roots && appConfig.custom_roots[viewerRoot]) {
                         titleSuffix = appConfig.custom_roots[viewerRoot].title;
                     } else if (viewerRoot === 'docs') {
-                        titleSuffix = i18n.t('documentation');
+                        titleSuffix = i18n.t('frame_documentation');
                     } else if (viewerRoot === 'help') {
-                        titleSuffix = i18n.t('help');
+                        titleSuffix = i18n.t('frame_help');
                     } else {
                         titleSuffix = viewerRoot.charAt(0).toUpperCase() + viewerRoot.slice(1);
                     }
@@ -665,7 +665,7 @@
             tocContainer.className = 'toc-container';
             tocContainer.innerHTML = `
                 <div class="toc-header" onclick="this.parentElement.classList.toggle('collapsed')">
-                    <span class="toc-title">${i18n.t('toc')}</span>
+                    <span class="toc-title">${i18n.t('frame_toc')}</span>
                     <span class="toc-toggle">▼</span>
                 </div>
                 <div class="toc-content">${tocHtml}</div>
@@ -731,7 +731,7 @@
         async function loadDoc(docPath, anchor = '') {
             const container = document.getElementById('content');
             container.className = 'content-loading';
-            container.innerHTML = i18n.t('loading');
+            container.innerHTML = i18n.t('frame_loading');
 
             try {
                 let data;
@@ -1196,8 +1196,8 @@
             sidebar.style.display = 'none';
 
             document.getElementById('page-title').textContent =
-                appConfig.app_name + ' - ' + i18n.t('search');
-            document.title = i18n.t('search') + ' - ' + appConfig.app_name;
+                appConfig.app_name + ' - ' + i18n.t('frame_search');
+            document.title = i18n.t('frame_search') + ' - ' + appConfig.app_name;
 
             // Build scope options from app config
             const scopes = [];
@@ -1277,8 +1277,8 @@
             const sel = document.getElementById('root-select');
             if (!sel || viewerRoot === 'search') return;
             const roots = [];
-            if (appConfig.features?.docs) roots.push({ key: 'docs', label: i18n.t('documentation') || 'Documentation' });
-            if (appConfig.features?.help) roots.push({ key: 'help', label: i18n.t('help') || 'Help' });
+            if (appConfig.features?.docs) roots.push({ key: 'docs', label: i18n.t('frame_documentation') || 'Documentation' });
+            if (appConfig.features?.help) roots.push({ key: 'help', label: i18n.t('frame_help') || 'Help' });
             if (appConfig.custom_roots) {
                 for (const [key, root] of Object.entries(appConfig.custom_roots)) {
                     if (root.locked) continue;   // don't offer a root the user can't open (would 403)

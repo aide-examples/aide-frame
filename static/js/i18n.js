@@ -134,7 +134,7 @@ class I18n {
      * @param {Element|Document} root - Root element to search (default: document)
      *
      * Example HTML:
-     *   <span data-i18n="status">Status</span>
+     *   <span data-i18n="frame_status">Status</span>
      *   <button data-i18n="pause">Pause</button>
      *   <input data-i18n-placeholder="search_placeholder">
      *   <button data-i18n-title="close" data-i18n-aria-label="close">×</button>
