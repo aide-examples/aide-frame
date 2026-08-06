@@ -316,6 +316,24 @@ def handle_request(handler: Any, path: str, config: DocsConfig) -> bool:
         dir_key = viewer_cfg['framework_dir_key'] if framework else viewer_cfg['dir_key']
         content = docs_viewer.load_file(dir_key, file_path)
 
+        # SUBSIDIAER README.md, wenn es keine index.md gibt.
+        #
+        # index.md ist die Vorgabe fuer "zeig mir diesen Wurzel-Ordner" (oben,
+        # params.get('path', ['index.md'])). Ein Repo, das stattdessen mit einer
+        # README.md einsteigt — die Konvention jedes extern gehosteten Repos —
+        # begruesste den Leser deshalb mit "Document not found: index.md",
+        # obwohl der Einstiegstext danebenliegt.
+        #
+        # Absichtlich ENG: nur index.md faellt zurueck, und nur auf README.md im
+        # SELBEN Ordner. Ein allgemeiner "irgendwas Aehnliches"-Fallback wuerde
+        # einen Tippfehler in einem Link stillschweigend auf eine fremde Datei
+        # umleiten, statt ihn zu melden — der 404 ist dort die richtige Antwort.
+        if content is None and os.path.basename(file_path) == 'index.md':
+            alt = os.path.join(os.path.dirname(file_path), 'README.md')
+            content = docs_viewer.load_file(dir_key, alt)
+            if content is not None:
+                file_path = alt
+
         if content is not None:
             _send_json(handler, {
                 "content": content,
