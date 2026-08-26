@@ -311,92 +311,16 @@
             });
         }
 
-        /**
-         * Extract a section from markdown starting at a heading.
-         * Returns { start, end, content } where start/end are character indices.
-         */
-        function extractSection(markdown, headingText, headingLevel) {
-            const lines = markdown.split('\n');
-            const prefix = '#'.repeat(headingLevel) + ' ';
-            let start = -1;
-            let end = markdown.length;
-            let charPos = 0;
-
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i];
-                const lineStart = charPos;
-                charPos += line.length + 1; // +1 for newline
-
-                // Find start: match heading level and text
-                if (start === -1) {
-                    if (line.startsWith(prefix) && line.substring(prefix.length).trim() === headingText.trim()) {
-                        start = lineStart;
-                    }
-                    continue;
-                }
-
-                // Find end: next heading of same or higher level
-                if (line.match(/^#{1,6} /)) {
-                    const matchLevel = line.match(/^(#+)/)[1].length;
-                    if (matchLevel <= headingLevel) {
-                        end = lineStart;
-                        break;
-                    }
-                }
-            }
-
-            if (start === -1) return null;
-
-            return {
-                start,
-                end,
-                content: markdown.substring(start, end)
-            };
-        }
-
-        /**
-         * Replace a section in the markdown.
-         */
-        function replaceSection(markdown, start, end, newContent) {
-            return markdown.substring(0, start) + newContent + markdown.substring(end);
-        }
-
-        /**
-         * Apply simple CSS-based syntax highlighting to markdown.
-         */
-        function highlightMarkdown(text) {
-            // Escape HTML
-            let html = text
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-
-            // Highlight patterns (order matters)
-            html = html
-                // Headers
-                .replace(/^(#{1,6} .*)$/gm, '<span class="md-heading">$1</span>')
-                // Bold
-                .replace(/(\*\*[^*]+\*\*)/g, '<span class="md-bold">$1</span>')
-                // Italic
-                .replace(/(\*[^*]+\*)/g, '<span class="md-italic">$1</span>')
-                // Code inline
-                .replace(/(`[^`]+`)/g, '<span class="md-code">$1</span>')
-                // Links
-                .replace(/(\[[^\]]+\]\([^)]+\))/g, '<span class="md-link">$1</span>')
-                // Lists
-                .replace(/^(\s*[-*+] )/gm, '<span class="md-list">$1</span>')
-                .replace(/^(\s*\d+\. )/gm, '<span class="md-list">$1</span>');
-
-            return html;
-        }
-
+        
+        
+        
         /**
          * Update the highlight overlay to match textarea content.
          */
         function updateHighlight() {
             const textarea = document.getElementById('editor-textarea');
             const highlight = document.getElementById('editor-highlight');
-            highlight.innerHTML = highlightMarkdown(textarea.value) + '\n';
+            highlight.innerHTML = MdSections.highlightMarkdown(textarea.value) + '\n';
         }
 
         /**
@@ -411,7 +335,7 @@
                 if (!ok) return;
             }
 
-            const section = extractSection(currentMarkdown, headingText, headingLevel);
+            const section = MdSections.extractSection(currentMarkdown, headingText, headingLevel);
             if (!section) {
                 console.error('Could not find section:', headingText);
                 return;
@@ -470,7 +394,7 @@
             const headingMatch = firstLine.match(/^#+\s+(.+)$/);
             scrollToHeadingText = headingMatch ? headingMatch[1].trim() : editingSection.headingText;
 
-            const newMarkdown = replaceSection(
+            const newMarkdown = MdSections.replaceSection(
                 currentMarkdown,
                 editingSection.start,
                 editingSection.end,
