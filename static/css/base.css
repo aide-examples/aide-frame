@@ -505,7 +505,10 @@ button.wide { width: 100%; }
 }
 .status-footer-sep {
     color: var(--frame-gray-300);
-    margin: 0 4px;
+    /* Kein Rand. Die Fusszeile eines Admins traegt acht Trenner, und 4px auf jeder Seite
+       kosteten 64px -- auf einem Handy im Querformat (568px) blieben davon 39px Luft, bevor
+       sie umbricht. Das Zeichen selbst traegt seinen Abstand: es ist ein Mittelpunkt in
+       einer proportionalen Schrift, und die Nachbarn sind Symbole mit eigenem Innenabstand. */
 }
 .status-footer-actions {
     display: flex;
