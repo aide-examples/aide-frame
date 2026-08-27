@@ -1,0 +1,34 @@
+/* prettify.css — shared look of highlighted config blocks (## Table / ## Graph, json or yaml).
+ *
+ * ONE source of truth for a style that two independent highlight.js copies would otherwise
+ * duplicate and drift: the aide-rap app's definition modal (`.entity-definition-body`) and
+ * the aide-frame doc viewer (`.markdown-body`). Both HTML shells already load files from
+ * `static/frame/css/`, so both simply `<link>` this one — no build step, native CSS.
+ *
+ * The rules come AFTER the github highlight.js theme in the cascade and are scoped to the
+ * two rendered-markdown containers, so they win without `!important` and touch nothing else.
+ *
+ * Intent: the VALUE is what a reader scans for; the member name is scaffolding.
+ *   value  (string · number · true/false/null) → bold, blue
+ *   member name (key)                          → normal weight, 90%, grey
+ *
+ * A third context that renders highlighted config blocks adds its container selector here —
+ * this file stays the single home for the look.
+ */
+
+.entity-definition-body pre code .hljs-string,
+.entity-definition-body pre code .hljs-number,
+.entity-definition-body pre code .hljs-literal,
+.markdown-body pre code .hljs-string,
+.markdown-body pre code .hljs-number,
+.markdown-body pre code .hljs-literal {
+    color: #2563eb;
+    font-weight: 700;
+}
+
+.entity-definition-body pre code .hljs-attr,
+.markdown-body pre code .hljs-attr {
+    color: #6b7280;
+    font-weight: 400;
+    font-size: 0.9em;
+}

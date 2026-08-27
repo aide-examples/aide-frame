@@ -85,6 +85,8 @@
 .markdown-body pre code.language-text {
     color: #374151;
 }
+/* Config-block highlighting (value bold+blue, key grey/90%) lives ONCE in the shared
+ * prettify.css, linked by viewer.html alongside this file. Not duplicated here. */
 .markdown-body table {
     width: 100%;
     border-collapse: collapse;
