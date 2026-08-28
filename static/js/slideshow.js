@@ -287,7 +287,7 @@ const Slideshow = (() => {
                     const msg = (typeof i18n !== 'undefined' && i18n.t)
                         ? (i18n.t('access_denied_root') || `No access to root '${r.root}'.`)
                         : `No access to root '${r.root}'.`;
-                    alert(msg);
+                    Toast.error(msg);   // sticky error toast (was a blocking alert)
                     return;
                 }
                 // Build the target URL explicitly from the target root's

@@ -498,7 +498,8 @@ class HeadingDragReorder {
         try {
             await this.onReorder(newMarkdown, headingText);
         } catch (e) {
-            alert('Error saving: ' + e.message);
+            // sticky error toast (was a blocking alert)
+            Toast.error(((typeof i18n !== 'undefined' && i18n.t && i18n.t('error_saving')) || 'Error saving') + ': ' + e.message);
         }
     }
 
