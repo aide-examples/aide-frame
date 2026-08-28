@@ -195,7 +195,7 @@ const StatusWidget = {
         try { await fetch('api/restart', { method: 'POST' }); } catch (e) {}
         // Sticky toast (non-blocking, unlike the old alert()); it vanishes on the
         // reload below anyway.
-        Toast.show((typeof i18n !== 'undefined' && i18n.t && i18n.t('server_restarting')) || 'Server is restarting…', 'info', 0);
+        Toast.show((typeof i18n !== 'undefined' && i18n.t && i18n.t('frame_server_restarting')) || 'Server is restarting…', 'info', 0);
         setTimeout(() => location.reload(), 3000);
     },
 
