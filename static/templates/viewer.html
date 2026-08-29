@@ -1340,6 +1340,26 @@
                         }
                     });
                 }
+
+                // Intercept .md links (e.g. the catalogue's title links): navigate the doc-viewer
+                // to that feature doc. We are on the /search page, so there is no in-place content
+                // to loadDoc into — resolve via the canonical resolver and navigate to its root.
+                contentEl.querySelectorAll('a[href*=".md"]').forEach(a => {
+                    a.addEventListener('click', (e) => {
+                        const href = a.getAttribute('href');
+                        const r = DocLinkResolver.resolve(href, {
+                            currentRoot: 'rap',
+                            currentDocPath: path,
+                            accessibleRoots: appConfig.accessibleRoots,
+                        });
+                        if (r.isExternal) return;
+                        e.preventDefault();
+                        if (!r.isAccessible) { alert(i18n.t('access_denied_root') || `No access to root '${r.root}'.`); return; }
+                        overlay.remove();
+                        window.location.href = (_basePath || '') + '/' + rootToRoute(r.root)
+                            + '?doc=' + encodeURIComponent(r.path) + (r.anchor || '');
+                    });
+                });
             } catch (e) {
                 contentEl.innerHTML = '<p>Error loading document.</p>';
                 console.error('Catalogue doc load failed:', e);
