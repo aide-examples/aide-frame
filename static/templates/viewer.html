@@ -1162,13 +1162,18 @@
             // it browses the RAP docs, which 403 for a locked role).
             if (appConfig.custom_roots?.rap && !appConfig.custom_roots.rap.locked) {
                 const scopesEl = document.getElementById('search-scopes');
-                const link = document.createElement('a');
-                link.href = '#';
-                link.textContent = '\u{1F4CB} Feature Index';
-                link.title = 'Browse all platform features';
-                link.style.cssText = 'margin-left:12px; font-size:0.9rem; cursor:pointer; text-decoration:none; color:#2563eb;';
-                link.addEventListener('click', (e) => { e.preventDefault(); openFeatureIndex(); });
-                scopesEl.appendChild(link);
+                const mkDocLink = (icon, label, path, tip) => {
+                    const link = document.createElement('a');
+                    link.href = '#';
+                    link.textContent = icon + ' ' + label;
+                    link.title = tip;
+                    link.style.cssText = 'margin-left:12px; font-size:0.9rem; cursor:pointer; text-decoration:none; color:#2563eb;';
+                    link.addEventListener('click', (e) => { e.preventDefault(); openFeatureDoc(path, label); });
+                    scopesEl.appendChild(link);
+                };
+                // The exhaustive searchable index, and — beside it — the curated capability catalogue.
+                mkDocLink('\u{1F4CB}', 'Feature Index', 'features/index.md', 'Browse all platform features');
+                mkDocLink('\u{1F4D7}', 'Capability Catalogue', 'product/capability-catalogue.md', 'Curated value-proposition catalogue — functional and non-functional capabilities');
             }
 
             const input = document.getElementById('search-input');
@@ -1272,49 +1277,51 @@
             return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        /** Open Feature Index as popup overlay in search page */
-        async function openFeatureIndex() {
-            // Remove existing popup if any
-            const existing = document.getElementById('feature-index-popup');
+        /** Open a RAP framework catalogue doc (feature index / capability catalogue) as a popup
+         *  overlay in the search page. Parameterized so the two links open independent popups,
+         *  with element lookups scoped to the overlay (no shared global ids). */
+        async function openFeatureDoc(path, title) {
+            const popupId = 'featuredoc-popup-' + path.replace(/[^a-z0-9]+/gi, '-');
+            const existing = document.getElementById(popupId);
             if (existing) { existing.remove(); return; }
 
             const overlay = document.createElement('div');
-            overlay.id = 'feature-index-popup';
+            overlay.id = popupId;
             overlay.className = 'editor-modal';
             overlay.style.display = 'flex';
             overlay.innerHTML = `
                 <div class="editor-modal-content" style="max-width:90vw; width:1100px; height:auto; max-height:85vh;">
                     <div class="editor-header">
-                        <span>Feature Index</span>
-                        <button class="editor-close" id="fi-close">&times;</button>
+                        <span>${title}</span>
+                        <button class="editor-close">&times;</button>
                     </div>
-                    <div id="fi-content" class="viewer-content" style="padding:16px 24px; overflow-y:auto; flex:1;">
+                    <div class="viewer-content fd-content" style="padding:16px 24px; overflow-y:auto; flex:1;">
                         <p style="color:#999;">Loading...</p>
                     </div>
                 </div>
             `;
             document.body.appendChild(overlay);
+            const contentEl = overlay.querySelector('.fd-content');
 
             // Close on backdrop click or X button
             overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-            document.getElementById('fi-close').addEventListener('click', () => overlay.remove());
+            overlay.querySelector('.editor-close').addEventListener('click', () => overlay.remove());
 
             try {
-                const res = await fetch('api/viewer/content?root=rap&path=features/index.md');
+                const res = await fetch('api/viewer/content?root=rap&path=' + encodeURIComponent(path));
                 const data = await res.json();
                 if (data.error || !data.content) {
-                    document.getElementById('fi-content').innerHTML = '<p>Feature Index not available.</p>';
+                    contentEl.innerHTML = '<p>Document not available.</p>';
                     return;
                 }
 
-                const contentEl = document.getElementById('fi-content');
                 contentEl.innerHTML = marked.parse(data.content);
                 await highlightCodeBlocks(contentEl);
 
                 // Run viewerContentHook so <!-- search-items --> directive generates 🔍 buttons
                 if (typeof window.viewerContentHook === 'function') {
                     await window.viewerContentHook(contentEl, {
-                        docPath: 'features/index.md',
+                        docPath: path,
                         viewerRoot: 'rap',
                         docNames: []
                     });
@@ -1334,8 +1341,8 @@
                     });
                 }
             } catch (e) {
-                document.getElementById('fi-content').innerHTML = '<p>Error loading Feature Index.</p>';
-                console.error('Feature Index load failed:', e);
+                contentEl.innerHTML = '<p>Error loading document.</p>';
+                console.error('Catalogue doc load failed:', e);
             }
         }
 
