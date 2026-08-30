@@ -1171,6 +1171,21 @@
                 <div id="search-results"></div>
             `;
 
+            // Capability-catalogue shortcut, in the scope row right of "RAP Platform" — a convenient
+            // way BACK to the catalogue after jumping from it into a feature doc. Only when the rap
+            // root is accessible (it browses the RAP docs, which 403 for a locked role). Navigates to
+            // the catalogue in the rap root (same target as the header link), so the catalogue's own
+            // TOC + jump links behave exactly as in the main view.
+            if (appConfig.custom_roots?.rap && !appConfig.custom_roots.rap.locked) {
+                const catLink = document.createElement('a');
+                catLink.href = rootToRoute('rap') + '?doc=' + encodeURIComponent('product/capability-catalogue.md');
+                catLink.textContent = '\u{1F415} ' + (i18n.t('search_catalogue') || 'Capability Catalogue');
+                catLink.title = i18n.t('search_catalogue_tip') || '';
+                catLink.className = 'search-catalogue-link';
+                catLink.style.cssText = 'margin-left:14px; font-size:0.9rem; text-decoration:none; color:#2563eb; white-space:nowrap;';
+                document.getElementById('search-scopes').appendChild(catLink);
+            }
+
             const input = document.getElementById('search-input');
             const btn = document.getElementById('search-btn');
 
