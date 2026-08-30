@@ -682,6 +682,18 @@
                     currentDocCanEdit = editData.canEdit === true;
                 } catch (_) {}
 
+                // A doc that ships its OWN table of contents opts out of the auto-generated one
+                // with a NOTOC marker (an HTML comment `<!-- NOTOC -->`, or a lone `__NOTOC__`
+                // line) — otherwise the reader sees two. Strip it so it never renders; heading ids
+                // are still assigned below (generateTOC runs; only its container is not inserted).
+                const noToc = /<!--\s*notoc\b[\s\S]*?-->/i.test(data.content)
+                    || /(^|\n)[ \t]*__NOTOC__[ \t]*(\n|$)/.test(data.content);
+                if (noToc) {
+                    data.content = data.content
+                        .replace(/<!--\s*notoc\b[\s\S]*?-->/ig, '')
+                        .replace(/(^|\n)[ \t]*__NOTOC__[ \t]*(?=\n|$)/g, '$1');
+                }
+
                 container.className = 'markdown-body';
                 container.innerHTML = marked.parse(data.content);
 
@@ -711,9 +723,10 @@
                     });
                 }
 
-                // Generate TOC
+                // Generate TOC (still runs to assign heading ids; container inserted only if the
+                // doc did not opt out via NOTOC — see above).
                 const toc = generateTOC(container);
-                if (toc) container.insertBefore(toc, container.firstChild);
+                if (toc && !noToc) container.insertBefore(toc, container.firstChild);
 
                 // Render mermaid diagrams
                 if (typeof mermaid !== 'undefined' && !window.MERMAID_FAILED && appConfig.features.mermaid) {

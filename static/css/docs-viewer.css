@@ -901,3 +901,6 @@
     text-align: right;
     flex: none;
 }
+/* The number range is a jump link to its group heading (#cat-g-N). */
+.cat-toc .row a.cat-toc-jump { text-decoration: none; flex: none; }
+.cat-toc .row a.cat-toc-jump:hover i { text-decoration: underline; }
