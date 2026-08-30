@@ -1158,24 +1158,6 @@
                 <div id="search-results"></div>
             `;
 
-            // Feature Index link (if rap custom root exists AND is accessible —
-            // it browses the RAP docs, which 403 for a locked role).
-            if (appConfig.custom_roots?.rap && !appConfig.custom_roots.rap.locked) {
-                const scopesEl = document.getElementById('search-scopes');
-                const mkDocLink = (icon, label, path, tip) => {
-                    const link = document.createElement('a');
-                    link.href = '#';
-                    link.textContent = icon + ' ' + label;
-                    link.title = tip;
-                    link.style.cssText = 'margin-left:12px; font-size:0.9rem; cursor:pointer; text-decoration:none; color:#2563eb;';
-                    link.addEventListener('click', (e) => { e.preventDefault(); openFeatureDoc(path, label); });
-                    scopesEl.appendChild(link);
-                };
-                // The exhaustive searchable index, and — beside it — the curated capability catalogue.
-                mkDocLink('\u{1F4CB}', 'Feature Index', 'features/index.md', 'Browse all platform features');
-                mkDocLink('\u{1F4D7}', 'Capability Catalogue', 'product/capability-catalogue.md', 'Curated value-proposition catalogue — functional and non-functional capabilities');
-            }
-
             const input = document.getElementById('search-input');
             const btn = document.getElementById('search-btn');
 
@@ -1277,9 +1259,8 @@
             return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        /** Open a RAP framework catalogue doc (feature index / capability catalogue) as a popup
-         *  overlay in the search page. Parameterized so the two links open independent popups,
-         *  with element lookups scoped to the overlay (no shared global ids). */
+        /** Open a RAP framework doc as a popup overlay, scoped to its own id so several can
+         *  coexist. A generic utility (e.g. for the capability catalogue); currently unwired. */
         async function openFeatureDoc(path, title) {
             const popupId = 'featuredoc-popup-' + path.replace(/[^a-z0-9]+/gi, '-');
             const existing = document.getElementById(popupId);
@@ -1318,7 +1299,7 @@
                 contentEl.innerHTML = marked.parse(data.content);
                 await highlightCodeBlocks(contentEl);
 
-                // Run viewerContentHook so <!-- search-items --> directive generates 🔍 buttons
+                // Run the app's viewerContentHook (linkification, MD++ formatting, action-id links)
                 if (typeof window.viewerContentHook === 'function') {
                     await window.viewerContentHook(contentEl, {
                         docPath: path,
