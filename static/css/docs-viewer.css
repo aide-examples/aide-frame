@@ -851,19 +851,23 @@
 /* ── Capability catalogue (app/docs/product/capability-catalogue.md) ──────────
    The generated catalogue carries a <nav class="cat-toc"> table of contents and a
    <span class="cat-num"> per item; each lede is a bold summary sentence + <br> + detail.
-   These rules give it the reviewed tender-annex look inside the doc viewer. */
-.markdown-body .cat-num {
+   The .cat-* classes are catalogue-unique, so these rules are NOT scoped to a container
+   and apply both in the main doc viewer (.markdown-body) and in the feature-doc popup
+   (.fd-content) reached via the 🔍 search page. Only the per-item spacing is scoped to
+   the two containers, to override their default <li> margins. */
+.cat-num {
     color: #2563eb;
     font-weight: 700;
     font-size: 0.82em;
     font-variant-numeric: tabular-nums;
     margin-right: 0.4em;
 }
-.markdown-body li:has(.cat-num) {
+.markdown-body li:has(.cat-num),
+.fd-content li:has(.cat-num) {
     margin: 1.8em 0;
     line-height: 1.55;
 }
-.markdown-body .cat-toc {
+.cat-toc {
     font-size: 0.9rem;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
@@ -871,7 +875,7 @@
     margin: 20px 0;
     background: #f8fafc;
 }
-.markdown-body .cat-toc b {
+.cat-toc b {
     display: block;
     color: #1e40af;
     text-transform: uppercase;
@@ -879,16 +883,16 @@
     font-size: 0.74rem;
     margin: 12px 0 5px;
 }
-.markdown-body .cat-toc b:first-child { margin-top: 0; }
-.markdown-body .cat-toc .row {
+.cat-toc b:first-child { margin-top: 0; }
+.cat-toc .row {
     display: flex;
     flex-direction: column;
     gap: 4px;
     color: #475569;
     line-height: 1.6;
 }
-.markdown-body .cat-toc .row span { display: flex; gap: 0.6em; }
-.markdown-body .cat-toc .row i {
+.cat-toc .row span { display: flex; gap: 0.6em; }
+.cat-toc .row i {
     color: #2563eb;
     font-style: normal;
     font-weight: 700;
