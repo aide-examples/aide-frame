@@ -768,6 +768,29 @@
                     });
                 });
 
+                // Intercept in-page anchor links inside the content (e.g. the catalogue's ToC
+                // range → its group heading). Native fragment navigation is unreliable for an
+                // empty/zero-box anchor and ignores the sticky-header offset; route through
+                // scrollToElement instead. (.toc-container links are already wired in generateTOC.)
+                container.querySelectorAll('a[href^="#"]').forEach(link => {
+                    if (link.closest('.toc-container')) return;
+                    link.addEventListener('click', (e) => {
+                        const id = link.getAttribute('href').slice(1);
+                        if (!id) return;
+                        let target = document.getElementById(id);
+                        if (!target) {
+                            for (const el of container.querySelectorAll('[id]')) {
+                                if (el.id === id || el.id.startsWith(id + '-')) { target = el; break; }
+                            }
+                        }
+                        if (target) {
+                            e.preventDefault();
+                            scrollToElement(target);
+                            history.pushState({ doc: docPath }, '', '#' + id);
+                        }
+                    });
+                });
+
                 // Slideshow detection: show Present + Print buttons for slide decks
                 const presentBtn = document.getElementById('present-btn');
                 const printBtn = document.getElementById('print-btn');
@@ -1121,7 +1144,7 @@
         // Handle browser back/forward
         window.addEventListener('popstate', (e) => {
             const doc = e.state?.doc || new URLSearchParams(window.location.search).get('doc');
-            loadDoc(doc);
+            loadDoc(doc, window.location.hash || '');
         });
 
         // Initialize
@@ -1407,7 +1430,9 @@
             await buildNavbar();
             const urlParams = new URLSearchParams(window.location.search);
             const initialDoc = urlParams.get('doc');
-            loadDoc(initialDoc);
+            // Pass the URL hash so a deep link like ?doc=…#cat-g-3 scrolls to that anchor after
+            // render — loadDoc's anchor handling only runs when it is given one (else: scroll to top).
+            loadDoc(initialDoc, window.location.hash || '');
 
             // Initialize Google Translate for document content translation
             GoogleTranslate.init('#gt-container');
