@@ -759,9 +759,18 @@
                             return;
                         }
                         if (r.isAnchorOnly) {
-                            // In-page scroll handled by the existing
-                            // anchor logic at the end of loadDoc().
-                            window.location.hash = r.anchor;
+                            // Same-doc anchor: loadDoc is NOT called (no reload), so its end-of-load
+                            // anchor logic does not run — scroll here via scrollToElement (header
+                            // offset + reliable on a zero-box anchor), not native window.location.hash.
+                            const id = r.anchor.replace(/^#/, '');
+                            let target = document.getElementById(id);
+                            if (!target) {
+                                for (const el of container.querySelectorAll('[id]')) {
+                                    if (el.id === id || el.id.startsWith(id + '-')) { target = el; break; }
+                                }
+                            }
+                            if (target) { scrollToElement(target); history.pushState({ doc: docPath }, '', '#' + id); }
+                            else window.location.hash = r.anchor;
                             return;
                         }
                         loadDoc(r.path, r.anchor);
