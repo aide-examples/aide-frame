@@ -8,6 +8,18 @@ const StatusWidget = {
     options: { showUpdate: true, showInstall: true, showReload: true, showLayoutToggle: false, compactInfo: false, layoutDefault: 'flow', refreshInterval: 30000, extraInfo: null, extraActions: null, versionLinkUrl: null },
     status: {},
 
+    /**
+     * Sekunden als kurze Laufzeit — `8m`, `3h 12m`, `4d 2h`. Bewusst grob: die Frage ist
+     * „lief der Prozess schon vor dem Deploy?", nicht die Sekunde.
+     * @param {number} sec
+     */
+    humanUptime(sec) {
+        const d = Math.floor(sec / 86400), h = Math.floor((sec % 86400) / 3600), m = Math.floor((sec % 3600) / 60);
+        if (d) return `${d}d ${h}h`;
+        if (h) return `${h}h ${m}m`;
+        return `${m}m`;
+    },
+
     init(selector, options = {}) {
         this.container = document.querySelector(selector);
         if (!this.container) return;
@@ -157,6 +169,18 @@ const StatusWidget = {
                 // e.g. "database: PostgreSQL 16.14" / "database: SQLite 3.45.0".
                 if (this.status.db_version || this.status.db_engine) {
                     lines.push(`database: ${this.status.db_version || this.status.db_engine}`);
+                }
+                // Seit wann DIESER Prozess läuft — die Zeile, die "deployed on …" erst
+                // überprüfbar macht: liegt der Start VOR dem Deploy, führt die Maschine
+                // noch den alten Code aus, obwohl die neuen Dateien auf der Platte liegen.
+                // Die Startzeit wird aus `uptime_sec` in der Zone des Lesers gerechnet,
+                // statt einen UTC-Zeitstempel zu zerlegen — ein Formatfehler weniger.
+                if (typeof this.status.uptime_sec === 'number') {
+                    const started = new Date(Date.now() - this.status.uptime_sec * 1000);
+                    const p = (n) => String(n).padStart(2, '0');
+                    const when = `${p(started.getDate())}.${p(started.getMonth() + 1)}.${started.getFullYear()} `
+                        + `${p(started.getHours())}:${p(started.getMinutes())}`;
+                    lines.push(`server process running since ${when} (${StatusWidget.humanUptime(this.status.uptime_sec)})`);
                 }
                 if (lines.length) versionEl.title = lines.join('\n');
             }
