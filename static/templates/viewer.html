@@ -624,9 +624,26 @@
             const routePath = viewerRoot === 'docs' ? 'about' : viewerRoot === 'help' ? 'help' : viewerRoot;
             let html = `<a href="${routePath}?doc=index.md">${titleSuffix}</a>`;
 
+            // A LEADING NUMBER IS AN ORDERING DEVICE, NOT PART OF THE NAME.
+            //
+            // A file may be called `01 Demand vs delivered.md` to place it first in a listing —
+            // the digits sort, the document is still called what its H1 says. Everywhere else
+            // that already holds: the view selector reads the H1, and the sidebar gets a `title`
+            // from the server. The breadcrumb built its label out of the PATH and was the one
+            // place the digits leaked through.
+            //
+            // AT MOST THREE DIGITS, AND A SEPARATOR IS REQUIRED. The separator may be a space,
+            // an underscore, a hyphen or a dot — all four read naturally in a file listing, and
+            // there is no reason to make the author remember which one this parser wants.
+            //
+            // Both limits exist to keep the rule from eating something that is not an ordering
+            // device: without the digit cap `2026-09-07 notes` becomes `09-07 notes`, losing its
+            // year, and without the required separator a document genuinely called `01` becomes
+            // nameless.
             parts.forEach((part, i) => {
                 html += '<span>/</span>';
-                const name = part.charAt(0).toUpperCase() + part.slice(1).replace(/-/g, ' ');
+                const bare = part.replace(/^\d{1,3}[\s._-]+/, '') || part;
+                const name = bare.charAt(0).toUpperCase() + bare.slice(1).replace(/-/g, ' ');
                 if (i === parts.length - 1) {
                     html += name;
                 } else {
