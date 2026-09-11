@@ -761,20 +761,33 @@ function register(app, config) {
         });
     }
 
-    // Docs assets (images, etc.)
-    app.get('/docs-assets/*', (req, res) => {
+    // Docs assets (images, etc.) — behind the SAME chain as the pages they belong to.
+    //
+    // These three carried no middleware at all until 2026-09-11 (aide-rap#418), while every
+    // neighbour within twenty lines carried `...cfg.viewerAuth`: /about (above), /help,
+    // the custom roots, /api/docs/structure (below). The comment "images, etc." described
+    // the intent and not the route — `_serveDocsAsset` has no extension filter, so the whole
+    // <system>/docs tree was anonymously readable. Measured on irma before the fix:
+    // `GET /docs-assets/DataModel.md` answered 200 with 6 665 bytes while `GET /about`
+    // answered 302 to the login, same server, same anonymous client.
+    //
+    // Adding the chain is safe because the session lives in a SIGNED COOKIE: an
+    // `<img src="/docs-assets/…">` inside a rendered doc sends it at same origin without
+    // anything being passed explicitly, and the two script consumers do too — a `fetch`
+    // (default credentials `same-origin`) and a `window.open`.
+    app.get('/docs-assets/*', ...cfg.viewerAuth, (req, res) => {
         const assetPath = req.params[0];
         _serveDocsAsset(res, assetPath, cfg.docsDirKey);
     });
 
-    app.get('/help-assets/*', (req, res) => {
+    app.get('/help-assets/*', ...cfg.viewerAuth, (req, res) => {
         const assetPath = req.params[0];
         _serveDocsAsset(res, assetPath, cfg.helpDirKey);
     });
 
     // Custom root assets
     for (const [name, root] of Object.entries(cfg.customRoots)) {
-        app.get(`/${name}-assets/*`, (req, res) => {
+        app.get(`/${name}-assets/*`, ...cfg.viewerAuth, (req, res) => {
             const assetPath = req.params[0];
             _serveDocsAsset(res, assetPath, root.dirKey);
         });
