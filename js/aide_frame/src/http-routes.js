@@ -171,6 +171,11 @@ function initConfig(config) {
         frameworkDirKey: config.frameworkDirKey || 'AIDE_FRAME_DOCS_DIR',
         sectionDefs: config.sectionDefs || null,
         docsExclude: config.docsExclude || [],
+        // Per-request, per-path authorisation INSIDE a root (aide-rap#430). `customRoots
+        // .authorize` gates a WHOLE root; this one gates a path within one, which is what
+        // an area lock needs: the LifeCycle docs sit in the same tree as everything else.
+        // Absent => everything readable, so no installation changes by upgrading.
+        authorizeDocPath: config.authorizeDocPath || null,
         docsShallow: config.docsShallow || [],
         customRoots: config.customRoots || {},
         pwa: config.pwa || null,
@@ -459,6 +464,12 @@ function register(app, config) {
         const fullPath = path.resolve(docsDir, actualPath);
         if (!fullPath.startsWith(path.resolve(docsDir) + path.sep) && fullPath !== path.resolve(docsDir)) {
             return res.status(403).json({ error: 'Forbidden' });
+        }
+        // The file itself, addressed by its exact path — the channel that stays open when a
+        // fix only clears the navigation. Checked AFTER the traversal guard, so the hook
+        // never sees a path that escaped the root.
+        if (typeof cfg.authorizeDocPath === 'function' && !cfg.authorizeDocPath(req, root, actualPath)) {
+            return res.status(403).json({ error: 'doc_area_locked', message: 'This documentation belongs to an area your role cannot see' });
         }
         if (!fs.existsSync(fullPath)) {
             // Graceful fallback: a missing ROOT index.md is the viewer's default
@@ -803,7 +814,7 @@ function register(app, config) {
                 exclude: cfg.docsExclude,
                 shallow: cfg.docsShallow,
             });
-            res.json(structure);
+            res.json(_filterStructure(structure, req, 'docs', cfg));
         });
     }
 
@@ -814,6 +825,41 @@ function register(app, config) {
             res.json(_buildViewerStructure(_getViewerConfig(cfg, 'help')));
         });
     }
+}
+
+/**
+ * Drop from a docs structure every document the caller may not read.
+ *
+ * The tree is `{sections: [{name, docs: [{path, …}], subsections?}]}`, and the filter walks
+ * it rather than matching on names: a section is kept when something in it survives, and
+ * disappears when nothing does — so a locked area leaves no empty heading behind, which
+ * would announce precisely what the lock is for.
+ *
+ * Without the hook the structure is returned untouched, so an installation that never
+ * locked anything is unaffected by the upgrade.
+ *
+ * @param {any} structure
+ * @param {import('express').Request} req
+ * @param {string} root
+ * @param {any} cfg
+ * @returns {any}
+ * @private
+ */
+function _filterStructure(structure, req, root, cfg) {
+    if (typeof cfg.authorizeDocPath !== 'function' || !structure) return structure;
+    const darf = (p) => { try { return cfg.authorizeDocPath(req, root, p); } catch { return true; } };
+
+    const section = (sec) => {
+        const docs = (sec.docs || []).filter(d => !d.path || darf(d.path));
+        const subsections = (sec.subsections || []).map(section).filter(Boolean);
+        if (docs.length === 0 && subsections.length === 0) return null;
+        return { ...sec, docs, ...(sec.subsections ? { subsections } : {}) };
+    };
+
+    if (Array.isArray(structure.sections)) {
+        return { ...structure, sections: structure.sections.map(section).filter(Boolean) };
+    }
+    return structure;
 }
 
 /**
