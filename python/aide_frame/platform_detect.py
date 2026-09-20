@@ -90,18 +90,33 @@ def configure_video_driver(platform_type):
         print("Platform: Raspberry Pi - using kmsdrm driver")
 
     elif platform_type == 'wsl2':
-        # WSL2: use x11 (requires X server like VcXsrv or WSLg)
-        # WSLg provides built-in Wayland/X11 support in Windows 11
-        # Disable audio on WSL2 (ALSA errors)
-        os.environ["SDL_AUDIODRIVER"] = "dummy"
-        if os.environ.get('WAYLAND_DISPLAY'):
-            os.environ["SDL_VIDEODRIVER"] = "wayland"
-            config['driver'] = 'wayland'
-            print("Platform: WSL2 - using Wayland driver (WSLg)")
-        else:
-            os.environ["SDL_VIDEODRIVER"] = "x11"
-            config['driver'] = 'x11'
-            print("Platform: WSL2 - using X11 driver")
+        # WSL2: x11, even when WSLg offers Wayland — its EGL layer is broken there.
+        #
+        # WSLg sets WAYLAND_DISPLAY, and this used to prefer the wayland backend because of
+        # it. That backend fails to initialise GL before a single frame is drawn. Measured
+        # 2026-09-20 on a WSL2 box, in a twelve-line pygame program containing nothing but
+        # `set_mode`:
+        #
+        #     SDL_VIDEODRIVER=wayland → libEGL: failed to get driver name for fd -1
+        #                               MESA: error: ZINK: failed to choose pdev
+        #                               libEGL: egl: failed to create dri2 screen
+        #     SDL_VIDEODRIVER=x11     → not one warning
+        #
+        # A FotoFrame session died with `Segmentation fault (core dumped)` while the window
+        # was being resized — VIDEORESIZE calls `set_mode` again, which is where SDL
+        # recreates the GL surface and reaches into that layer. The crash could NOT be
+        # reproduced programmatically (set_mode, convert, scale and blit all survive under
+        # both drivers), so this is not PROVEN to be its cause; what is proven is that the
+        # layer it fails in is absent under x11, and that x11 costs nothing here — WSLg
+        # serves X11 as well, and the first comment in this branch chose it for that reason
+        # before the wayland preference was added.
+        #
+        # An explicitly set SDL_VIDEODRIVER wins, so anyone wanting to compare can.
+        os.environ["SDL_AUDIODRIVER"] = "dummy"   # ALSA errors otherwise
+        driver = os.environ.get("SDL_VIDEODRIVER") or "x11"
+        os.environ["SDL_VIDEODRIVER"] = driver
+        config['driver'] = driver
+        print(f"Platform: WSL2 - using {driver} driver")
         # In WSL2, we might want windowed mode for easier testing
         config['fullscreen'] = False
 
