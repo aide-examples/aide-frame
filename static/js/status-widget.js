@@ -20,6 +20,42 @@ const StatusWidget = {
         return `${m}m`;
     },
 
+    /**
+     * The launch mode as a glyph and one sentence, or null when the server did not say.
+     *
+     * Three answers that look the same from outside and mean different things, which is why this
+     * is in the footer at all. The one worth a glance is `shell`: nothing restarts that process,
+     * it dies with the terminal it was started from, and on a demo machine that is exactly what
+     * somebody is about to find out the hard way. `container` says a rebuild replaces the code
+     * while a volume keeps the data — the question that cost a diagnosis round on 2026-09-25.
+     * `pm2` says it comes back on its own, and that its application log is NOT in `pm2 logs`.
+     *
+     * Null rather than a guess when `launch` is absent: an older server, or a host that is not
+     * RAP, should show no badge instead of a wrong one.
+     *
+     * @param {{mode?: string, pm2?: {id?: string, name?: string|null}|null}|null|undefined} launch
+     * @returns {{glyph: string, text: string}|null}
+     */
+    launchBadge(launch) {
+        const mode = launch && launch.mode;
+        if (!mode) return null;
+        const who = launch.pm2
+            ? `pm2 (id ${launch.pm2.id}${launch.pm2.name ? ` · ${launch.pm2.name}` : ''})`
+            : 'pm2';
+        switch (mode) {
+            case 'container':
+                return { glyph: '📦', text: 'started by: a container — a rebuild replaces the code, volumes keep the data' };
+            case 'pm2':
+                return { glyph: '♻', text: `started by: ${who} — it restarts on its own; its log is in combined-*.log, not in \`pm2 logs\`` };
+            case 'container+pm2':
+                return { glyph: '📦♻', text: `started by: ${who} inside a container` };
+            case 'shell':
+                return { glyph: '⌨', text: 'started by: a shell — no process manager, so nothing restarts it if it dies' };
+            default:
+                return null;
+        }
+    },
+
     init(selector, options = {}) {
         this.container = document.querySelector(selector);
         if (!this.container) return;
@@ -41,7 +77,7 @@ const StatusWidget = {
         this.container.innerHTML = `
             <div class="status-footer notranslate">
                 <span class="status-footer-info">
-                    <span id="sw-version" ${this.options.compactInfo ? 'class="sw-version-tooltip" style="cursor:default"' : ''}>--</span>${infoDetails}
+                    <span id="sw-launch" class="sw-launch" style="display:none"></span><span id="sw-version" ${this.options.compactInfo ? 'class="sw-version-tooltip" style="cursor:default"' : ''}>--</span>${infoDetails}
                     ${this.options.extraInfo || ''}
                 </span>
                 <span class="status-footer-actions">
@@ -112,6 +148,23 @@ const StatusWidget = {
     },
 
     updateUI() {
+        // How this instance was started, as one glyph in front of the version. Three answers
+        // that look identical from outside and mean different things — and the interesting one
+        // is the bare shell: nothing brings that process back. `launch` is supplied by the
+        // server's status payload; absent (an older server, or a non-RAP host) the glyph stays
+        // hidden rather than guessing.
+        const launchEl = document.getElementById('sw-launch');
+        if (launchEl) {
+            const info = StatusWidget.launchBadge(this.status.launch);
+            if (info) {
+                launchEl.textContent = info.glyph;
+                launchEl.title = info.text;
+                launchEl.style.display = '';
+            } else {
+                launchEl.style.display = 'none';
+            }
+        }
+
         const versionEl = document.getElementById('sw-version');
         if (versionEl && this.status.current_version) {
             const esc = (s) => { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; };
@@ -182,6 +235,10 @@ const StatusWidget = {
                         + `${p(started.getHours())}:${p(started.getMinutes())}`;
                     lines.push(`server process running since ${when} (${StatusWidget.humanUptime(this.status.uptime_sec)})`);
                 }
+                // Same sentence the glyph carries, in the version tooltip the architect asked
+                // for — one place to hover, next to where the versions stand.
+                const launch = StatusWidget.launchBadge(this.status.launch);
+                if (launch) lines.push(launch.text);
                 if (lines.length) versionEl.title = lines.join('\n');
             }
         } else {

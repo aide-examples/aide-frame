@@ -503,6 +503,23 @@ button.wide { width: 100%; }
     gap: 4px;
     flex-wrap: wrap;
 }
+.sw-launch {
+    /* How this instance was started, one glyph in front of the version. `cursor: help` because
+       the whole point is the title — a symbol nobody hovers explains nothing.
+       Both colours are set, not one: a rule that sets only a background inherits whatever
+       foreground another layer supplies, and the day that changes the glyph goes invisible
+       (aide-rap CLAUDE substrate §49). Here the foreground is the one that matters, so the
+       background is stated as `transparent` on purpose rather than left to chance. */
+    color: var(--frame-gray-500, #6b7280);
+    background: transparent;
+    cursor: help;
+    font-size: 0.95em;
+    line-height: 1;
+    /* An emoji is wider than the glyphs around it and would push the versions off a narrow
+       footer; the footer already wraps (`flex-wrap`), so only the extra breathing room is
+       suppressed here. */
+    letter-spacing: 0;
+}
 .status-footer-sep {
     color: var(--frame-gray-300);
     /* Kein Rand. Die Fusszeile eines Admins traegt acht Trenner, und 4px auf jeder Seite
