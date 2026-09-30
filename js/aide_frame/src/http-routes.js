@@ -1137,9 +1137,32 @@ function initSearch(app, { db, viewerAuth = [], basePath = '', searchResultFilte
     logger.info(`Full-text search initialized: ${count} documents indexed across ${Object.keys(roots).length} roots`);
 }
 
+/**
+ * Rebuild the documentation full-text index from disk.
+ *
+ * WHY THIS IS EXPORTED. The index is built once, in `initSearch`, and refreshed afterwards only
+ * when a document is saved through the VIEWER's own editor. Every document written any other way —
+ * an editor on the machine, a `git pull`, a deploy — is therefore invisible to the search until the
+ * process restarts, and nothing says so: the search answers, it just answers about yesterday.
+ *
+ * Measured 2026-09-30: a section documenting a new directive had been on disk for hours and a
+ * search for its name returned zero results on the dev box while returning it on the deployment,
+ * whose deploy had restarted the process.
+ *
+ * So a host that knows when the docs on disk may have changed — RAP calls this from
+ * `POST /api/schema/reload`, the 🔄 button — can say so.
+ *
+ * @returns {number|null} how many files were indexed, or null when search is not initialized
+ */
+function rebuildSearchIndex() {
+    if (!_docsSearch) return null;
+    return _docsSearch.rebuildAll();
+}
+
 module.exports = {
     register,
     initSearch,
+    rebuildSearchIndex,
     initConfig,
     DocsConfig: null, // For documentation purposes
     CustomRoot: null, // For documentation purposes
