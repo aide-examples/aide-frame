@@ -223,11 +223,11 @@ const StatusWidget = {
                 if (this.status.db_version || this.status.db_engine) {
                     lines.push(`database: ${this.status.db_version || this.status.db_engine}`);
                 }
-                // Seit wann DIESER Prozess läuft — die Zeile, die "deployed on …" erst
-                // überprüfbar macht: liegt der Start VOR dem Deploy, führt die Maschine
-                // noch den alten Code aus, obwohl die neuen Dateien auf der Platte liegen.
-                // Die Startzeit wird aus `uptime_sec` in der Zone des Lesers gerechnet,
-                // statt einen UTC-Zeitstempel zu zerlegen — ein Formatfehler weniger.
+                // Since when THIS process has been running — the line that makes
+                // "deployed on …" checkable at all: if the start lies BEFORE the deploy,
+                // the machine is still executing the old code although the new files are
+                // on disk. The start time is computed from `uptime_sec` in the READER's
+                // zone rather than by taking a UTC timestamp apart — one format error less.
                 if (typeof this.status.uptime_sec === 'number') {
                     const started = new Date(Date.now() - this.status.uptime_sec * 1000);
                     const p = (n) => String(n).padStart(2, '0');

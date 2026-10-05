@@ -25,23 +25,22 @@ const PWA = {
         // standalone detection belong to the outer app, not the embedded page.
         if (typeof window !== 'undefined' && window.self !== window.top) return;
 
-        // …und dieselbe Ueberlegung noch einmal fuer die Seiten, die das Bundle als
-        // OBERSTES Dokument laden (aide-rap#340). Die Sperre darueber faengt die im
-        // iframe geoeffneten Entity-Actions -- aber eine LOGIN-Action im Vollseiten-
-        // Modus ersetzt das Dokument, ist also `window.top` und sieht von hier aus wie
-        // die App-Schale. Ebenso der Doku-Betrachter (`viewer.html`). Beide bekamen
-        // zwei Konsolenfehler bei jedem Aufruf, weil `service-worker.js` gegen ihren
-        // eigenen Ort aufloest: scope ('…/sys/eltern/') → 404.
+        // …and the same reasoning once more for the pages that load the bundle as the
+        // TOPMOST document (aide-rap#340). The guard above catches the entity actions
+        // opened in an iframe — but a LOGIN action in full-page mode REPLACES the
+        // document, so it is `window.top` and looks like the app shell from here. The
+        // documentation viewer (`viewer.html`) likewise. Both produced two console
+        // errors on every call, because `service-worker.js` resolves against their own
+        // location: scope ('…/sys/eltern/') → 404.
         //
-        // Das Merkmal ist der Manifest-Link, nicht der Pfad. Eine Seite, die ein
-        // `<link rel="manifest">` fuehrt, erklaert damit standardgemaess, DIE
-        // installierbare Anwendung zu sein -- genau die Frage, die hier zu
-        // beantworten ist. Eine Pfadregel (`/sys/…` ueberspringen) waere Wissen ueber
-        // aide-rap in aide-frame und truege bei jedem anderen Rahmen nicht.
+        // The criterion is the MANIFEST LINK, not the path. A page carrying a
+        // `<link rel="manifest">` declares, by the standard, that it is THE installable
+        // application — which is exactly the question to be answered here. A path rule
+        // (skip `/sys/…`) would be knowledge about aide-rap inside aide-frame, and would
+        // not carry over to any other frame.
         //
-        // Es ist kein Verlust: ohne Manifest bietet der Browser ohnehin keine
-        // Installation an, ein Worker waere dort also selbst dann nutzlos, wenn die
-        // Datei laege.
+        // Nothing is lost by it: without a manifest the browser offers no installation
+        // anyway, so a worker would be useless there even if the file were in place.
         if (typeof document !== 'undefined' && !document.querySelector('link[rel="manifest"]')) return;
 
         // Check if already installed
