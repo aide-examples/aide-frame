@@ -145,15 +145,21 @@ class HttpServer {
      * @private
      */
     _setupRoutes() {
+        // Framework and app static files. `staticAssets` instead of a bare `express.static`:
+        // it hands over a precompressed `.br`/`.gz` sibling where one was built, and freezes a
+        // URL that carries `?v=` for a year. The reasoning — and why nginx cannot do either in
+        // this fleet — is in `static-assets.js` (aide-rap#555).
+        const { staticAssets } = require('./static-assets');
+
         // Framework static files (/static/frame/*)
         const aideFrameStaticDir = paths.get('AIDE_FRAME_STATIC_DIR');
         if (aideFrameStaticDir && fs.existsSync(aideFrameStaticDir)) {
-            this.app.use('/static/frame', express.static(aideFrameStaticDir));
+            this.app.use('/static/frame', staticAssets(aideFrameStaticDir));
         }
 
         // App static files (/static/*)
         if (this.staticDir && fs.existsSync(this.staticDir)) {
-            this.app.use('/static', express.static(this.staticDir));
+            this.app.use('/static', staticAssets(this.staticDir));
         }
 
         // Register docs/help routes if docsConfig provided
