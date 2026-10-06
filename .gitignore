@@ -12,3 +12,9 @@ static/js/dist/
 
 # OS
 .DS_Store
+
+# Precompressed siblings written by aide-rap's build.js — build output, like static/js/dist/.
+static/vendor/**/*.br
+static/vendor/**/*.gz
+static/js/vendor/**/*.br
+static/js/vendor/**/*.gz

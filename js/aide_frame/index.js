@@ -44,6 +44,11 @@ module.exports = {
     // HTTP
     httpServer,
     HttpServer: httpServer.HttpServer,
+    // The static mount that prefers a precompressed sibling and freezes versioned URLs. Exported
+    // because a consumer mounts static trees of its OWN (RAP serves `/sys`, `/shared`, `/icons`),
+    // and those deserve the same treatment as `/static` — a kiosk page's own files are most of
+    // what it downloads.
+    staticAssets: require('./src/static-assets').staticAssets,
     httpRoutes,
     docsViewer,
     docsSearch,
