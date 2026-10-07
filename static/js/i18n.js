@@ -52,9 +52,16 @@ class I18n {
         // Tier 3 is always attempted and silently empty when not mounted,
         // so non-multi-tenant apps don't pay any config cost. See also
         // app/docs/features/login-actions.md ("i18n in action pages").
-        const frame = await this.loadJson(`${basePath}static/frame/locales/${this.lang}.json`);
-        const app   = await this.loadJson(`${basePath}static/locales/${this.lang}.json`);
-        const sys   = await this.loadJson(`${basePath}static/sys-locales/${this.lang}.json`);
+        // IN PARALLEL, because the three do not depend on each other — they are only merged,
+        // below, after all three are in. Serially they were three round trips in a row on the
+        // critical path BEFORE the first paint, and `Promise.all` keeps the result order, so the
+        // merge precedence below is untouched. This is the one thing that helps the attendee a
+        // warmed cache cannot help: the cold one (aide-rap#566, closed in favour of this).
+        const [frame, app, sys] = await Promise.all([
+            this.loadJson(`${basePath}static/frame/locales/${this.lang}.json`),
+            this.loadJson(`${basePath}static/locales/${this.lang}.json`),
+            this.loadJson(`${basePath}static/sys-locales/${this.lang}.json`),
+        ]);
 
         // Initialize Polyglot with merged strings
         this.polyglot = new Polyglot({
