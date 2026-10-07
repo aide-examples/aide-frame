@@ -154,12 +154,12 @@ class HttpServer {
         // Framework static files (/static/frame/*)
         const aideFrameStaticDir = paths.get('AIDE_FRAME_STATIC_DIR');
         if (aideFrameStaticDir && fs.existsSync(aideFrameStaticDir)) {
-            this.app.use('/static/frame', staticAssets(aideFrameStaticDir));
+            this.app.use('/static/frame', staticAssets(aideFrameStaticDir, { mount: '/static/frame' }));
         }
 
         // App static files (/static/*)
         if (this.staticDir && fs.existsSync(this.staticDir)) {
-            this.app.use('/static', staticAssets(this.staticDir));
+            this.app.use('/static', staticAssets(this.staticDir, { mount: '/static' }));
         }
 
         // Register docs/help routes if docsConfig provided
