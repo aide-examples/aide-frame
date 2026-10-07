@@ -1051,7 +1051,25 @@ function _serveServiceWorker(res) {
  * @param {Function|Function[]} [options.viewerAuth] - Auth middleware for search routes
  * @param {string} [options.basePath] - Base path prefix
  */
-function initSearch(app, { db, viewerAuth = [], basePath = '', searchResultFilter = null }) {
+/**
+ * `rebuildIndex` — who writes the index, when there is more than one of us.
+ *
+ * The index is a node-local SQLite FTS table, and every worker of a node shares the ONE
+ * file. Four workers rebuilding it at the same moment is not merely wasteful: SQLite
+ * refuses the losers, and on 2026-10-07 that killed one of four broadcast workers at boot
+ * with `SqliteError: database is locked` (aide-rap#563). pm2 restarted it into a healthy
+ * fleet, so the only trace was `unstable_restarts: 1`.
+ *
+ * One rebuild per NODE is not just enough, it is the correct number — so the CALLER says
+ * who does it. aide-frame does not know what a cluster leader is, and should not: the
+ * consumer passes `isClusterLeader()`. Default true, so a single-process caller needs to
+ * know nothing.
+ *
+ * A follower still mounts every route and queries the same file. It reads the index of the
+ * previous boot until the leader has finished — a few seconds of slightly stale
+ * documentation search, against a worker that does not start at all.
+ */
+function initSearch(app, { db, viewerAuth = [], basePath = '', searchResultFilter = null, rebuildIndex = true }) {
     if (!_registeredCfg) {
         logger.warning('initSearch() called before register() — skipping');
         return;
@@ -1090,8 +1108,15 @@ function initSearch(app, { db, viewerAuth = [], basePath = '', searchResultFilte
     // Create search instance and build index
     const { DocsSearch } = require('./docs-search');
     _docsSearch = new DocsSearch({ db, roots });
+    // The schema is created by everyone: it is `CREATE … IF NOT EXISTS`, and a follower
+    // cannot query a table that does not exist yet. Only the REBUILD is the leader's.
     _docsSearch.initSchema();
-    const count = _docsSearch.rebuildAll();
+    let count = 0;
+    if (rebuildIndex) {
+        count = _docsSearch.rebuildAll();
+    } else {
+        logger.info('Search index: not rebuilt by this worker — the cluster leader owns the one node-local index');
+    }
 
     // Search API
     app.get('/api/viewer/search', ...authMiddleware, (req, res) => {
