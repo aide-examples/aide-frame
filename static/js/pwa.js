@@ -49,13 +49,44 @@ const PWA = {
             console.log('[PWA] App is running in standalone mode (installed)');
         }
 
-        // Register service worker at the app root (resolves against <base href>
-        // to `<basePath>/service-worker.js`, served by http-routes). Its default
-        // scope is then `<basePath>/` = start_url, which is what makes Chrome
-        // offer the install prompt. Registering `static/frame/service-worker.js`
-        // would scope the SW to that subdir and suppress installability.
+        // Register the service worker at the app root. Its scope is then `<basePath>/`
+        // = start_url, which is what makes Chrome offer the install prompt; registering
+        // `static/frame/service-worker.js` would scope it to that subdir and suppress
+        // installability.
+        //
+        // ── RESOLVED AGAINST THE MANIFEST LINK, not against the page ──────────────────
+        //
+        // This read `register('service-worker.js')`, i.e. relative to the DOCUMENT. That is
+        // right for an app shell, which carries a `<base href>` and therefore resolves to the
+        // app root — and wrong for any other page that declares itself installable. aide-rap
+        // calls the other arrangement Variant A: a full-page action with NO base href, where
+        // the same line asks for `…/sys/<action>/service-worker.js` and gets a 404. Measured
+        // 2026-10-10 on a kiosk page the moment it was given a manifest link: two console
+        // errors, no worker, and therefore no installation offered anywhere — Chrome needs a
+        // worker controlling the page before it offers anything, its own address-bar icon
+        // included.
+        //
+        // The manifest LINK is the right base, and it costs nothing to use: the guard above
+        // already treats it as the declaration of *"this page is the installable
+        // application"*, and by convention the manifest and the worker live side by side at
+        // the app root. So it resolves correctly under both arrangements and under a base
+        // path, without this file learning anything about either consumer.
+        //
+        // **The resolution must not be able to kill this method.** `new URL` THROWS on a base
+        // it cannot parse — a page built with `setContent`, an `about:blank` document, a link
+        // whose href is empty. Caught, that costs the better path and nothing else; uncaught,
+        // it takes the install-prompt capture below with it, and a PWA stops working because a
+        // URL could not be parsed. Found by `aide-rap/app/tools/test-pwa-sw-scope.js`, whose
+        // fixture is exactly such a document.
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js')
+            let swUrl = 'service-worker.js';
+            try {
+                const mf = document.querySelector('link[rel="manifest"]');
+                if (mf && mf.href) swUrl = new URL('service-worker.js', mf.href).pathname;
+            } catch (e) {
+                console.warn('[PWA] manifest href not usable as a base, registering relative:', e);
+            }
+            navigator.serviceWorker.register(swUrl)
                 .then(reg => console.log('[PWA] Service worker registered, scope:', reg.scope))
                 .catch(err => console.error('[PWA] SW registration failed:', err));
         }
