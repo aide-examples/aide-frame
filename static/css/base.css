@@ -143,6 +143,18 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    /* The row BREAKS rather than pushing the page sideways (aide-broadcast#17's class).
+       Measured on rapsmgr at 390px: the header needs 675px — brand 231, stage badge 95,
+       tool strip 324 — and without this the page scrolled 45px sideways while the BRAND
+       WAS SQUEEZED TO ZERO. On a phone you could not see which system you were in, and
+       the strip was cut off on the right. With the wrap: two lines, 66px instead of 40,
+       everything legible.
+       Not a breakpoint, deliberately: a media query guesses the width at which a header
+       gets too long, and this one depends on the system's NAME and how many tool links it
+       has — townhall fits at 390 with 234px of links, rapsmgr does not with 324. `wrap`
+       lets the content decide. It engages below ~480px and changes nothing above; measured
+       at 390, 768 and 1400. */
+    flex-wrap: wrap;
 }
 .header-brand {
     text-decoration: none;
