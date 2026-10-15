@@ -16,7 +16,25 @@ class I18n {
     constructor() {
         this.polyglot = null;
         this.lang = 'en';
+        // THE LANGUAGES THIS INSTALLATION SPEAKS — a default, not a law.
+        //
+        // These three were hardcoded here from the first day, and that was a birth
+        // defect (aide-rap#589): the set of languages an application speaks is a
+        // property of THE APPLICATION — it is exactly the set of locale files it
+        // ships — and keeping it in framework code meant every further language was
+        // a framework edit plus a bundle rebuild. Worse, `normalizeLanguage` turned
+        // anything outside the list into `en` and said nothing, so a system that
+        // shipped `ar.json` and asked for `ar` got English with the files sitting
+        // right there.
+        //
+        // The list is now DECLARED (`i18n.languages` in the system's config.json)
+        // and read at `init`. These three remain the fallback, so every existing
+        // caller and every system that declares nothing behaves exactly as before.
         this.supported = ['en', 'de', 'es'];
+        /** True once the declared list has replaced the default — see `init`. */
+        this.languagesDeclared = false;
+        /** Codes a caller asked for and did not get; reported once each. */
+        this._dropped = new Set();
     }
 
     /**
@@ -38,8 +56,36 @@ class I18n {
      */
     async init(opts = null) {
         if (typeof opts === 'string' || opts === null) opts = { lang: opts };
-        this.lang = this.normalizeLanguage(opts.lang || this.detectLanguage());
         const basePath = opts.basePath || '';
+
+        // WHICH LANGUAGES, before deciding WHICH ONE — in that order, because the
+        // normalisation below answers against the list and would otherwise answer
+        // against a default the installation has already replaced (#589).
+        //
+        // Three sources, most specific first, and each has an owner:
+        //   1. `opts.languages` — the caller knows (a kiosk that ships its own set)
+        //   2. `GET <basePath>api/config/languages` — the server, from config.json
+        //   3. the built-in default above — nothing declared, nothing changes
+        // A failed or absent endpoint is NOT an error: an app that never declared
+        // anything is the normal case, and it keeps the behaviour it always had.
+        if (Array.isArray(opts.languages) && opts.languages.length) {
+            this.supported = opts.languages.map((c) => String(c).toLowerCase());
+            this.languagesDeclared = true;
+        } else if (!this.languagesDeclared) {
+            try {
+                const r = await fetch(`${basePath}api/config/languages`,
+                    { signal: AbortSignal.timeout(3000) });
+                if (r.ok) {
+                    const j = await r.json();
+                    if (Array.isArray(j.languages) && j.languages.length) {
+                        this.supported = j.languages.map((c) => String(c).toLowerCase());
+                        this.languagesDeclared = true;
+                    }
+                }
+            } catch { /* no endpoint, no network, no change — the default stands */ }
+        }
+
+        this.lang = this.normalizeLanguage(opts.lang || this.detectLanguage());
 
         // Three-tier merge — lowest first, last wins on collisions:
         //   1. Framework strings shipped by aide-frame (docs viewer, header
@@ -100,7 +146,19 @@ class I18n {
      */
     normalizeLanguage(lang) {
         const code = (lang || 'en').toLowerCase().slice(0, 2);
-        return this.supported.includes(code) ? code : 'en';
+        if (this.supported.includes(code)) return code;
+        // SAID, not swallowed. A silent downgrade to English is the failure mode that
+        // cost the investigation in #589: the locale file was there, the request was
+        // right, and the answer was quietly another language. Once per code, because
+        // `normalizeLanguage` is called on every init and a loop of warnings teaches
+        // nobody anything.
+        if (code && code !== 'en' && !this._dropped.has(code)) {
+            this._dropped.add(code);
+            console.warn(`i18n: "${code}" is not among this installation's languages `
+                + `(${this.supported.join(', ')}) — falling back to "en". `
+                + `Declare it as i18n.languages in config.json and ship static/locales/${code}.json.`);
+        }
+        return 'en';
     }
 
     /**
