@@ -164,6 +164,11 @@ function initConfig(config) {
     const cfg = {
         appName: config.appName || 'AIDE App',
         titleHtml: config.titleHtml || null,
+        // Carried through, never rendered here -- the consumer decides where an owner
+        // belongs in its own header (aide-rap#604). NB this object is a fixed LIST: a key
+        // missing from it is dropped without a word, which is how `owner` reached
+        // /api/probe and not /api/app/config on its first run.
+        owner: config.owner || null,
         backLink: config.backLink || '/',
         backText: config.backText || 'Back',
         docsDirKey: config.docsDirKey || 'DOCS_DIR',
@@ -350,6 +355,7 @@ function register(app, config) {
         const response = {
             app_name: cfg.appName,
             title_html: cfg.titleHtml || null,
+            owner: cfg.owner || null,
             app_description: cfg.pwa?.description || '',
             back_link: cfg.backLink,
             back_text: cfg.backText,
