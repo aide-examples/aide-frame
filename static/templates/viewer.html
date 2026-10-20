@@ -112,6 +112,33 @@
             assetPrefix = viewerRoot + '-assets/';
         }
 
+        // THE PATH DOES NOT SURVIVE, SO THE QUERY HAS TO CARRY THE ROOT.
+        //
+        // `?doc=…` alone says WHICH document and not WHICH TREE, and the path that used to
+        // say it is gone by the time anyone reads the address bar: the page carries
+        // `<base href="/<mount>/">`, and `history.pushState(state, '', '?doc=x')` resolves a
+        // RELATIVE url against the document base rather than against `location`. So `/help`
+        // becomes `/?doc=index.md` three seconds after loading, with no click involved
+        // (measured 2026-10-20 on a deployed mount). The viewer kept working because the root
+        // lived in a variable; only a reload — or a copied link — asked the url for it, and
+        // got "File not found", naming a document that exists in a tree nobody mentioned.
+        //
+        // So the url states the root explicitly, and `loadDoc` writes it on every navigation
+        // from `viewerRoot` — the context already knows it. The path still wins where it has
+        // one, because a `/rap?doc=…` link handed around must keep meaning what it says.
+        if (!viewerRoot) {
+            const urlRoot = new URLSearchParams(window.location.search).get('root');
+            if (urlRoot && /^[a-z][a-z0-9_-]*$/i.test(urlRoot)) {
+                viewerRoot = urlRoot;
+                assetPrefix = (urlRoot === 'docs') ? 'docs-assets/'
+                    : (urlRoot === 'help') ? 'help-assets/'
+                    : (urlRoot === 'search') ? '' : urlRoot + '-assets/';
+            } else {
+                viewerRoot = 'docs';
+                assetPrefix = 'docs-assets/';
+            }
+        }
+
         // App configuration (loaded from API)
         let appConfig = {
             app_name: 'App',
@@ -920,6 +947,9 @@
 
                 const params = new URLSearchParams(window.location.search);
                 params.set('doc', docPath);
+                // From the context, every time — see the note at `viewerRoot` above for why the
+                // path cannot be relied on to carry it.
+                params.set('root', viewerRoot);
                 const newUrl = '?' + params.toString();
                 if (window.location.search !== newUrl) {
                     history.pushState({doc: docPath}, '', newUrl);
