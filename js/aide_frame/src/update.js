@@ -339,7 +339,7 @@ class UpdateManager {
             last_check: this._state.last_check,
             last_update: this._state.last_update,
             source: this.config.source,
-            platform: platformDetect.PLATFORM,
+            platform: platformDetect.MACHINE,
             memory: {
                 total_mb: Math.round(totalMem / 1024 / 1024),
                 used_mb: Math.round(usedMem / 1024 / 1024),
@@ -1348,7 +1348,7 @@ function getStatus() {
 
     // Return minimal status without manager
     const localVersion = getLocalVersion();
-    const platform = platformDetect.PLATFORM;
+    const platform = platformDetect.MACHINE;
     const totalMem = os.totalmem();
     const freeMem = os.freemem();
 

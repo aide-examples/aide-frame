@@ -131,13 +131,66 @@ function configureVideoDriver(platformType) {
     return config;
 }
 
+/**
+ * Describe the MACHINE, for a human reading a footer — not the driver to use.
+ *
+ * `detectPlatform()` above answers a different question: *which SDL video driver*. Its
+ * `'raspi'` means "kmsdrm, no X server", and the branch that returns it fires for any
+ * headless Linux with a `/dev/dri/card0` — an Intel mini-PC serving web pages reaches
+ * it exactly as a Pi does. That answer is right for the driver and wrong for a label,
+ * and the status payload was passing it straight through to the version tooltip: a
+ * Lenovo ThinkCentre under Debian 13 announced itself as `platform: raspi`
+ * (measured on semeb.de/devicemgr, 2026-10-20).
+ *
+ * So the two readings get two functions. This one names the hardware where the hardware
+ * says so (`/proc/device-tree/model`, which only a device tree has) and otherwise names
+ * the distribution and the architecture, which is what somebody looking at a footer
+ * wants to know. Nothing branches on the result — it is text for a person.
+ *
+ * @returns {string} e.g. "Raspberry Pi Zero 2 W", "Debian GNU/Linux 13 (trixie) · x64",
+ *                   "WSL2 (Ubuntu) · x64", "macOS 14.5 · arm64"
+ */
+function describeMachine() {
+    const arch = os.arch();
+    const platform = os.platform();
+
+    if (platform === 'darwin') return `macOS ${os.release()} · ${arch}`;
+    if (platform === 'win32') return `Windows ${os.release()} · ${arch}`;
+    if (platform !== 'linux') return `${platform} ${os.release()} · ${arch}`;
+
+    // A device tree is the one place a board states its own model, and only boards have
+    // one — so a hit here IS the hardware, not a guess from it. The file is NUL-padded.
+    try {
+        const model = fs.readFileSync('/proc/device-tree/model', 'utf8').replace(/\0/g, '').trim();
+        if (model) return model;
+    } catch (e) { /* not a board — fall through to the distribution */ }
+
+    let distro = 'Linux';
+    try {
+        const osRelease = fs.readFileSync('/etc/os-release', 'utf8');
+        const m = osRelease.match(/^PRETTY_NAME="?([^"\n]+)"?/m);
+        if (m) distro = m[1];
+    } catch (e) { /* no /etc/os-release — keep the generic name */ }
+
+    // WSL is worth saying out loud: the distribution alone would read as bare metal.
+    try {
+        const version = fs.readFileSync('/proc/version', 'utf8').toLowerCase();
+        if (version.includes('microsoft') || version.includes('wsl')) distro += ' · WSL2';
+    } catch (e) { /* ignore */ }
+
+    return `${distro} · ${arch}`;
+}
+
 // Detect platform and configure video driver at require time
 const PLATFORM = detectPlatform();
 const VIDEO_CONFIG = configureVideoDriver(PLATFORM);
+const MACHINE = describeMachine();
 
 module.exports = {
     detectPlatform,
     configureVideoDriver,
+    describeMachine,
     PLATFORM,
     VIDEO_CONFIG,
+    MACHINE,
 };
