@@ -197,6 +197,15 @@ Priority order:
 3. Browser language: `navigator.language`
 4. Default: `en`
 
+### The server learns it from a cookie
+
+The chosen language lives in the browser. So that a server can answer in it too — a
+validation message, a rendered PDF — `init()` writes it into the cookie **`aide_lang`**
+(`path=/`, one year, `SameSite=Lax`) on every page load, so every request of the origin
+carries it without the page doing anything. A request without the cookie (a script, an API
+key) gets English. In aide-rap the server reads it in `server/utils/requestLang.js`
+(aide-rap#646).
+
 ### Supported Languages
 
 | Code | Language |

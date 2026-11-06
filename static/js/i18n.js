@@ -86,6 +86,7 @@ class I18n {
         }
 
         this.lang = this.normalizeLanguage(opts.lang || this.detectLanguage());
+        this.tellServer();
 
         // Three-tier merge — lowest first, last wins on collisions:
         //   1. Framework strings shipped by aide-frame (docs viewer, header
@@ -181,6 +182,24 @@ class I18n {
     setLanguage(lang) {
         localStorage.setItem('lang', this.normalizeLanguage(lang));
         location.reload();
+    }
+
+    /**
+     * Put the chosen language into the cookie `aide_lang`, so the SERVER knows it too.
+     *
+     * The choice lives in the browser (localStorage), and until 2026-11-06 nothing carried it
+     * to the server: a validation message came out in English to a German user, and a page
+     * that needed a server-rendered text in the user's language had to append `?lang=` to its
+     * own requests (aide-rap#646). A cookie travels with every request of this origin — the
+     * app shell's, an action page's own `fetch`, a link that downloads a PDF — without any of
+     * them doing anything. Written on every init, so a page opened on its own (a kiosk, an
+     * action in a new tab) sets it as well. `path=/` because the choice is per origin, like
+     * the localStorage it mirrors; a year, renewed on every page load.
+     */
+    tellServer() {
+        try {
+            document.cookie = `aide_lang=${encodeURIComponent(this.lang)}; path=/; max-age=31536000; SameSite=Lax`;
+        } catch { /* no document (a worker) or cookies disabled — the server then answers in English */ }
     }
 
     /**
