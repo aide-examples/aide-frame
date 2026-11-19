@@ -126,7 +126,9 @@ function resolveEditPermission(docRoot, relativePath, user) {
  * @property {boolean} [enableMermaid=true] - Enable Mermaid diagrams
  * @property {boolean} [enableDocs=true] - Enable /about route
  * @property {boolean} [enableHelp=true] - Enable /help route
- * @property {boolean} [docsEditable=false] - Enable editing of docs via right-click
+ * @property {boolean|((docPath: string) => boolean)} [docsEditable=false] - Enable editing of docs via
+ *   right-click: everywhere (true), nowhere (false), or where a predicate on the doc's path says so
+ *   — an application may open one subtree on a machine where the rest stays read-only
  * @property {boolean} [helpEditable=false] - Enable editing of help via right-click
  * @property {boolean} [editRequiresAdmin=false] - Restrict editing to admin-role users
  * @property {string} [masterPasswordHash=null] - SHA256 hash of master password for protected roots
@@ -188,7 +190,8 @@ function initConfig(config) {
         enableMermaid: config.enableMermaid !== false,
         enableDocs: config.enableDocs !== false,
         enableHelp: config.enableHelp !== false,
-        docsEditable: config.docsEditable === true,
+        // A predicate is kept as it is: it decides per path (see isRootEditable).
+        docsEditable: typeof config.docsEditable === 'function' ? config.docsEditable : config.docsEditable === true,
         helpEditable: config.helpEditable === true,
         editRequiresAdmin: config.editRequiresAdmin === true,
         // Machine stage (development | test | production) — surfaced to the
@@ -243,6 +246,23 @@ function initConfig(config) {
     }
 
     return cfg;
+}
+
+/**
+ * Whether a document of a root may be written: the root's switch, which for `docs` may also be a
+ * predicate on the document's path (an application opening one subtree, the rest read-only).
+ * @param {any} cfg
+ * @param {string} root
+ * @param {string} [docPath]
+ * @returns {boolean}
+ */
+function isRootEditable(cfg, root, docPath) {
+    if (root === 'docs') {
+        if (typeof cfg.docsEditable === 'function') return !!docPath && cfg.docsEditable(String(docPath)) === true;
+        return cfg.docsEditable === true;
+    }
+    if (root === 'help') return cfg.helpEditable === true;
+    return !!(cfg.customRoots && cfg.customRoots[root] && cfg.customRoots[root].editable === true);
 }
 
 /**
@@ -373,7 +393,8 @@ function register(app, config) {
                 search: !!_docsSearch,
             },
             editable: {
-                docs: cfg.docsEditable,
+                // true when SOME docs may be edited; which ones, the per-document can-edit answer says
+                docs: typeof cfg.docsEditable === 'function' ? true : cfg.docsEditable,
                 help: cfg.helpEditable,
                 requiresAdmin: cfg.editRequiresAdmin,
             },
@@ -530,14 +551,7 @@ function register(app, config) {
         const { root = 'docs', path: docPath, content } = req.body;
 
         // Check if editing is enabled for this root
-        let isEditable = false;
-        if (root === 'docs') {
-            isEditable = cfg.docsEditable;
-        } else if (root === 'help') {
-            isEditable = cfg.helpEditable;
-        } else if (cfg.customRoots && cfg.customRoots[root]) {
-            isEditable = cfg.customRoots[root].editable === true;
-        }
+        const isEditable = isRootEditable(cfg, root, docPath);
 
         if (!isEditable) {
             return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
@@ -641,11 +655,7 @@ function register(app, config) {
         if (!docsDir) return res.json({ canEdit: false });
 
         // Check root-level editability
-        let isEditable = false;
-        if (root === 'docs') isEditable = cfg.docsEditable;
-        else if (root === 'help') isEditable = cfg.helpEditable;
-        else if (cfg.customRoots?.[root]) isEditable = cfg.customRoots[root].editable === true;
-        if (!isEditable) return res.json({ canEdit: false });
+        if (!isRootEditable(cfg, root, docPath)) return res.json({ canEdit: false });
 
         // Framework docs always read-only
         if (docPath.startsWith('framework/')) return res.json({ canEdit: false });
@@ -678,11 +688,7 @@ function register(app, config) {
         const relativePath = directory ? path.join(directory, mdName) : mdName;
 
         // Check root-level editability
-        let isEditable = false;
-        if (root === 'docs') isEditable = cfg.docsEditable;
-        else if (root === 'help') isEditable = cfg.helpEditable;
-        else if (cfg.customRoots?.[root]) isEditable = cfg.customRoots[root].editable === true;
-        if (!isEditable) return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
+        if (!isRootEditable(cfg, root, relativePath.split(path.sep).join('/'))) return res.status(403).json({ error: `Editing not enabled for root: ${root}` });
 
         const viewerCfg = _getViewerConfig(cfg, root);
         const docsDir = viewerCfg && paths.get(viewerCfg.dirKey);
