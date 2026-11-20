@@ -618,6 +618,12 @@ function register(app, config) {
         if (!fullPath.startsWith(path.resolve(docsDir) + path.sep) && fullPath !== path.resolve(docsDir)) {
             return res.status(403).json({ error: 'Forbidden' });
         }
+        // What may not be read may not be written (aide-rap#728): the same hook GET asks, after
+        // the traversal guard as there. Harmless while writing needs admin, who sees every area;
+        // not once a non-admin role may write definitions.
+        if (typeof cfg.authorizeDocPath === 'function' && !cfg.authorizeDocPath(req, root, docPath)) {
+            return res.status(403).json({ error: 'doc_area_locked', message: 'This documentation belongs to an area your role cannot see' });
+        }
 
         // Validate JSON code blocks in markdown
         const jsonError = _validateJsonBlocks(content);
@@ -706,6 +712,11 @@ function register(app, config) {
         const fullPath = path.resolve(docsDir, relativePath);
         if (!fullPath.startsWith(path.resolve(docsDir) + path.sep)) {
             return res.status(403).json({ error: 'Forbidden' });
+        }
+        // A new document in an area the caller cannot read is refused like a save there (#728).
+        if (typeof cfg.authorizeDocPath === 'function'
+            && !cfg.authorizeDocPath(req, root, relativePath.split(path.sep).join('/'))) {
+            return res.status(403).json({ error: 'doc_area_locked', message: 'This documentation belongs to an area your role cannot see' });
         }
 
         if (fs.existsSync(fullPath)) {
