@@ -6,6 +6,7 @@
     "admin_warning_ok": "OK — understood, continue",
 
     "frame_loading": "Loading...",
+    "frame_doc_conflict": "Somebody else has changed this document in the meantime. Your change was not saved — copy your text, reload the page and enter it there.",
     "frame_error": "Error",
     "frame_back": "Back",
     "frame_status": "Status",

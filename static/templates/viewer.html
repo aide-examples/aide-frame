@@ -151,6 +151,9 @@
         // Current document state for editing
         let currentDocPath = null;
         let currentMarkdown = null;
+        // The version of `currentMarkdown` as the server read it; sent back as If-Match on save,
+        // so a text somebody else changed meanwhile is refused instead of overwritten (aide-rap#727).
+        let currentVersion = null;
         let editingSection = null;  // { start, end, headingText, headingLevel }
 
         // Document names for cross-reference hooks (built from navigation structure)
@@ -432,7 +435,7 @@
             try {
                 const res = await fetch('api/viewer/content', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(currentVersion != null ? { 'If-Match': `"${currentVersion}"` } : {}) },
                     body: JSON.stringify({
                         root: viewerRoot,
                         path: currentDocPath,
@@ -441,6 +444,9 @@
                 });
 
                 const data = await res.json();
+                // Somebody else saved meanwhile: the editor stays open with this text, so nothing
+                // typed is lost; the reader reloads the page to see the other version (#727).
+                if (res.status === 409) { alert(i18n.t('frame_doc_conflict')); return; }
                 if (data.error) throw new Error(data.error);
 
                 closeEditor();
@@ -717,6 +723,7 @@
                 // Store for editing
                 currentDocPath = docPath;
                 currentMarkdown = data.content;
+                currentVersion = data.version != null ? data.version : null;
 
                 // Resolve per-document edit permission (must complete before right-click handlers)
                 currentDocCanEdit = false;
@@ -929,10 +936,11 @@
                             }
                             const res = await fetch('api/viewer/content', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', ...(currentVersion != null ? { 'If-Match': `"${currentVersion}"` } : {}) },
                                 body: JSON.stringify({ root: viewerRoot, path: currentDocPath, content: newMarkdown })
                             });
                             const data = await res.json();
+                            if (res.status === 409) { alert(i18n.t('frame_doc_conflict')); loadDoc(currentDocPath); return; }   // #727
                             if (data.error) throw new Error(data.error);
                             scrollToHeadingText = scrollToHeading;
                             loadDoc(currentDocPath);

@@ -6,6 +6,7 @@
     "admin_warning_ok": "OK — entendido, continuar",
 
     "frame_loading": "Cargando...",
+    "frame_doc_conflict": "Otra persona ha modificado este documento entretanto. Su cambio no se ha guardado: copie su texto, recargue la página e introdúzcalo allí.",
     "frame_error": "Error",
     "frame_back": "Volver",
     "frame_status": "Estado",

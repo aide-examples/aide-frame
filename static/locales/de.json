@@ -6,6 +6,7 @@
     "admin_warning_ok": "OK — verstanden, weiter",
 
     "frame_loading": "Laden...",
+    "frame_doc_conflict": "Dieses Dokument wurde inzwischen von jemand anderem geändert. Ihre Änderung wurde nicht gespeichert – kopieren Sie Ihren Text, laden Sie die Seite neu und tragen Sie ihn dort ein.",
     "frame_error": "Fehler",
     "frame_back": "Zurück",
     "frame_status": "Status",

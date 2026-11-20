@@ -272,6 +272,44 @@ function isRootEditable(cfg, root, docPath) {
  * @returns {object|null} Viewer configuration
  * @private
  */
+/**
+ * The version of a document's text, for optimistic concurrency on the editor's save (aide-rap#727).
+ *
+ * A hash of the CONTENT, not the file's mtime: a deploy or a `git checkout` rewrites files with the
+ * same text, and that must not read as somebody else's edit. 16 hex digits of SHA-256 — a tag,
+ * not a signature. An absent file has the version '' (so `If-Match: ""` means "must not exist yet").
+ * aide-rap's ProcessRouter computes the same for its own routes.
+ * @param {string|null} text
+ * @returns {string}
+ */
+function contentVersion(text) {
+    if (text == null) return '';
+    return require('crypto').createHash('sha256').update(text, 'utf8').digest('hex').slice(0, 16);
+}
+
+/**
+ * The save's precondition, from its headers: `If-Match: "<version>"` — the file must still be
+ * the text the editor loaded; `If-None-Match: *` — the file must not exist (a "save as").
+ * Without either header nothing is checked, as before — for tools that write generated files.
+ * @param {any} req @param {string} fullPath
+ * @returns {{status: number, body: object}|null} the refusal, or null to go on
+ */
+function savePrecondition(req, fullPath) {
+    const exists = fs.existsSync(fullPath);
+    if (req.get('If-None-Match') === '*' && exists) {
+        return { status: 409, body: { error: 'doc_exists', message: 'A document with this name already exists' } };
+    }
+    const ifMatch = req.get('If-Match');
+    if (ifMatch != null) {
+        const current = exists ? contentVersion(fs.readFileSync(fullPath, 'utf8')) : '';
+        if (ifMatch.replace(/^W\//, '').replace(/^"|"$/g, '') !== current) {
+            return { status: 409, body: { error: 'doc_conflict', version: current,
+                message: 'Somebody else has changed this document since you opened it' } };
+        }
+    }
+    return null;
+}
+
 function _getViewerConfig(config, root) {
     if (root === 'docs') {
         return {
@@ -540,6 +578,7 @@ function register(app, config) {
                 content: content,
                 title: title || docPath,
                 framework: framework,
+                version: contentVersion(content),   // sent back as If-Match on save (aide-rap#727)
             });
         } catch (e) {
             res.status(500).json({ error: `Error reading file: ${e.message}` });
@@ -625,6 +664,11 @@ function register(app, config) {
             return res.status(403).json({ error: 'doc_area_locked', message: 'This documentation belongs to an area your role cannot see' });
         }
 
+        // Optimistic concurrency (aide-rap#727): refuse rather than overwrite a text that changed
+        // since the editor loaded it, or a "save as" onto a name that exists.
+        const refusal = savePrecondition(req, fullPath);
+        if (refusal) return res.status(refusal.status).json(refusal.body);
+
         // Validate JSON code blocks in markdown
         const jsonError = _validateJsonBlocks(content);
         if (jsonError) {
@@ -644,7 +688,7 @@ function register(app, config) {
             if (_docsSearch) {
                 try { _docsSearch.reindexFile(root, docPath); } catch (_) { /* non-critical */ }
             }
-            res.json({ success: true, path: docPath });
+            res.json({ success: true, path: docPath, version: contentVersion(content) });
         } catch (e) {
             logger.error(`Error saving file ${docPath}: ${e.message}`);
             res.status(500).json({ error: `Error saving file: ${e.message}` });
@@ -1208,6 +1252,7 @@ function rebuildSearchIndex() {
 }
 
 module.exports = {
+    contentVersion,
     register,
     initSearch,
     rebuildSearchIndex,
