@@ -183,6 +183,10 @@ function initConfig(config) {
         // an area lock needs: the LifeCycle docs sit in the same tree as everything else.
         // Absent => everything readable, so no installation changes by upgrading.
         authorizeDocPath: config.authorizeDocPath || null,
+        // (req, root, path, content) → string[]: an application's own check of a document about to
+        // be saved; any finding refuses the save with 422 and the sentences (aide-rap#727 — RAP
+        // checks process definitions with it). aide-frame knows no document semantics itself.
+        validateDocSave: config.validateDocSave || null,
         docsShallow: config.docsShallow || [],
         customRoots: config.customRoots || {},
         pwa: config.pwa || null,
@@ -668,6 +672,13 @@ function register(app, config) {
         // since the editor loaded it, or a "save as" onto a name that exists.
         const refusal = savePrecondition(req, fullPath);
         if (refusal) return res.status(refusal.status).json(refusal.body);
+        if (typeof cfg.validateDocSave === 'function') {
+            const findings = cfg.validateDocSave(req, root, docPath, content) || [];
+            if (findings.length) {
+                return res.status(422).json({ error: 'doc_invalid', findings,
+                    message: 'The document was not saved — ' + findings[0] });
+            }
+        }
 
         // Validate JSON code blocks in markdown
         const jsonError = _validateJsonBlocks(content);

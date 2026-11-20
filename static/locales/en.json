@@ -7,6 +7,7 @@
 
     "frame_loading": "Loading...",
     "frame_doc_conflict": "Somebody else has changed this document in the meantime. Your change was not saved — copy your text, reload the page and enter it there.",
+    "frame_doc_invalid": "The document was not saved:",
     "frame_error": "Error",
     "frame_back": "Back",
     "frame_status": "Status",

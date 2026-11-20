@@ -7,6 +7,7 @@
 
     "frame_loading": "Laden...",
     "frame_doc_conflict": "Dieses Dokument wurde inzwischen von jemand anderem geändert. Ihre Änderung wurde nicht gespeichert – kopieren Sie Ihren Text, laden Sie die Seite neu und tragen Sie ihn dort ein.",
+    "frame_doc_invalid": "Das Dokument wurde nicht gespeichert:",
     "frame_error": "Fehler",
     "frame_back": "Zurück",
     "frame_status": "Status",

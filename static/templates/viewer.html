@@ -447,6 +447,8 @@
                 // Somebody else saved meanwhile: the editor stays open with this text, so nothing
                 // typed is lost; the reader reloads the page to see the other version (#727).
                 if (res.status === 409) { alert(i18n.t('frame_doc_conflict')); return; }
+                // 422: the application refused the text, with its reasons; the editor stays open (#727).
+                if (res.status === 422) { alert(`${i18n.t('frame_doc_invalid')}\n\n${(data.findings || []).join('\n')}`); return; }
                 if (data.error) throw new Error(data.error);
 
                 closeEditor();
@@ -941,6 +943,7 @@
                             });
                             const data = await res.json();
                             if (res.status === 409) { alert(i18n.t('frame_doc_conflict')); loadDoc(currentDocPath); return; }   // #727
+                            if (res.status === 422) { alert(`${i18n.t('frame_doc_invalid')}\n\n${(data.findings || []).join('\n')}`); loadDoc(currentDocPath); return; }
                             if (data.error) throw new Error(data.error);
                             scrollToHeadingText = scrollToHeading;
                             loadDoc(currentDocPath);
