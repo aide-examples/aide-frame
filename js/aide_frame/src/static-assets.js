@@ -43,6 +43,22 @@
  * trips and never a wrong answer — and `test-asset-stamping.js` is what keeps that honest,
  * since the cost is otherwise invisible (§3).
  *
+ * ── A file whose NAME carries its version needs no stamp ─────────────────────────────────
+ * 4. **A mount may declare directories whose file names are versioned** (`versionedNames`).
+ *    `sys/vue-assets/dialog-BkpIsYs7.min.js` is named by Vite after its content, and
+ *    `rap/lib/vendor/vue-3.5.45….min.js` is pinned by version in its name (that directory's
+ *    README). A new content is a new NAME, so such a file is frozen as it is, without `?v=` — and
+ *    it is NOT stamped, because the same file is also reached by an `import` inside a bundle,
+ *    which no HTML rewrite can see. Stamping it in the page made two URLs for one file: measured
+ *    on vuehello, the shared chunk was downloaded twice on a first visit (once stamped by the
+ *    page's `modulepreload`, once bare by the import), and the bare one then revalidated with a
+ *    304 on every later visit, as did the vendored Vue.
+ *
+ *    Declared, never guessed from the name: a pattern like "eight characters after a dash" also
+ *    matches `type-selector.js`, and freezing a file that is edited in place is the one mistake
+ *    here that cannot be taken back from the server. That the names in a declared directory DO
+ *    carry a version is checked by aide-rap's `test-asset-stamping.js`.
+ *
  * A **stale** sibling is ignored rather than served. A `.br` older than its source would make
  * the browser run yesterday's code under today's version — silent, and the worst failure this
  * file could produce (§3). Two `statSync` calls per asset request are the price; express.static
@@ -145,6 +161,26 @@ function registerMount(prefix, dir) {
   MOUNTS.sort((a, b) => b.prefix.length - a.prefix.length);
 }
 
+/**
+ * Absolute directories whose files carry their version in their NAME (point 4 above), from the
+ * `versionedNames` of every mount.
+ * @type {string[]}
+ */
+const VERSIONED_DIRS = [];
+
+/**
+ * Is this file named by its version — inside a declared directory, and an asset rather than a
+ * page or a README?
+ *
+ * @param {string} abs
+ * @returns {boolean}
+ */
+function isVersionedName(abs) {
+  const plain = abs.replace(/\.(br|gz)$/, '');
+  if (!STAMPABLE.has(path.extname(plain).toLowerCase())) return false;
+  return VERSIONED_DIRS.some((d) => plain.startsWith(d + path.sep));
+}
+
 /** `absolute path -> {key, v}`; the key is mtime+size, so an edit invalidates the entry. */
 const versionCache = new Map();
 
@@ -238,6 +274,7 @@ function stampHtml(html, htmlUrlPath) {
       const quote = dq !== undefined ? '"' : "'";
       if (!isStampable(ref)) return whole;
       const abs = resolveAsset(path.posix.normalize(baseDir + ref));
+      if (abs && isVersionedName(abs)) return whole;   // its name is its version (point 4)
       const v = abs ? assetVersion(abs) : null;
       if (!v) { unresolved.push(ref); return whole; }
       stamped++;
@@ -251,16 +288,21 @@ function stampHtml(html, htmlUrlPath) {
  * A static mount that prefers a precompressed sibling and freezes versioned URLs.
  *
  * @param {string} dir directory to serve
- * @param {{immutableSeconds?: number, mount?: string} & Record<string, any>} [options] `mount`
- *   is the app-relative URL prefix this dir is served at — it is what lets a page's references
- *   be stamped, and without it this mount serves HTML unstamped. Every other key is forwarded
- *   to express.static verbatim
+ * @param {{immutableSeconds?: number, mount?: string, versionedNames?: string[]} & Record<string, any>} [options]
+ *   `mount` is the app-relative URL prefix this dir is served at — it is what lets a page's
+ *   references be stamped, and without it this mount serves HTML unstamped. `versionedNames`
+ *   lists subdirectories (relative to `dir`) whose file names carry their version — frozen
+ *   without a stamp, point 4 above. Every other key is forwarded to express.static verbatim
  * @returns {import('express').Router}
  */
 function staticAssets(dir, options = {}) {
-  const { immutableSeconds = 31536000, mount: rawMount, ...staticOptions } = options;
+  const { immutableSeconds = 31536000, mount: rawMount, versionedNames = [], ...staticOptions } = options;
   const mount = rawMount ? '/' + rawMount.replace(/^\/+|\/+$/g, '') : null;
   const router = express.Router();
+  for (const sub of versionedNames) {
+    const abs = path.resolve(dir, sub);
+    if (!VERSIONED_DIRS.includes(abs)) VERSIONED_DIRS.push(abs);
+  }
 
   if (mount) registerMount(mount, dir);
 
@@ -321,9 +363,10 @@ function staticAssets(dir, options = {}) {
       if (COMPRESSIBLE.has(path.extname(filePath.replace(/\.(br|gz)$/, '')).toLowerCase())) {
         res.setHeader('Vary', 'Accept-Encoding');
       }
-      // A version in the URL makes the answer unchangeable, so it need never be revalidated.
+      // A version in the URL — or in the file's own name — makes the answer unchangeable, so it
+      // need never be revalidated.
       const q = res.req && res.req.query;
-      if (q && (q.v !== undefined || q.version !== undefined)) {
+      if ((q && (q.v !== undefined || q.version !== undefined)) || isVersionedName(filePath)) {
         res.setHeader('Cache-Control', `public, max-age=${immutableSeconds}, immutable`);
       }
     },
@@ -335,4 +378,5 @@ function staticAssets(dir, options = {}) {
 module.exports = {
   staticAssets, accepts, pickSibling, COMPRESSIBLE,
   registerMount, assetVersion, resolveAsset, isStampable, stampHtml, STAMPABLE, MOUNTS,
+  isVersionedName, VERSIONED_DIRS,
 };

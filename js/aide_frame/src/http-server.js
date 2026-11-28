@@ -98,6 +98,8 @@ class HttpServer {
      * @param {number} options.port - Port to listen on (default: 8080)
      * @param {string} options.appDir - Application directory (for paths.init)
      * @param {string} options.staticDir - Directory for static files (default: appDir/static)
+     * @param {string[]} [options.staticVersionedNames] - Subdirectories of staticDir whose file
+     *   names carry their version; frozen without a stamp (static-assets.js, point 4).
      * @param {object} options.docsConfig - DocsConfig for docs/help routes
      * @param {object} options.updateConfig - UpdateConfig for remote update functionality
      * @param {string} [options.httpsCertPath] - Path to TLS certificate (PEM). When set
@@ -109,6 +111,9 @@ class HttpServer {
         this.basePath = options.basePath || '';
         this.appDir = options.appDir;
         this.staticDir = options.staticDir || (options.appDir ? path.join(options.appDir, 'static') : null);
+        // Subdirectories of staticDir whose file names carry their version (static-assets.js,
+        // point 4) — frozen without a `?v=` stamp.
+        this.staticVersionedNames = options.staticVersionedNames || [];
         this.docsConfig = options.docsConfig || null;
         this.updateConfig = options.updateConfig || null;
         this.httpsCertPath = options.httpsCertPath || null;
@@ -159,7 +164,8 @@ class HttpServer {
 
         // App static files (/static/*)
         if (this.staticDir && fs.existsSync(this.staticDir)) {
-            this.app.use('/static', staticAssets(this.staticDir, { mount: '/static' }));
+            this.app.use('/static', staticAssets(this.staticDir,
+                { mount: '/static', versionedNames: this.staticVersionedNames }));
         }
 
         // Register docs/help routes if docsConfig provided
